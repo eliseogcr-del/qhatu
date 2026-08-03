@@ -3,28 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-
-async function getEmpresaId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: usuario, error } = await supabase
-    .from("usuarios")
-    .select("empresa_id")
-    .eq("id", user.id)
-    .single();
-
-  if (error || !usuario) {
-    throw new Error(
-      "Tu usuario no tiene un perfil de empresa asociado. Contacta al administrador.",
-    );
-  }
-
-  return usuario.empresa_id as string;
-}
+import { getEmpresaSession } from "@/utils/supabase/session";
 
 function productoFromForm(formData: FormData) {
   const text = (key: string) => {
@@ -64,7 +43,7 @@ function productoFromForm(formData: FormData) {
 
 export async function createProducto(formData: FormData) {
   const supabase = await createClient();
-  const empresa_id = await getEmpresaId(supabase);
+  const { empresaId: empresa_id } = await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
 
   const { error } = await supabase
@@ -81,7 +60,7 @@ export async function createProducto(formData: FormData) {
 
 export async function updateProducto(id: string, formData: FormData) {
   const supabase = await createClient();
-  await getEmpresaId(supabase);
+  await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
 
   const { error } = await supabase
@@ -101,7 +80,7 @@ export async function updateProducto(id: string, formData: FormData) {
 
 export async function toggleActivoProducto(id: string, activo: boolean) {
   const supabase = await createClient();
-  await getEmpresaId(supabase);
+  await getEmpresaSession(supabase);
 
   const { error } = await supabase
     .from("productos")

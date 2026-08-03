@@ -4,32 +4,11 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-
-async function getSession(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: usuario, error } = await supabase
-    .from("usuarios")
-    .select("empresa_id")
-    .eq("id", user.id)
-    .single();
-
-  if (error || !usuario) {
-    throw new Error(
-      "Tu usuario no tiene un perfil de empresa asociado. Contacta al administrador.",
-    );
-  }
-
-  return { userId: user.id, empresaId: usuario.empresa_id as string };
-}
+import { getEmpresaSession } from "@/utils/supabase/session";
 
 export async function createPedido(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getSession(supabase);
+  const { userId, empresaId } = await getEmpresaSession(supabase);
 
   const clienteId = String(formData.get("cliente_id") ?? "");
   const canalPedido = String(formData.get("canal_pedido") ?? "telefono");
@@ -112,7 +91,7 @@ export async function createPedido(formData: FormData) {
 
 export async function updateEstadoPedido(id: string, estado: string) {
   const supabase = await createClient();
-  await getSession(supabase);
+  await getEmpresaSession(supabase);
 
   const { error } = await supabase
     .from("pedidos")

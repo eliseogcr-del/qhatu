@@ -3,28 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-
-async function getEmpresaId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: usuario, error } = await supabase
-    .from("usuarios")
-    .select("empresa_id")
-    .eq("id", user.id)
-    .single();
-
-  if (error || !usuario) {
-    throw new Error(
-      "Tu usuario no tiene un perfil de empresa asociado. Contacta al administrador.",
-    );
-  }
-
-  return usuario.empresa_id as string;
-}
+import { getEmpresaSession } from "@/utils/supabase/session";
 
 function clienteFromForm(formData: FormData) {
   const num = (key: string) => {
@@ -63,7 +42,7 @@ function clienteFromForm(formData: FormData) {
 
 export async function createCliente(formData: FormData) {
   const supabase = await createClient();
-  const empresa_id = await getEmpresaId(supabase);
+  const { empresaId: empresa_id } = await getEmpresaSession(supabase);
   const cliente = clienteFromForm(formData);
 
   const { error } = await supabase
@@ -80,7 +59,7 @@ export async function createCliente(formData: FormData) {
 
 export async function updateCliente(id: string, formData: FormData) {
   const supabase = await createClient();
-  await getEmpresaId(supabase);
+  await getEmpresaSession(supabase);
   const cliente = clienteFromForm(formData);
 
   const { error } = await supabase.from("clientes").update(cliente).eq("id", id);
@@ -97,7 +76,7 @@ export async function updateCliente(id: string, formData: FormData) {
 
 export async function toggleActivo(id: string, activo: boolean) {
   const supabase = await createClient();
-  await getEmpresaId(supabase);
+  await getEmpresaSession(supabase);
 
   const { error } = await supabase
     .from("clientes")
