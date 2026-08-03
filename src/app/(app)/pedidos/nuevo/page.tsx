@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PedidoForm from "@/components/PedidoForm";
 import { createPedido } from "../actions";
@@ -33,9 +34,10 @@ export default async function NuevoPedidoPage({
           </h1>
           <Link
             href="/pedidos"
-            className="text-sm font-medium text-gray-600 hover:underline"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
-            ← Volver al listado
+            <ArrowLeft size={16} />
+            Volver al listado
           </Link>
         </div>
 

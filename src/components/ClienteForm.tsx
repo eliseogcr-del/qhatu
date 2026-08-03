@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { Save } from "lucide-react";
 
 const ClienteMapPicker = dynamic(() => import("./ClienteMapPicker"), {
   ssr: false,
@@ -273,8 +274,9 @@ export default function ClienteForm({
 
       <button
         type="submit"
-        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
       >
+        <Save size={16} />
         {submitLabel}
       </button>
     </form>

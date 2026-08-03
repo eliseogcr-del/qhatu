@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import ClienteForm from "@/components/ClienteForm";
@@ -32,9 +33,10 @@ export default async function EditarClientePage({
           </h1>
           <Link
             href="/clientes"
-            className="text-sm font-medium text-gray-600 hover:underline"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
-            ← Volver al listado
+            <ArrowLeft size={16} />
+            Volver al listado
           </Link>
         </div>
 

@@ -1,3 +1,5 @@
+import { Save } from "lucide-react";
+
 export type ProductoInitialValues = {
   codigo_barra: string | null;
   codigo_proveedor: string | null;
@@ -294,8 +296,9 @@ export default function ProductoForm({
 
       <button
         type="submit"
-        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
       >
+        <Save size={16} />
         {submitLabel}
       </button>
     </form>

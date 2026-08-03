@@ -10,6 +10,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { LocateFixed } from "lucide-react";
 
 // Reference marker images from the CDN instead of bundling them — avoids
 // Next.js/webpack static-asset path issues with Leaflet's default icon.
@@ -105,8 +106,9 @@ export default function ClienteMapPicker({
             onChange(pos.coords.latitude, pos.coords.longitude);
           });
         }}
-        className="text-sm font-medium text-gray-700 underline hover:text-gray-900"
+        className="flex items-center gap-1.5 text-sm font-medium text-gray-700 underline hover:text-gray-900"
       >
+        <LocateFixed size={14} />
         Usar mi ubicación actual
       </button>
     </div>

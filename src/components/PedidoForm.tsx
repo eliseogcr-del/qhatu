@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, Trash2, Save, Paperclip } from "lucide-react";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -195,8 +196,9 @@ export default function PedidoForm({
                       : prev,
                   )
                 }
-                className="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-500 hover:bg-gray-100"
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm text-gray-500 hover:bg-gray-100"
               >
+                <Trash2 size={14} />
                 Quitar
               </button>
             </div>
@@ -206,9 +208,10 @@ export default function PedidoForm({
         <button
           type="button"
           onClick={() => setLineas((prev) => [...prev, newLinea()])}
-          className="text-sm font-medium text-gray-700 underline hover:text-gray-900"
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 underline hover:text-gray-900"
         >
-          + Agregar producto
+          <Plus size={14} />
+          Agregar producto
         </button>
 
         <p className="text-right text-sm font-medium text-gray-900">
@@ -221,20 +224,24 @@ export default function PedidoForm({
           Adjuntos
         </h2>
         <Field label="Fotos o capturas del pedido (WhatsApp, etc.)">
-          <input
-            type="file"
-            name="adjuntos"
-            multiple
-            accept="image/*,application/pdf"
-            className="block w-full text-sm text-gray-600"
-          />
+          <div className="flex items-center gap-2">
+            <Paperclip size={16} className="shrink-0 text-gray-400" />
+            <input
+              type="file"
+              name="adjuntos"
+              multiple
+              accept="image/*,application/pdf"
+              className="block w-full text-sm text-gray-600"
+            />
+          </div>
         </Field>
       </section>
 
       <button
         type="submit"
-        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
       >
+        <Save size={16} />
         Crear pedido
       </button>
     </form>

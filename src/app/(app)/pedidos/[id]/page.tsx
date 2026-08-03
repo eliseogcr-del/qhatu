@@ -1,4 +1,12 @@
 import Link from "next/link";
+import {
+  ShoppingCart,
+  Route,
+  Wallet,
+  RefreshCw,
+  ArrowLeft,
+  FileText,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import {
@@ -81,21 +89,24 @@ export default async function PedidoDetallePage({
           <div className="flex items-center gap-4">
             <Link
               href={`/ventas/nueva?pedido_id=${id}`}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
+              <ShoppingCart size={16} />
               Registrar venta
             </Link>
             <Link
               href={`/repartos/nuevo?pedido_id=${id}`}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
+              <Route size={16} />
               Asignar reparto
             </Link>
             <Link
               href="/pedidos"
-              className="text-sm font-medium text-gray-600 hover:underline"
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
             >
-              ← Volver al listado
+              <ArrowLeft size={16} />
+              Volver al listado
             </Link>
           </div>
         </div>
@@ -154,8 +165,9 @@ export default async function PedidoDetallePage({
             </select>
             <button
               type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
+              <RefreshCw size={16} />
               Actualizar estado
             </button>
           </form>
@@ -200,8 +212,9 @@ export default async function PedidoDetallePage({
             </h2>
             <Link
               href={`/cobranzas/nueva?pedido_id=${id}`}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
+              <Wallet size={16} />
               Registrar cobro
             </Link>
           </div>
@@ -266,12 +279,14 @@ export default async function PedidoDetallePage({
                       href={adjunto.signedUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium text-gray-700 underline hover:text-gray-900"
+                      className="flex items-center gap-1.5 text-sm font-medium text-gray-700 underline hover:text-gray-900"
                     >
+                      <FileText size={14} />
                       {adjunto.url_archivo.split("/").pop()}
                     </a>
                   ) : (
-                    <span className="text-sm text-gray-400">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                      <FileText size={14} />
                       {adjunto.url_archivo.split("/").pop()} (no disponible)
                     </span>
                   )}

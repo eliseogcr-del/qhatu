@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import ClienteForm from "@/components/ClienteForm";
 import { createCliente } from "../actions";
 
@@ -16,9 +17,10 @@ export default async function NuevoClientePage({
           <h1 className="text-2xl font-semibold text-gray-900">Nuevo cliente</h1>
           <Link
             href="/clientes"
-            className="text-sm font-medium text-gray-600 hover:underline"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
-            ← Volver al listado
+            <ArrowLeft size={16} />
+            Volver al listado
           </Link>
         </div>
 
