@@ -9,6 +9,7 @@ import {
   type EstadoPedido,
 } from "@/lib/pedido-estados";
 import { updateEstadoPedido } from "../actions";
+import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 
 export default async function PedidoDetallePage({
   params,
@@ -36,6 +37,23 @@ export default async function PedidoDetallePage({
     ]);
 
   if (!pedido) notFound();
+
+  const { data: venta } = await supabase
+    .from("ventas")
+    .select("id, total, moneda")
+    .eq("pedido_id", id)
+    .maybeSingle();
+
+  const { data: cobranzas } = await supabase
+    .from("cobranzas")
+    .select("id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia")
+    .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : id)
+    .order("fecha", { ascending: false });
+
+  const totalReferencia = venta ? venta.total : pedido.total;
+  const monedaReferencia = venta ? venta.moneda : pedido.moneda;
+  const cobrado = (cobranzas ?? []).reduce((acc, c) => acc + c.monto, 0);
+  const saldoPendiente = totalReferencia - cobrado;
 
   const adjuntosConUrl = await Promise.all(
     (adjuntos ?? []).map(async (adjunto) => {
@@ -173,6 +191,66 @@ export default async function PedidoDetallePage({
           <p className="mt-4 text-right text-sm font-semibold text-gray-900">
             Total: {pedido.moneda} {pedido.total}
           </p>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              Cobranzas
+            </h2>
+            <Link
+              href={`/cobranzas/nueva?pedido_id=${id}`}
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              Registrar cobro
+            </Link>
+          </div>
+
+          <p className="mb-4 text-sm">
+            Saldo pendiente:{" "}
+            <span
+              className={`font-semibold ${saldoPendiente > 0 ? "text-red-600" : "text-green-600"}`}
+            >
+              {monedaReferencia} {saldoPendiente.toFixed(2)}
+            </span>{" "}
+            <span className="text-gray-500">
+              (sobre {venta ? "la venta" : "el pedido"}: {monedaReferencia}{" "}
+              {totalReferencia})
+            </span>
+          </p>
+
+          {cobranzas && cobranzas.length > 0 ? (
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-gray-200 text-gray-500">
+                <tr>
+                  <th className="py-2 font-medium">Fecha</th>
+                  <th className="py-2 font-medium">Monto</th>
+                  <th className="py-2 font-medium">Método</th>
+                  <th className="py-2 font-medium">Tipo</th>
+                  <th className="py-2 font-medium">Referencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cobranzas.map((c) => (
+                  <tr key={c.id} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2 text-gray-600">
+                      {new Date(c.fecha).toLocaleDateString("es-PE")}
+                    </td>
+                    <td className="py-2 text-gray-600">
+                      {c.moneda} {c.monto}
+                    </td>
+                    <td className="py-2 text-gray-600">
+                      {METODO_PAGO_LABEL[c.metodo_pago as MetodoPago] ?? c.metodo_pago}
+                    </td>
+                    <td className="py-2 text-gray-600">{c.tipo_pago}</td>
+                    <td className="py-2 text-gray-600">{c.referencia ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-sm text-gray-400">Aún no hay cobros registrados.</p>
+          )}
         </div>
 
         {adjuntosConUrl.length > 0 && (

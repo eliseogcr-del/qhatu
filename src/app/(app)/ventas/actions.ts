@@ -115,8 +115,18 @@ export async function createVenta(formData: FormData) {
 
   await supabase.from("pedidos").update({ estado: "entregado" }).eq("id", pedidoId);
 
+  // Amarra los anticipos sueltos del pedido (cobranzas sin venta_id) a la
+  // venta recién generada. tipo_pago se mantiene en "anticipo": describe
+  // cuándo se cobró (antes de la venta), no a qué venta quedó amarrado.
+  await supabase
+    .from("cobranzas")
+    .update({ venta_id: venta.id })
+    .eq("pedido_id", pedidoId)
+    .is("venta_id", null);
+
   revalidatePath("/ventas");
   revalidatePath("/pedidos");
+  revalidatePath("/cobranzas");
   revalidatePath(`/pedidos/${pedidoId}`);
   redirect(`/ventas/${venta.id}`);
 }
