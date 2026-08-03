@@ -37,15 +37,23 @@ export default async function NuevaVentaPage({
             <h1 className="text-2xl font-semibold text-gray-900">
               Registrar venta
             </h1>
-            <Link
-              href="/ventas"
-              className="text-sm font-medium text-gray-600 hover:underline"
-            >
-              ← Volver al listado
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/ventas/directa"
+                className="rounded-md bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800"
+              >
+                + Venta directa (sin pedido)
+              </Link>
+              <Link
+                href="/ventas"
+                className="text-sm font-medium text-gray-600 hover:underline"
+              >
+                ← Volver al listado
+              </Link>
+            </div>
           </div>
           <p className="mb-4 text-sm text-gray-600">
-            Selecciona el pedido que se va a entregar.
+            O selecciona un pedido existente para registrar lo entregado.
           </p>
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <ul>

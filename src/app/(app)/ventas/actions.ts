@@ -175,3 +175,134 @@ export async function createVenta(formData: FormData) {
   revalidatePath(`/pedidos/${pedidoId}`);
   redirect(`/ventas/${venta.id}`);
 }
+
+// Venta sin pedido previo (ej. cliente que compra en el momento). Crea un
+// pedido "directo" ya entregado por debajo para que el resto del sistema
+// (saldo/cobros, reparto si hiciera falta) siga funcionando igual que con
+// cualquier otro pedido — evita duplicar esa lógica para este caso.
+export async function createVentaDirecta(formData: FormData) {
+  const supabase = await createClient();
+  const { userId, empresaId } = await getEmpresaSession(supabase);
+
+  const clienteId = String(formData.get("cliente_id") ?? "");
+  const moneda = String(formData.get("moneda") ?? "PEN");
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") ?? 1);
+
+  const productoIds = formData.getAll("producto_id[]").map(String);
+  const cantidades = formData.getAll("cantidad[]").map(Number);
+  const precios = formData.getAll("precio_unitario[]").map(Number);
+
+  const lineas = productoIds
+    .map((producto_id, i) => ({
+      producto_id,
+      cantidad: cantidades[i],
+      precio_unitario: precios[i],
+      subtotal: Math.round(cantidades[i] * precios[i] * 100) / 100,
+    }))
+    .filter((l) => l.producto_id && l.cantidad > 0);
+
+  if (!clienteId || lineas.length === 0) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Selecciona un cliente y agrega al menos un producto.")}`,
+    );
+  }
+
+  const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const { data: pedido, error: pedidoError } = await supabase
+    .from("pedidos")
+    .insert({
+      empresa_id: empresaId,
+      cliente_id: clienteId,
+      canal_pedido: "directo",
+      fecha_entrega_requerida: hoy,
+      estado: "entregado",
+      moneda,
+      total,
+      usuario_id: userId,
+    })
+    .select("id")
+    .single();
+
+  if (pedidoError || !pedido) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent(pedidoError?.message ?? "No se pudo registrar la venta.")}`,
+    );
+  }
+
+  await supabase.from("pedido_detalle").insert(
+    lineas.map((l) => ({ ...l, pedido_id: pedido.id })),
+  );
+
+  const { data: venta, error: ventaError } = await supabase
+    .from("ventas")
+    .insert({
+      empresa_id: empresaId,
+      pedido_id: pedido.id,
+      cliente_id: clienteId,
+      moneda,
+      tipo_cambio_aplicado: tipoCambio,
+      total,
+    })
+    .select("id")
+    .single();
+
+  if (ventaError || !venta) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent(ventaError?.message ?? "No se pudo registrar la venta.")}`,
+    );
+  }
+
+  const productoIdsUnicos = [...new Set(lineas.map((l) => l.producto_id))];
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, control_inventario")
+    .in("id", productoIdsUnicos);
+
+  const { data: almacen } = await supabase
+    .from("almacenes")
+    .select("id")
+    .eq("activo", true)
+    .limit(1)
+    .maybeSingle();
+
+  for (const linea of lineas) {
+    const { data: ventaDetalle } = await supabase
+      .from("venta_detalle")
+      .insert({
+        venta_id: venta.id,
+        producto_id: linea.producto_id,
+        cantidad: linea.cantidad,
+        cantidad_entregada: linea.cantidad,
+        precio_unitario: linea.precio_unitario,
+        subtotal: linea.subtotal,
+      })
+      .select("id")
+      .single();
+
+    if (!ventaDetalle) continue;
+
+    const llevaInventario = productosInfo?.find(
+      (p) => p.id === linea.producto_id,
+    )?.control_inventario;
+
+    if (llevaInventario && almacen) {
+      await registrarMovimientoKardex(supabase, {
+        empresaId,
+        productoId: linea.producto_id,
+        almacenId: almacen.id,
+        tipoMovimiento: "venta",
+        cantidad: -linea.cantidad,
+        referenciaId: ventaDetalle.id,
+        usuarioId: userId,
+      });
+    }
+  }
+
+  revalidatePath("/ventas");
+  revalidatePath("/pedidos");
+  revalidatePath("/inventario");
+  revalidatePath("/kardex");
+  redirect(`/ventas/${venta.id}`);
+}
