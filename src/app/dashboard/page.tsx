@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { signOut } from "../login/actions";
@@ -21,6 +22,15 @@ export default async function DashboardPage() {
         <p className="mb-6 text-sm text-gray-500">
           Sesión iniciada como <span className="font-medium">{user.email}</span>
         </p>
+
+        <div className="mb-6 flex gap-3">
+          <Link
+            href="/clientes"
+            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            Clientes
+          </Link>
+        </div>
 
         <form action={signOut}>
           <button

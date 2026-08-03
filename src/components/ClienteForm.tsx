@@ -1,0 +1,282 @@
+"use client";
+
+import { useState } from "react";
+import dynamic from "next/dynamic";
+
+const ClienteMapPicker = dynamic(() => import("./ClienteMapPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[300px] items-center justify-center rounded-md border border-gray-300 text-sm text-gray-400">
+      Cargando mapa...
+    </div>
+  ),
+});
+
+export type ClienteInitialValues = {
+  tipo_documento: string;
+  numero_documento: string;
+  nombre: string;
+  contacto: string | null;
+  correo_electronico: string | null;
+  telefono: string | null;
+  departamento: string | null;
+  provincia: string | null;
+  distrito: string | null;
+  direccion: string | null;
+  referencia: string | null;
+  latitud: number | null;
+  longitud: number | null;
+  zona: string | null;
+  giro_negocio: string | null;
+  grupo: string | null;
+  linea_credito: number | null;
+  codigo_interno: string | null;
+  activo: boolean;
+};
+
+const emptyValues: ClienteInitialValues = {
+  tipo_documento: "DNI",
+  numero_documento: "",
+  nombre: "",
+  contacto: null,
+  correo_electronico: null,
+  telefono: null,
+  departamento: null,
+  provincia: null,
+  distrito: null,
+  direccion: null,
+  referencia: null,
+  latitud: null,
+  longitud: null,
+  zona: null,
+  giro_negocio: null,
+  grupo: null,
+  linea_credito: 0,
+  codigo_interno: null,
+  activo: true,
+};
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputClass =
+  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+
+export default function ClienteForm({
+  action,
+  initialValues,
+  error,
+  submitLabel,
+}: {
+  action: (formData: FormData) => void;
+  initialValues?: ClienteInitialValues;
+  error?: string;
+  submitLabel: string;
+}) {
+  const values = initialValues ?? emptyValues;
+  const [lat, setLat] = useState<number | null>(values.latitud);
+  const [lng, setLng] = useState<number | null>(values.longitud);
+
+  return (
+    <form action={action} className="space-y-8">
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Datos generales
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Tipo de documento">
+            <select
+              name="tipo_documento"
+              defaultValue={values.tipo_documento}
+              className={inputClass}
+            >
+              <option value="DNI">DNI</option>
+              <option value="RUC">RUC</option>
+              <option value="CE">Carné de extranjería</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </Field>
+          <Field label="Número de documento">
+            <input
+              name="numero_documento"
+              required
+              defaultValue={values.numero_documento}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Nombre / Razón social">
+            <input
+              name="nombre"
+              required
+              defaultValue={values.nombre}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Persona de contacto">
+            <input
+              name="contacto"
+              defaultValue={values.contacto ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Correo electrónico">
+            <input
+              type="email"
+              name="correo_electronico"
+              defaultValue={values.correo_electronico ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Teléfono">
+            <input
+              name="telefono"
+              defaultValue={values.telefono ?? ""}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Ubicación
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Departamento">
+            <input
+              name="departamento"
+              defaultValue={values.departamento ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Provincia">
+            <input
+              name="provincia"
+              defaultValue={values.provincia ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Distrito">
+            <input
+              name="distrito"
+              defaultValue={values.distrito ?? ""}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        <Field label="Dirección">
+          <input
+            name="direccion"
+            defaultValue={values.direccion ?? ""}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Referencia">
+          <input
+            name="referencia"
+            defaultValue={values.referencia ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="Ubicación en el mapa (clic o arrastra el marcador)">
+          <ClienteMapPicker
+            lat={lat}
+            lng={lng}
+            onChange={(newLat, newLng) => {
+              setLat(newLat);
+              setLng(newLng);
+            }}
+          />
+        </Field>
+        <input type="hidden" name="latitud" value={lat ?? ""} readOnly />
+        <input type="hidden" name="longitud" value={lng ?? ""} readOnly />
+        <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+          <p>Latitud: {lat?.toFixed(6) ?? "sin definir"}</p>
+          <p>Longitud: {lng?.toFixed(6) ?? "sin definir"}</p>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Comercial
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Zona">
+            <input
+              name="zona"
+              defaultValue={values.zona ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Giro de negocio">
+            <input
+              name="giro_negocio"
+              defaultValue={values.giro_negocio ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Grupo">
+            <input
+              name="grupo"
+              defaultValue={values.grupo ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Código interno">
+            <input
+              name="codigo_interno"
+              defaultValue={values.codigo_interno ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Línea de crédito">
+            <input
+              type="number"
+              step="0.01"
+              name="linea_credito"
+              defaultValue={values.linea_credito ?? 0}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            name="activo"
+            defaultChecked={values.activo}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          Cliente activo
+        </label>
+      </section>
+
+      <button
+        type="submit"
+        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+      >
+        {submitLabel}
+      </button>
+    </form>
+  );
+}
