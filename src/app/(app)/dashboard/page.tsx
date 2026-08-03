@@ -1,4 +1,28 @@
+import Link from "next/link";
+import {
+  Users,
+  Package,
+  Truck,
+  ClipboardList,
+  Route,
+  ShoppingCart,
+  Wallet,
+  Boxes,
+  BarChart3,
+} from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+
+const QUICK_LINKS = [
+  { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/productos", label: "Productos", icon: Package },
+  { href: "/proveedores", label: "Proveedores", icon: Truck },
+  { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/repartos", label: "Reparto", icon: Route },
+  { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
+  { href: "/inventario", label: "Inventario", icon: Boxes },
+  { href: "/reportes", label: "Reportes", icon: BarChart3 },
+];
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -8,14 +32,37 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-8">
-      <div className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-2 text-2xl font-semibold text-gray-900">
-          Panel Qhatu
-        </h1>
-        <p className="text-sm text-gray-500">
-          Sesión iniciada como{" "}
-          <span className="font-medium">{user?.email}</span>
-        </p>
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 text-white shadow-lg shadow-emerald-900/10">
+          <h1 className="text-2xl font-semibold">Bienvenido a Qhatu</h1>
+          <p className="mt-1 text-sm text-emerald-50">
+            Sesión iniciada como{" "}
+            <span className="font-medium">{user?.email}</span>
+          </p>
+        </div>
+
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Accesos rápidos
+        </h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {QUICK_LINKS.map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="group flex flex-col items-start gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+              >
+                <span className="rounded-lg bg-emerald-50 p-2.5 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white">
+                  <Icon size={20} />
+                </span>
+                <span className="text-sm font-medium text-gray-900">
+                  {link.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

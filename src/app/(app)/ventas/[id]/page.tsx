@@ -51,7 +51,7 @@ export default async function VentaDetallePage({
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
           <div>
             <p className="text-sm text-gray-500">Fecha</p>
             <p className="font-medium text-gray-900">
@@ -77,7 +77,7 @@ export default async function VentaDetallePage({
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
             Productos entregados
           </h2>

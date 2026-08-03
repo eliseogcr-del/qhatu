@@ -38,7 +38,7 @@ export default async function EditarClientePage({
           </Link>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <ClienteForm
             action={updateCliente.bind(null, id)}
             initialValues={cliente}

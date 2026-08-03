@@ -1,7 +1,7 @@
 import { METODOS_PAGO, METODO_PAGO_LABEL } from "@/lib/cobranza-tipos";
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
 function Field({
   label,
@@ -38,7 +38,7 @@ export default function CobranzaForm({
   return (
     <form action={action} className="space-y-6">
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -99,7 +99,7 @@ export default function CobranzaForm({
 
       <button
         type="submit"
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
       >
         Registrar cobro
       </button>

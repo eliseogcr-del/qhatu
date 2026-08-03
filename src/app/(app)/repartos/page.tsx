@@ -49,7 +49,7 @@ export default async function RepartosPage({
           <h1 className="text-2xl font-semibold text-gray-900">Reparto</h1>
           <Link
             href="/repartos/nuevo"
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
             + Asignar reparto
           </Link>
@@ -64,12 +64,12 @@ export default async function RepartosPage({
               type="date"
               name="fecha"
               defaultValue={fecha ?? ""}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
           <button
             type="submit"
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
             Filtrar
           </button>
@@ -86,7 +86,7 @@ export default async function RepartosPage({
               href={rutaCombinada}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="ml-auto rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               Ver ruta combinada del día ({destinos.length} paradas)
             </a>
@@ -94,12 +94,12 @@ export default async function RepartosPage({
         </form>
 
         {error && (
-          <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error.message}
           </p>
         )}
 
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
               <tr>

@@ -36,7 +36,7 @@ export default async function NuevaCobranzaPage({
           <p className="mb-4 text-sm text-gray-600">
             Selecciona el pedido al que corresponde el cobro.
           </p>
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <ul>
               {pedidos?.map((p) => {
                 const cliente = p.clientes as unknown as { nombre: string } | null;
@@ -109,7 +109,7 @@ export default async function NuevaCobranzaPage({
           </Link>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <CobranzaForm
             action={createCobranza}
             error={error}

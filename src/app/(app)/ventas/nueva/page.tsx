@@ -40,7 +40,7 @@ export default async function NuevaVentaPage({
             <div className="flex items-center gap-4">
               <Link
                 href="/ventas/directa"
-                className="rounded-md bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
               >
                 + Venta directa (sin pedido)
               </Link>
@@ -55,7 +55,7 @@ export default async function NuevaVentaPage({
           <p className="mb-4 text-sm text-gray-600">
             O selecciona un pedido existente para registrar lo entregado.
           </p>
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <ul>
               {pedidos?.map((p) => {
                 const cliente = p.clientes as unknown as { nombre: string } | null;
@@ -133,7 +133,7 @@ export default async function NuevaVentaPage({
           </Link>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <VentaForm
             action={createVenta}
             error={error}

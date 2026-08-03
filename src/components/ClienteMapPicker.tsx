@@ -71,7 +71,7 @@ export default function ClienteMapPicker({
 
   return (
     <div className="space-y-2">
-      <div className="overflow-hidden rounded-md border border-gray-300">
+      <div className="overflow-hidden rounded-lg border border-gray-300">
         <MapContainer
           center={initialCenter}
           zoom={hasPosition ? 16 : 6}

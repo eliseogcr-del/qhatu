@@ -4,7 +4,7 @@ import { registrarMovimientoManual } from "../actions";
 import { TIPOS_MOVIMIENTO_MANUAL, TIPO_MOVIMIENTO_LABEL } from "@/lib/kardex-tipos";
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
 export default async function MovimientoInventarioPage({
   searchParams,
@@ -39,10 +39,10 @@ export default async function MovimientoInventarioPage({
           </Link>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <form action={registrarMovimientoManual} className="space-y-4">
             {error && (
-              <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </p>
             )}
@@ -119,7 +119,7 @@ export default async function MovimientoInventarioPage({
 
             <button
               type="submit"
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
               Registrar movimiento
             </button>

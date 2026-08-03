@@ -39,7 +39,7 @@ export default async function NuevoPedidoPage({
           </Link>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <PedidoForm
             action={createPedido}
             error={error}

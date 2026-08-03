@@ -43,7 +43,7 @@ export default async function VentaDirectaPage({
           producto en el momento).
         </p>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
           <VentaDirectaForm
             action={createVentaDirecta}
             error={error}

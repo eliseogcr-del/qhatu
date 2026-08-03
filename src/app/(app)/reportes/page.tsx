@@ -67,7 +67,7 @@ export default async function ReportesPage({
               type="date"
               name="desde"
               defaultValue={desde ?? ""}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
           <div>
@@ -76,12 +76,12 @@ export default async function ReportesPage({
               type="date"
               name="hasta"
               defaultValue={hasta ?? ""}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
           <button
             type="submit"
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
             Filtrar
           </button>
@@ -100,7 +100,7 @@ export default async function ReportesPage({
           {cards.map((card) => (
             <div
               key={card.label}
-              className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+              className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             >
               <p className="text-sm text-gray-500">{card.label}</p>
               <p className="mt-1 text-2xl font-semibold text-gray-900">{card.value}</p>
