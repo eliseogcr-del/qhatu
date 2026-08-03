@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qhatu-dev",
+      "runtimeExecutable": "D:\\Sistema-Ventas-QHATU\\.claude\\dev-server.cmd",
+      "runtimeArgs": [],
+      "port": 3000
+    }
+  ]
+}
