@@ -12,6 +12,9 @@ const NAV_ITEMS = [
   { href: "/repartos", label: "Reparto" },
   { href: "/ventas", label: "Ventas" },
   { href: "/cobranzas", label: "Cobranzas" },
+  { href: "/inventario", label: "Inventario" },
+  { href: "/kardex", label: "Kardex" },
+  { href: "/reportes", label: "Reportes" },
 ];
 
 export default async function AppLayout({
@@ -29,8 +32,8 @@ export default async function AppLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-8 py-4">
-          <nav className="flex items-center gap-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-y-3 px-8 py-4">
+          <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span className="text-lg font-semibold text-gray-900">Qhatu</span>
             {NAV_ITEMS.map((item) => (
               <Link

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { registrarMovimientoKardex } from "@/utils/supabase/kardex";
 
 export async function createVenta(formData: FormData) {
   const supabase = await createClient();
@@ -83,6 +84,19 @@ export async function createVenta(formData: FormData) {
     );
   }
 
+  const productoIds = [...new Set(lineas.map((l) => l.producto_id))];
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, control_inventario")
+    .in("id", productoIds);
+
+  const { data: almacen } = await supabase
+    .from("almacenes")
+    .select("id")
+    .eq("activo", true)
+    .limit(1)
+    .maybeSingle();
+
   for (const linea of lineas) {
     const { data: ventaDetalle, error: detalleError } = await supabase
       .from("venta_detalle")
@@ -111,6 +125,35 @@ export async function createVenta(formData: FormData) {
         usuario_id: userId,
       });
     }
+
+    const llevaInventario = productosInfo?.find(
+      (p) => p.id === linea.producto_id,
+    )?.control_inventario;
+
+    if (llevaInventario && almacen) {
+      if (linea.cantidad_entregada > 0) {
+        await registrarMovimientoKardex(supabase, {
+          empresaId,
+          productoId: linea.producto_id,
+          almacenId: almacen.id,
+          tipoMovimiento: "venta",
+          cantidad: -linea.cantidad_entregada,
+          referenciaId: ventaDetalle.id,
+          usuarioId: userId,
+        });
+      }
+      if (diferencia > 0) {
+        await registrarMovimientoKardex(supabase, {
+          empresaId,
+          productoId: linea.producto_id,
+          almacenId: almacen.id,
+          tipoMovimiento: "merma",
+          cantidad: -diferencia,
+          referenciaId: ventaDetalle.id,
+          usuarioId: userId,
+        });
+      }
+    }
   }
 
   await supabase.from("pedidos").update({ estado: "entregado" }).eq("id", pedidoId);
@@ -127,6 +170,8 @@ export async function createVenta(formData: FormData) {
   revalidatePath("/ventas");
   revalidatePath("/pedidos");
   revalidatePath("/cobranzas");
+  revalidatePath("/inventario");
+  revalidatePath("/kardex");
   revalidatePath(`/pedidos/${pedidoId}`);
   redirect(`/ventas/${venta.id}`);
 }
