@@ -10,7 +10,7 @@ export default async function NuevoClientePage({
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="p-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Nuevo cliente</h1>

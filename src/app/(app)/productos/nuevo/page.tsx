@@ -1,37 +1,31 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import ClienteForm from "@/components/ClienteForm";
-import { updateCliente } from "../../actions";
+import ProductoForm from "@/components/ProductoForm";
+import { createProducto } from "../actions";
 
-export default async function EditarClientePage({
-  params,
+export default async function NuevoProductoPage({
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { id } = await params;
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const { data: cliente } = await supabase
-    .from("clientes")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (!cliente) notFound();
+  const { data: proveedores } = await supabase
+    .from("proveedores")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="p-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">
-            Editar cliente
+            Nuevo producto
           </h1>
           <Link
-            href="/clientes"
+            href="/productos"
             className="text-sm font-medium text-gray-600 hover:underline"
           >
             ← Volver al listado
@@ -39,11 +33,11 @@ export default async function EditarClientePage({
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-          <ClienteForm
-            action={updateCliente.bind(null, id)}
-            initialValues={cliente}
+          <ProductoForm
+            action={createProducto}
             error={error}
-            submitLabel="Guardar cambios"
+            submitLabel="Crear producto"
+            proveedores={proveedores ?? []}
           />
         </div>
       </div>
