@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/clientes", label: "Clientes" },
   { href: "/productos", label: "Productos" },
   { href: "/proveedores", label: "Proveedores" },
+  { href: "/pedidos", label: "Pedidos" },
 ];
 
 export default async function AppLayout({
