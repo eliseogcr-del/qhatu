@@ -1,0 +1,239 @@
+"use client";
+
+import { useState } from "react";
+import { TIPOS_DEVOLUCION, TIPO_DEVOLUCION_LABEL } from "@/lib/devolucion-tipos";
+
+type LineaPedido = {
+  pedido_detalle_id: string;
+  producto_nombre: string;
+  cantidad_pedida: number;
+  precio_unitario: number;
+};
+
+type LineaVenta = LineaPedido & {
+  cantidad_entregada: number;
+  motivo: string;
+  tipo_devolucion: string;
+};
+
+const inputClass =
+  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+export default function VentaForm({
+  action,
+  error,
+  pedidoId,
+  clienteNombre,
+  monedaPedido,
+  lineasPedido,
+}: {
+  action: (formData: FormData) => void;
+  error?: string;
+  pedidoId: string;
+  clienteNombre: string;
+  monedaPedido: string;
+  lineasPedido: LineaPedido[];
+}) {
+  const [lineas, setLineas] = useState<LineaVenta[]>(
+    lineasPedido.map((l) => ({
+      ...l,
+      cantidad_entregada: l.cantidad_pedida,
+      motivo: "",
+      tipo_devolucion: "danado",
+    })),
+  );
+
+  const updateLinea = (
+    id: string,
+    patch: Partial<LineaVenta>,
+  ) => {
+    setLineas((prev) =>
+      prev.map((l) => (l.pedido_detalle_id === id ? { ...l, ...patch } : l)),
+    );
+  };
+
+  const total = lineas.reduce(
+    (acc, l) => acc + l.cantidad_entregada * l.precio_unitario,
+    0,
+  );
+
+  return (
+    <form action={action} className="space-y-8">
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+
+      <input type="hidden" name="pedido_id" value={pedidoId} />
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Venta para {clienteNombre}
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Moneda">
+            <select name="moneda" defaultValue={monedaPedido} className={inputClass}>
+              <option value="PEN">Soles (PEN)</option>
+              <option value="USD">Dólares (USD)</option>
+            </select>
+          </Field>
+          <Field label="Tipo de cambio aplicado">
+            <input
+              type="number"
+              step="0.0001"
+              name="tipo_cambio_aplicado"
+              defaultValue={1}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Productos entregados
+        </h2>
+
+        <div className="space-y-4">
+          {lineas.map((linea) => {
+            const diferencia = linea.cantidad_pedida - linea.cantidad_entregada;
+            return (
+              <div
+                key={linea.pedido_detalle_id}
+                className="rounded-md border border-gray-200 p-4"
+              >
+                <input
+                  type="hidden"
+                  name="pedido_detalle_id[]"
+                  value={linea.pedido_detalle_id}
+                />
+                <p className="mb-3 font-medium text-gray-900">
+                  {linea.producto_nombre}{" "}
+                  <span className="font-normal text-gray-500">
+                    (pedido: {linea.cantidad_pedida})
+                  </span>
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Field label="Cantidad entregada">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max={linea.cantidad_pedida}
+                      name="cantidad_entregada[]"
+                      value={linea.cantidad_entregada}
+                      onChange={(e) =>
+                        updateLinea(linea.pedido_detalle_id, {
+                          cantidad_entregada: Number(e.target.value),
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Precio unitario">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="precio_unitario[]"
+                      value={linea.precio_unitario}
+                      onChange={(e) =>
+                        updateLinea(linea.pedido_detalle_id, {
+                          precio_unitario: Number(e.target.value),
+                        })
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="Subtotal">
+                    <input
+                      disabled
+                      value={(
+                        linea.cantidad_entregada * linea.precio_unitario
+                      ).toFixed(2)}
+                      className={`${inputClass} bg-gray-50 text-gray-500`}
+                    />
+                  </Field>
+                </div>
+
+                {diferencia > 0 && (
+                  <div className="mt-3 grid grid-cols-1 gap-3 rounded-md bg-red-50 p-3 sm:grid-cols-2">
+                    <p className="col-span-full text-sm text-red-700">
+                      Diferencia de {diferencia}: se registrará como merma
+                      (devolución).
+                    </p>
+                    <Field label="Tipo de devolución">
+                      <select
+                        name="tipo_devolucion[]"
+                        value={linea.tipo_devolucion}
+                        onChange={(e) =>
+                          updateLinea(linea.pedido_detalle_id, {
+                            tipo_devolucion: e.target.value,
+                          })
+                        }
+                        className={inputClass}
+                      >
+                        {TIPOS_DEVOLUCION.map((t) => (
+                          <option key={t} value={t}>
+                            {TIPO_DEVOLUCION_LABEL[t]}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Motivo">
+                      <input
+                        name="motivo[]"
+                        value={linea.motivo}
+                        onChange={(e) =>
+                          updateLinea(linea.pedido_detalle_id, {
+                            motivo: e.target.value,
+                          })
+                        }
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                )}
+                {diferencia <= 0 && (
+                  <>
+                    <input type="hidden" name="tipo_devolucion[]" value="" />
+                    <input type="hidden" name="motivo[]" value="" />
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-right text-sm font-medium text-gray-900">
+          Total: {total.toFixed(2)}
+        </p>
+      </section>
+
+      <button
+        type="submit"
+        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+      >
+        Registrar venta
+      </button>
+    </form>
+  );
+}

@@ -62,6 +62,12 @@ export default async function PedidoDetallePage({
           </h1>
           <div className="flex items-center gap-4">
             <Link
+              href={`/ventas/nueva?pedido_id=${id}`}
+              className="rounded-md bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800"
+            >
+              Registrar venta
+            </Link>
+            <Link
               href={`/repartos/nuevo?pedido_id=${id}`}
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
             >
