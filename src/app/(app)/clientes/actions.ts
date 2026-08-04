@@ -57,6 +57,34 @@ export async function createCliente(formData: FormData) {
   redirect("/clientes");
 }
 
+// Alta rápida desde un combobox (ej. venta directa): sin redirect, devuelve
+// el cliente creado (o un error) para que el formulario que la invocó pueda
+// seleccionarlo al vuelo sin perder lo que el usuario ya llenó.
+export async function createClienteRapido(
+  formData: FormData,
+): Promise<{ id: string; nombre: string } | { error: string }> {
+  const supabase = await createClient();
+  const { empresaId } = await getEmpresaSession(supabase);
+  const cliente = clienteFromForm(formData);
+
+  if (!cliente.nombre || !cliente.numero_documento) {
+    return { error: "Nombre y número de documento son obligatorios." };
+  }
+
+  const { data, error } = await supabase
+    .from("clientes")
+    .insert({ ...cliente, empresa_id: empresaId })
+    .select("id, nombre")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "No se pudo registrar el cliente." };
+  }
+
+  revalidatePath("/clientes");
+  return { id: data.id, nombre: data.nombre };
+}
+
 export async function updateCliente(id: string, formData: FormData) {
   const supabase = await createClient();
   await getEmpresaSession(supabase);
