@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { ESTADO_LABEL, canalLabel, type EstadoPedido } from "@/lib/pedido-estados";
+import { buildCsv } from "@/lib/csv";
 
 const HEADERS = [
   "Cliente",
@@ -11,11 +12,6 @@ const HEADERS = [
   "Moneda",
   "Total",
 ];
-
-function csvEscape(value: unknown) {
-  const str = value === null || value === undefined ? "" : String(value);
-  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-}
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -45,17 +41,17 @@ export async function GET(request: NextRequest) {
     const cliente = (p.clientes as unknown as { nombre: string } | null)?.nombre;
     const estado = p.estado as EstadoPedido;
     return [
-      csvEscape(cliente),
-      csvEscape(canalLabel(p.canal_pedido)),
-      csvEscape(new Date(p.fecha).toLocaleDateString("es-PE")),
-      csvEscape(p.fecha_entrega_requerida),
-      csvEscape(ESTADO_LABEL[estado] ?? p.estado),
-      csvEscape(p.moneda),
-      csvEscape(p.total),
-    ].join(",");
+      cliente,
+      canalLabel(p.canal_pedido),
+      new Date(p.fecha).toLocaleDateString("es-PE"),
+      p.fecha_entrega_requerida,
+      ESTADO_LABEL[estado] ?? p.estado,
+      p.moneda,
+      p.total,
+    ];
   });
 
-  const csv = "﻿" + [HEADERS.join(","), ...rows].join("\r\n");
+  const csv = buildCsv(HEADERS, rows);
 
   return new NextResponse(csv, {
     headers: {

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { buildCsv } from "@/lib/csv";
 
 const COLUMNS = [
   "tipo_documento",
@@ -39,11 +40,6 @@ const HEADERS = [
   "Activo",
 ];
 
-function csvEscape(value: unknown) {
-  const str = value === null || value === undefined ? "" : String(value);
-  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-}
-
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -67,10 +63,10 @@ export async function GET(request: NextRequest) {
   const { data: clientes } = await query;
 
   const rows = (clientes ?? []).map((c) =>
-    COLUMNS.map((col) => csvEscape((c as Record<string, unknown>)[col])).join(","),
+    COLUMNS.map((col) => (c as Record<string, unknown>)[col]),
   );
 
-  const csv = "﻿" + [HEADERS.join(","), ...rows].join("\r\n");
+  const csv = buildCsv(HEADERS, rows);
 
   return new NextResponse(csv, {
     headers: {
