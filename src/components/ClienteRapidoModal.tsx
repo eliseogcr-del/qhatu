@@ -54,6 +54,7 @@ export default function ClienteRapidoModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="hidden" name="activo" value="on" />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
