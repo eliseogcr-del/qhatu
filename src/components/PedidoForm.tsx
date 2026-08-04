@@ -238,7 +238,7 @@ export default function PedidoForm({
         </Field>
       </section>
 
-      <SubmitButton icon={Save} pendingLabel="Creando pedido...">
+      <SubmitButton icon={<Save size={16} />} pendingLabel="Creando pedido...">
         Crear pedido
       </SubmitButton>
     </form>

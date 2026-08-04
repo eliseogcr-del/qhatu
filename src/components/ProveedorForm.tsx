@@ -110,7 +110,7 @@ export default function ProveedorForm({
         Proveedor activo
       </label>
 
-      <SubmitButton icon={Save}>{submitLabel}</SubmitButton>
+      <SubmitButton icon={<Save size={16} />}>{submitLabel}</SubmitButton>
     </form>
   );
 }

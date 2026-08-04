@@ -351,7 +351,7 @@ export default function ClienteForm({
         </label>
       </section>
 
-      <SubmitButton icon={Save}>{submitLabel}</SubmitButton>
+      <SubmitButton icon={<Save size={16} />}>{submitLabel}</SubmitButton>
     </form>
   );
 }

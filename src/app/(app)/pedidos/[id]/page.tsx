@@ -164,7 +164,10 @@ export default async function PedidoDetallePage({
                 </option>
               ))}
             </select>
-            <SubmitButton icon={RefreshCw} pendingLabel="Actualizando...">
+            <SubmitButton
+              icon={<RefreshCw size={16} />}
+              pendingLabel="Actualizando..."
+            >
               Actualizar estado
             </SubmitButton>
           </form>

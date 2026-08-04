@@ -2,17 +2,19 @@
 
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 export default function SubmitButton({
   children,
   pendingLabel,
-  icon: Icon,
+  icon,
   className,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
-  icon?: LucideIcon;
+  // Un elemento ya renderizado (ej. <Save size={16} />), nunca el
+  // componente en sí — pasar el componente cruza el límite Server/Client
+  // como una referencia de función, lo cual React no permite serializar.
+  icon?: React.ReactNode;
   className?: string;
 }) {
   const { pending } = useFormStatus();
@@ -28,11 +30,7 @@ export default function SubmitButton({
         " flex items-center gap-2 disabled:cursor-wait disabled:opacity-70"
       }
     >
-      {pending ? (
-        <Loader2 size={16} className="animate-spin" />
-      ) : Icon ? (
-        <Icon size={16} />
-      ) : null}
+      {pending ? <Loader2 size={16} className="animate-spin" /> : icon}
       {pending ? (pendingLabel ?? "Guardando...") : children}
     </button>
   );
