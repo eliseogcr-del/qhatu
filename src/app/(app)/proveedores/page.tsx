@@ -26,13 +26,13 @@ export default async function ProveedoresPage({
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Proveedores</h1>
           <div className="flex items-center gap-3">
-            <Link
+            <a
               href={`/proveedores/export${q ? `?q=${encodeURIComponent(q)}` : ""}`}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
               Exportar a Excel
-            </Link>
+            </a>
             <Link
               href="/proveedores/nuevo"
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
