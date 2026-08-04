@@ -103,7 +103,16 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   // Líneas quitadas: se borran y se revierte su salida de stock.
   for (const linea of lineasQuitadas) {
-    await supabase.from("venta_detalle").delete().eq("id", linea.id);
+    const { error: deleteError } = await supabase
+      .from("venta_detalle")
+      .delete()
+      .eq("id", linea.id);
+
+    if (deleteError) {
+      redirect(
+        `/ventas/${ventaId}/editar?error=${encodeURIComponent(`No se pudo quitar el producto: ${deleteError.message}`)}`,
+      );
+    }
 
     const producto = productosInfo?.find((p) => p.id === linea.producto_id);
     const productoNombre =
@@ -182,7 +191,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     const original = detalleOriginal!.find((d) => d.id === linea.id)!;
     const subtotal = Math.round(linea.cantidad * linea.precio_unitario * 100) / 100;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("venta_detalle")
       .update({
         cantidad_entregada: linea.cantidad,
@@ -190,6 +199,12 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         subtotal,
       })
       .eq("id", linea.id);
+
+    if (updateError) {
+      redirect(
+        `/ventas/${ventaId}/editar?error=${encodeURIComponent(`No se pudo modificar el producto: ${updateError.message}`)}`,
+      );
+    }
 
     const producto = productosInfo?.find((p) => p.id === linea.producto_id);
     const productoNombre =
