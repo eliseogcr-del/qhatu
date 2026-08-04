@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { buildCsv } from "@/lib/csv";
+import { buildExcelText } from "@/lib/csv";
 
 const COLUMNS = [
   "tipo_documento",
@@ -66,11 +66,11 @@ export async function GET(request: NextRequest) {
     COLUMNS.map((col) => (c as Record<string, unknown>)[col]),
   );
 
-  const csv = buildCsv(HEADERS, rows);
+  const body = buildExcelText(HEADERS, rows);
 
-  return new NextResponse(csv, {
+  return new NextResponse(body, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Type": "text/csv; charset=utf-16le",
       "Content-Disposition": 'attachment; filename="clientes.csv"',
     },
   });

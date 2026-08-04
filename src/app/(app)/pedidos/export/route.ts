@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { ESTADO_LABEL, canalLabel, type EstadoPedido } from "@/lib/pedido-estados";
-import { buildCsv } from "@/lib/csv";
+import { buildExcelText } from "@/lib/csv";
 
 const HEADERS = [
   "Cliente",
@@ -51,11 +51,11 @@ export async function GET(request: NextRequest) {
     ];
   });
 
-  const csv = buildCsv(HEADERS, rows);
+  const body = buildExcelText(HEADERS, rows);
 
-  return new NextResponse(csv, {
+  return new NextResponse(body, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Type": "text/csv; charset=utf-16le",
       "Content-Disposition": 'attachment; filename="pedidos.csv"',
     },
   });
