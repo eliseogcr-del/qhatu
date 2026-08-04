@@ -23,11 +23,39 @@ export async function createCobranza(formData: FormData) {
     );
   }
 
+  const { data: pedido } = await supabase
+    .from("pedidos")
+    .select("id, total")
+    .eq("id", pedidoId)
+    .single();
+
+  if (!pedido) {
+    redirect(`/cobranzas/nueva?error=${encodeURIComponent("El pedido no existe.")}`);
+  }
+
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id")
+    .select("id, total")
     .eq("pedido_id", pedidoId)
     .maybeSingle();
+
+  const { data: cobranzasPrevias } = await supabase
+    .from("cobranzas")
+    .select("monto")
+    .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId)
+    .eq("estado", "activa");
+
+  const totalReferencia = venta ? venta.total : pedido.total;
+  const cobradoPrevio = (cobranzasPrevias ?? []).reduce((acc, c) => acc + c.monto, 0);
+  const saldoPendiente = Math.round((totalReferencia - cobradoPrevio) * 100) / 100;
+
+  if (monto > saldoPendiente) {
+    redirect(
+      `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent(
+        `El monto (${monto.toFixed(2)}) no puede ser mayor al saldo pendiente (${saldoPendiente.toFixed(2)}).`,
+      )}`,
+    );
+  }
 
   const { error } = await supabase.from("cobranzas").insert({
     empresa_id: empresaId,

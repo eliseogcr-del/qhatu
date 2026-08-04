@@ -62,6 +62,11 @@ export default function CobranzaForm({
             type="number"
             step="0.01"
             min="0.01"
+            max={
+              saldoPendiente != null && saldoPendiente > 0
+                ? saldoPendiente.toFixed(2)
+                : undefined
+            }
             name="monto"
             required
             defaultValue={saldoPendiente != null && saldoPendiente > 0 ? saldoPendiente.toFixed(2) : ""}
