@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Save } from "lucide-react";
+import { Save, Search, Loader2 } from "lucide-react";
+import { geocodeAddress } from "@/lib/geocode";
 
 const ClienteMapPicker = dynamic(() => import("./ClienteMapPicker"), {
   ssr: false,
@@ -92,6 +93,64 @@ export default function ClienteForm({
   const [lat, setLat] = useState<number | null>(values.latitud);
   const [lng, setLng] = useState<number | null>(values.longitud);
 
+  const [ubicacion, setUbicacion] = useState({
+    departamento: values.departamento ?? "",
+    provincia: values.provincia ?? "",
+    distrito: values.distrito ?? "",
+    direccion: values.direccion ?? "",
+  });
+  const [ubicacionTocada, setUbicacionTocada] = useState(false);
+  const [buscandoMapa, setBuscandoMapa] = useState(false);
+  const [avisoMapa, setAvisoMapa] = useState<string | null>(null);
+
+  const direccionCompleta = [
+    ubicacion.direccion,
+    ubicacion.distrito,
+    ubicacion.provincia,
+    ubicacion.departamento,
+    "Perú",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const buscarEnMapa = async () => {
+    if (!direccionCompleta || direccionCompleta === "Perú") return;
+    setBuscandoMapa(true);
+    setAvisoMapa(null);
+    try {
+      const resultado = await geocodeAddress(direccionCompleta);
+      if (resultado) {
+        setLat(resultado.lat);
+        setLng(resultado.lng);
+      } else {
+        setAvisoMapa(
+          "No se encontró esa dirección; ubica el punto manualmente en el mapa.",
+        );
+      }
+    } catch {
+      setAvisoMapa("No se pudo buscar la dirección. Intenta de nuevo.");
+    } finally {
+      setBuscandoMapa(false);
+    }
+  };
+
+  // Auto-busca en el mapa 1s después de que el usuario deja de escribir
+  // la ubicación, para no disparar una consulta por cada tecla.
+  useEffect(() => {
+    if (!ubicacionTocada) return;
+    const timeout = setTimeout(buscarEnMapa, 1000);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ubicacion, ubicacionTocada]);
+
+  const campoUbicacion = (campo: keyof typeof ubicacion) => ({
+    value: ubicacion[campo],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUbicacionTocada(true);
+      setUbicacion((prev) => ({ ...prev, [campo]: e.target.value }));
+    },
+  });
+
   return (
     <form action={action} className="space-y-8">
       {error && (
@@ -166,21 +225,21 @@ export default function ClienteForm({
           <Field label="Departamento">
             <input
               name="departamento"
-              defaultValue={values.departamento ?? ""}
+              {...campoUbicacion("departamento")}
               className={inputClass}
             />
           </Field>
           <Field label="Provincia">
             <input
               name="provincia"
-              defaultValue={values.provincia ?? ""}
+              {...campoUbicacion("provincia")}
               className={inputClass}
             />
           </Field>
           <Field label="Distrito">
             <input
               name="distrito"
-              defaultValue={values.distrito ?? ""}
+              {...campoUbicacion("distrito")}
               className={inputClass}
             />
           </Field>
@@ -188,7 +247,7 @@ export default function ClienteForm({
         <Field label="Dirección">
           <input
             name="direccion"
-            defaultValue={values.direccion ?? ""}
+            {...campoUbicacion("direccion")}
             className={inputClass}
           />
         </Field>
@@ -200,16 +259,35 @@ export default function ClienteForm({
           />
         </Field>
 
-        <Field label="Ubicación en el mapa (clic o arrastra el marcador)">
-          <ClienteMapPicker
-            lat={lat}
-            lng={lng}
-            onChange={(newLat, newLng) => {
-              setLat(newLat);
-              setLng(newLng);
-            }}
-          />
-        </Field>
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">
+            Ubicación en el mapa (clic o arrastra el marcador)
+          </label>
+          <button
+            type="button"
+            onClick={buscarEnMapa}
+            disabled={buscandoMapa}
+            className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
+          >
+            {buscandoMapa ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Search size={14} />
+            )}
+            Buscar dirección en el mapa
+          </button>
+        </div>
+        {avisoMapa && (
+          <p className="-mt-2 text-sm text-amber-600">{avisoMapa}</p>
+        )}
+        <ClienteMapPicker
+          lat={lat}
+          lng={lng}
+          onChange={(newLat, newLng) => {
+            setLat(newLat);
+            setLng(newLng);
+          }}
+        />
         <input type="hidden" name="latitud" value={lat ?? ""} readOnly />
         <input type="hidden" name="longitud" value={lng ?? ""} readOnly />
         <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
