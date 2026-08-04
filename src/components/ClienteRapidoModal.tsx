@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { createClienteRapido } from "@/app/(app)/clientes/actions";
 
@@ -24,16 +25,24 @@ export default function ClienteRapidoModal({
     const formData = new FormData(e.currentTarget);
     setError(null);
     startTransition(async () => {
-      const resultado = await createClienteRapido(formData);
-      if ("error" in resultado) {
-        setError(resultado.error);
-        return;
+      try {
+        const resultado = await createClienteRapido(formData);
+        if ("error" in resultado) {
+          setError(resultado.error);
+          return;
+        }
+        onCreated(resultado);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "No se pudo registrar el cliente. Intenta de nuevo.",
+        );
       }
-      onCreated(resultado);
     });
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
@@ -119,6 +128,7 @@ export default function ClienteRapidoModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
