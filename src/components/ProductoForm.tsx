@@ -1,4 +1,5 @@
 import { Save } from "lucide-react";
+import SubmitButton from "./SubmitButton";
 
 export type ProductoInitialValues = {
   codigo_barra: string | null;
@@ -294,13 +295,7 @@ export default function ProductoForm({
         </label>
       </section>
 
-      <button
-        type="submit"
-        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-      >
-        <Save size={16} />
-        {submitLabel}
-      </button>
+      <SubmitButton icon={Save}>{submitLabel}</SubmitButton>
     </form>
   );
 }

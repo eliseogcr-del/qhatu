@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, Save, Paperclip } from "lucide-react";
+import SubmitButton from "./SubmitButton";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -237,13 +238,9 @@ export default function PedidoForm({
         </Field>
       </section>
 
-      <button
-        type="submit"
-        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-      >
-        <Save size={16} />
+      <SubmitButton icon={Save} pendingLabel="Creando pedido...">
         Crear pedido
-      </button>
+      </SubmitButton>
     </form>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Save, Search, Loader2 } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode";
+import SubmitButton from "./SubmitButton";
 
 const ClienteMapPicker = dynamic(() => import("./ClienteMapPicker"), {
   ssr: false,
@@ -350,13 +351,7 @@ export default function ClienteForm({
         </label>
       </section>
 
-      <button
-        type="submit"
-        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-      >
-        <Save size={16} />
-        {submitLabel}
-      </button>
+      <SubmitButton icon={Save}>{submitLabel}</SubmitButton>
     </form>
   );
 }

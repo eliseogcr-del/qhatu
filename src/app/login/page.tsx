@@ -1,4 +1,5 @@
 import Logo from "@/components/Logo";
+import SubmitButton from "@/components/SubmitButton";
 import { login } from "./actions";
 
 export default async function LoginPage({
@@ -60,12 +61,12 @@ export default async function LoginPage({
             </p>
           )}
 
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+          <SubmitButton
+            pendingLabel="Ingresando..."
+            className="w-full justify-center rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
           >
             Iniciar sesión
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

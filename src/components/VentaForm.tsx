@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TIPOS_DEVOLUCION, TIPO_DEVOLUCION_LABEL } from "@/lib/devolucion-tipos";
+import SubmitButton from "./SubmitButton";
 
 type LineaPedido = {
   pedido_detalle_id: string;
@@ -228,12 +229,9 @@ export default function VentaForm({
         </p>
       </section>
 
-      <button
-        type="submit"
-        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-      >
+      <SubmitButton pendingLabel="Registrando venta...">
         Registrar venta
-      </button>
+      </SubmitButton>
     </form>
   );
 }

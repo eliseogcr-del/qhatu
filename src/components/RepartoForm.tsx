@@ -7,6 +7,7 @@ import {
   TIPOS_TRANSPORTE,
   TIPO_TRANSPORTE_LABEL,
 } from "@/lib/reparto-estados";
+import SubmitButton from "./SubmitButton";
 
 type PedidoOption = { id: string; label: string };
 type UsuarioOption = { id: string; nombre: string | null };
@@ -159,12 +160,7 @@ export default function RepartoForm({
         </Field>
       )}
 
-      <button
-        type="submit"
-        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-      >
-        {submitLabel}
-      </button>
+      <SubmitButton>{submitLabel}</SubmitButton>
     </form>
   );
 }

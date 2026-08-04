@@ -17,6 +17,7 @@ import {
   type EstadoPedido,
 } from "@/lib/pedido-estados";
 import { updateEstadoPedido } from "../actions";
+import SubmitButton from "@/components/SubmitButton";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 
 export default async function PedidoDetallePage({
@@ -163,13 +164,9 @@ export default async function PedidoDetallePage({
                 </option>
               ))}
             </select>
-            <button
-              type="submit"
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              <RefreshCw size={16} />
+            <SubmitButton icon={RefreshCw} pendingLabel="Actualizando...">
               Actualizar estado
-            </button>
+            </SubmitButton>
           </form>
         </div>
 
