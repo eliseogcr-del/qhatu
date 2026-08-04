@@ -85,7 +85,8 @@ export default async function NuevaCobranzaPage({
   const { data: cobranzasPrevias } = await supabase
     .from("cobranzas")
     .select("monto")
-    .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId);
+    .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId)
+    .eq("estado", "activa");
 
   const totalReferencia = venta ? venta.total : pedido.total;
   const monedaReferencia = venta ? venta.moneda : pedido.moneda;

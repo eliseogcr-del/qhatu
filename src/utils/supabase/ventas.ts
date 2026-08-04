@@ -46,7 +46,11 @@ export async function fetchVentasConSaldo(
   const ventaIds = ventas.map((v) => v.id);
   const { data: cobranzas } =
     ventaIds.length > 0
-      ? await supabase.from("cobranzas").select("venta_id, monto").in("venta_id", ventaIds)
+      ? await supabase
+          .from("cobranzas")
+          .select("venta_id, monto")
+          .in("venta_id", ventaIds)
+          .eq("estado", "activa")
       : { data: [] as { venta_id: string; monto: number }[] };
 
   const cobradoPorVenta = new Map<string, number>();
@@ -73,4 +77,20 @@ export async function fetchVentasConSaldo(
     ventas: soloPendientes ? resultado.filter((v) => v.saldo > 0) : resultado,
     error: null,
   };
+}
+
+// Saldo pendiente de una venta puntual (solo cobranzas activas cuentan).
+export async function getSaldoVenta(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ventaId: string,
+  total: number,
+): Promise<number> {
+  const { data: cobranzas } = await supabase
+    .from("cobranzas")
+    .select("monto")
+    .eq("venta_id", ventaId)
+    .eq("estado", "activa");
+
+  const cobrado = (cobranzas ?? []).reduce((acc, c) => acc + c.monto, 0);
+  return Math.round((total - cobrado) * 100) / 100;
 }

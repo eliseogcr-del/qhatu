@@ -12,7 +12,7 @@ export async function getEmpresaSession(
 
   const { data: usuario, error } = await supabase
     .from("usuarios")
-    .select("empresa_id")
+    .select("empresa_id, rol")
     .eq("id", user.id)
     .single();
 
@@ -22,5 +22,23 @@ export async function getEmpresaSession(
     );
   }
 
-  return { userId: user.id, empresaId: usuario.empresa_id as string };
+  return {
+    userId: user.id,
+    empresaId: usuario.empresa_id as string,
+    rol: usuario.rol as string,
+  };
+}
+
+// Bloquea el acceso a secciones sensibles (ej. auditoría) a quien no
+// tenga rol de administrador.
+export async function requireAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (session.rol !== "admin") {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para acceder a esta sección.")}`,
+    );
+  }
+  return session;
 }

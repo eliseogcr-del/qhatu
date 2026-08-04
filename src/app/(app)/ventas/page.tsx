@@ -180,8 +180,14 @@ export default async function VentasPage({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                      {venta.estado}
+                    <span
+                      className={
+                        venta.estado === "anulada"
+                          ? "rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
+                          : "rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
+                      }
+                    >
+                      {venta.estado === "anulada" ? "Anulada" : "Registrada"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">

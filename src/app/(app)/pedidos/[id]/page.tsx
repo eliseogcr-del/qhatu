@@ -55,13 +55,15 @@ export default async function PedidoDetallePage({
 
   const { data: cobranzas } = await supabase
     .from("cobranzas")
-    .select("id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia")
+    .select("id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado")
     .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : id)
     .order("fecha", { ascending: false });
 
   const totalReferencia = venta ? venta.total : pedido.total;
   const monedaReferencia = venta ? venta.moneda : pedido.moneda;
-  const cobrado = (cobranzas ?? []).reduce((acc, c) => acc + c.monto, 0);
+  const cobrado = (cobranzas ?? [])
+    .filter((c) => c.estado === "activa")
+    .reduce((acc, c) => acc + c.monto, 0);
   const saldoPendiente = totalReferencia - cobrado;
 
   const adjuntosConUrl = await Promise.all(
@@ -241,11 +243,15 @@ export default async function PedidoDetallePage({
                   <th className="py-2 font-medium">Método</th>
                   <th className="py-2 font-medium">Tipo</th>
                   <th className="py-2 font-medium">Referencia</th>
+                  <th className="py-2 font-medium">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {cobranzas.map((c) => (
-                  <tr key={c.id} className="border-b border-gray-100 last:border-0">
+                  <tr
+                    key={c.id}
+                    className={`border-b border-gray-100 last:border-0 ${c.estado === "anulada" ? "opacity-50" : ""}`}
+                  >
                     <td className="py-2 text-gray-600">
                       {new Date(c.fecha).toLocaleDateString("es-PE")}
                     </td>
@@ -257,6 +263,17 @@ export default async function PedidoDetallePage({
                     </td>
                     <td className="py-2 text-gray-600">{c.tipo_pago}</td>
                     <td className="py-2 text-gray-600">{c.referencia ?? "—"}</td>
+                    <td className="py-2">
+                      <span
+                        className={
+                          c.estado === "anulada"
+                            ? "rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
+                            : "rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
+                        }
+                      >
+                        {c.estado === "anulada" ? "Anulada" : "Activa"}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

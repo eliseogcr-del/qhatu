@@ -15,6 +15,7 @@ import {
   Warehouse,
   ScrollText,
   BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -50,12 +51,22 @@ const NAV_GROUPS = [
   },
 ];
 
-export default function SidebarNav() {
+export default function SidebarNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+
+  const groups = isAdmin
+    ? [
+        ...NAV_GROUPS,
+        {
+          label: "Administración",
+          items: [{ href: "/auditoria", label: "Auditoría", icon: ShieldCheck }],
+        },
+      ]
+    : NAV_GROUPS;
 
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-      {NAV_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.label}>
           <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-800/60">
             {group.label}

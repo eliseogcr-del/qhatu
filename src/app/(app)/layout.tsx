@@ -17,6 +17,13 @@ export default async function AppLayout({
 
   if (!user) redirect("/login");
 
+  const { data: usuario } = await supabase
+    .from("usuarios")
+    .select("rol")
+    .eq("id", user.id)
+    .maybeSingle();
+  const isAdmin = usuario?.rol === "admin";
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <aside className="flex w-64 shrink-0 flex-col border-r border-emerald-900/10 bg-emerald-50">
@@ -27,7 +34,7 @@ export default async function AppLayout({
           </span>
         </div>
 
-        <SidebarNav />
+        <SidebarNav isAdmin={isAdmin} />
 
         <div className="border-t border-emerald-900/10 p-4">
           <p className="mb-2 truncate px-1 text-xs text-emerald-900/60">

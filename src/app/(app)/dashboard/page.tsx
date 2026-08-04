@@ -24,7 +24,12 @@ const QUICK_LINKS = [
   { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +38,12 @@ export default async function DashboardPage() {
   return (
     <div className="p-8">
       <div className="mx-auto max-w-4xl">
+        {error && (
+          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+
         <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 text-white shadow-lg shadow-emerald-900/10">
           <h1 className="text-2xl font-semibold">Bienvenido a Qhatu</h1>
           <p className="mt-1 text-sm text-emerald-50">
