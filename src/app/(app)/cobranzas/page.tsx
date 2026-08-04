@@ -1,22 +1,65 @@
 import Link from "next/link";
-import { XCircle } from "lucide-react";
+import { XCircle, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { METODO_PAGO_LABEL, TIPO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
+import { getEmpresaSession } from "@/utils/supabase/session";
+import {
+  METODOS_PAGO,
+  METODO_PAGO_LABEL,
+  TIPO_PAGO_LABEL,
+  type MetodoPago,
+} from "@/lib/cobranza-tipos";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { anularCobranza } from "./actions";
 
-export default async function CobranzasPage() {
+const inputClass =
+  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+
+export default async function CobranzasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    desde?: string;
+    hasta?: string;
+    metodo_pago?: string;
+    tipo_pago?: string;
+    estado?: string;
+  }>;
+}) {
+  const { q, desde, hasta, metodo_pago: metodoPago, tipo_pago: tipoPago, estado } =
+    await searchParams;
+
   const supabase = await createClient();
-  const { data: cobranzas, error } = await supabase
+  const { rol } = await getEmpresaSession(supabase);
+
+  let query = supabase
     .from("cobranzas")
     .select(
-      "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos(clientes(nombre))",
+      q
+        ? "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos!inner(clientes!inner(nombre))"
+        : "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos(clientes(nombre))",
     )
     .order("fecha", { ascending: false });
 
+  if (q) query = query.ilike("pedidos.clientes.nombre", `%${q}%`);
+  if (desde) query = query.gte("fecha", desde);
+  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (metodoPago) query = query.eq("metodo_pago", metodoPago);
+  if (tipoPago) query = query.eq("tipo_pago", tipoPago);
+  if (estado) query = query.eq("estado", estado);
+
+  const { data: cobranzas, error } = await query;
+
+  const hayFiltros = !!(q || desde || hasta || metodoPago || tipoPago || estado);
+
+  const sumaActiva =
+    cobranzas
+      ?.filter((c) => c.estado === "activa")
+      .reduce((acc, c) => acc + c.monto, 0) ?? 0;
+
   return (
     <div className="p-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Cobranzas</h1>
           <Link
@@ -26,6 +69,111 @@ export default async function CobranzasPage() {
             + Registrar cobro
           </Link>
         </div>
+
+        <form
+          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+          method="get"
+        >
+          <div className="min-w-[180px] flex-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Cliente
+            </label>
+            <div className="relative">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Buscar por nombre..."
+                className={`${inputClass} pl-9`}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Desde
+            </label>
+            <input
+              type="date"
+              name="desde"
+              defaultValue={desde ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Hasta
+            </label>
+            <input
+              type="date"
+              name="hasta"
+              defaultValue={hasta ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Método de pago
+            </label>
+            <select name="metodo_pago" defaultValue={metodoPago ?? ""} className={inputClass}>
+              <option value="">Todos</option>
+              {METODOS_PAGO.map((m) => (
+                <option key={m} value={m}>
+                  {METODO_PAGO_LABEL[m]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Tipo de pago
+            </label>
+            <select name="tipo_pago" defaultValue={tipoPago ?? ""} className={inputClass}>
+              <option value="">Todos</option>
+              <option value="anticipo">Anticipo</option>
+              <option value="pago">Pago</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Estado
+            </label>
+            <select name="estado" defaultValue={estado ?? ""} className={inputClass}>
+              <option value="">Todos</option>
+              <option value="activa">Activa</option>
+              <option value="anulada">Anulada</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Filtrar
+          </button>
+          {hayFiltros && (
+            <Link
+              href="/cobranzas"
+              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
+            >
+              <X size={14} />
+              Limpiar
+            </Link>
+          )}
+        </form>
+
+        {hayFiltros && rol === "admin" && (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
+            <p className="text-emerald-800">
+              Suma cobrada (cobros activos, según filtros aplicados):{" "}
+              <span className="font-semibold">
+                {cobranzas?.[0]?.moneda ?? "PEN"} {sumaActiva.toFixed(2)}
+              </span>
+            </p>
+          </div>
+        )}
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -115,7 +263,9 @@ export default async function CobranzasPage() {
               {cobranzas?.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
-                    Aún no hay cobranzas registradas.
+                    {hayFiltros
+                      ? "Ningún cobro coincide con los filtros."
+                      : "Aún no hay cobranzas registradas."}
                   </td>
                 </tr>
               )}
