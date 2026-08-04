@@ -213,6 +213,13 @@ export async function createVentaDirecta(formData: FormData) {
     );
   }
 
+  const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineas.length) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 

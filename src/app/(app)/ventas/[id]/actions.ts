@@ -52,6 +52,15 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     precio_unitario: precios[i],
   }));
 
+  const productoIdsActivos = enviadas
+    .filter((l) => l.producto_id && l.cantidad > 0)
+    .map((l) => l.producto_id);
+  if (new Set(productoIdsActivos).size !== productoIdsActivos.length) {
+    redirect(
+      `/ventas/${ventaId}/editar?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
   const idsEnviados = new Set(enviadas.filter((l) => l.id).map((l) => l.id));
   const lineasQuitadas = (detalleOriginal ?? []).filter((d) => !idsEnviados.has(d.id));
   const lineasNuevas = enviadas.filter((l) => !l.id && l.producto_id && l.cantidad > 0);

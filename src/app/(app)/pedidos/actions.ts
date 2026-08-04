@@ -34,6 +34,13 @@ export async function createPedido(formData: FormData) {
     );
   }
 
+  const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineas.length) {
+    redirect(
+      `/pedidos/nuevo?error=${encodeURIComponent("Hay un producto repetido en el pedido. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
   const { data: pedido, error: pedidoError } = await supabase

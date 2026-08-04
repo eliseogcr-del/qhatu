@@ -57,6 +57,7 @@ export default function PedidoForm({
   productos: Producto[];
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
+  const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) =>
@@ -64,16 +65,63 @@ export default function PedidoForm({
     );
   };
 
+  const seleccionarProducto = (key: string, productoId: string) => {
+    const yaExiste =
+      productoId !== "" &&
+      lineas.some((l) => l.key !== key && l.producto_id === productoId);
+
+    if (yaExiste) {
+      const producto = productos.find((p) => p.id === productoId);
+      setAvisoDuplicado(
+        `"${producto?.nombre ?? "Este producto"}" ya está en el pedido. Ajusta la cantidad en esa línea en vez de agregarlo de nuevo.`,
+      );
+      return;
+    }
+
+    setAvisoDuplicado(null);
+    const producto = productos.find((p) => p.id === productoId);
+    updateLinea(key, {
+      producto_id: productoId,
+      precio_unitario: producto?.precio_venta ?? 0,
+    });
+  };
+
   const total = lineas.reduce(
     (acc, l) => acc + l.cantidad * l.precio_unitario,
     0,
   );
 
+  const tieneDuplicados = (() => {
+    const vistos = new Set<string>();
+    for (const l of lineas) {
+      if (!l.producto_id) continue;
+      if (vistos.has(l.producto_id)) return true;
+      vistos.add(l.producto_id);
+    }
+    return false;
+  })();
+
   return (
-    <form action={action} className="space-y-8">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (tieneDuplicados) {
+          e.preventDefault();
+          setAvisoDuplicado(
+            "Hay un producto repetido en el pedido. Quita la línea duplicada antes de guardar.",
+          );
+        }
+      }}
+      className="space-y-8"
+    >
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
+        </p>
+      )}
+      {avisoDuplicado && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          {avisoDuplicado}
         </p>
       )}
 
@@ -131,16 +179,7 @@ export default function PedidoForm({
                 <select
                   name="producto_id[]"
                   value={linea.producto_id}
-                  onChange={(e) => {
-                    const producto = productos.find(
-                      (p) => p.id === e.target.value,
-                    );
-                    updateLinea(linea.key, {
-                      producto_id: e.target.value,
-                      precio_unitario:
-                        producto?.precio_venta ?? linea.precio_unitario,
-                    });
-                  }}
+                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
                   className={inputClass}
                 >
                   <option value="">Selecciona un producto</option>

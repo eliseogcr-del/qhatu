@@ -57,8 +57,35 @@ export default function EditarVentaForm({
     })),
   );
 
+  const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
+
   const actualizarLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  };
+
+  const seleccionarProducto = (key: string, productoId: string) => {
+    const yaExiste =
+      productoId !== "" &&
+      lineas.some((l) => l.key !== key && l.producto_id === productoId);
+
+    if (yaExiste) {
+      const producto = productos.find((p) => p.id === productoId);
+      const nombreExistente =
+        producto?.nombre ??
+        lineas.find((l) => l.producto_id === productoId)?.producto_nombre ??
+        "Este producto";
+      setAvisoDuplicado(
+        `"${nombreExistente}" ya está en la venta. Ajusta la cantidad en esa línea en vez de agregarlo de nuevo.`,
+      );
+      return;
+    }
+
+    setAvisoDuplicado(null);
+    const producto = productos.find((p) => p.id === productoId);
+    actualizarLinea(key, {
+      producto_id: productoId,
+      precio_unitario: producto?.precio_venta ?? 0,
+    });
   };
 
   const agregarLinea = () => {
@@ -83,11 +110,37 @@ export default function EditarVentaForm({
   const total = lineas.reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0);
   const totalMenorQueCobrado = total < cobrado;
 
+  const tieneDuplicados = (() => {
+    const vistos = new Set<string>();
+    for (const l of lineas) {
+      if (!l.producto_id) continue;
+      if (vistos.has(l.producto_id)) return true;
+      vistos.add(l.producto_id);
+    }
+    return false;
+  })();
+
   return (
-    <form action={action} className="space-y-6">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (tieneDuplicados) {
+          e.preventDefault();
+          setAvisoDuplicado(
+            "Hay un producto repetido en la venta. Quita la línea duplicada antes de guardar.",
+          );
+        }
+      }}
+      className="space-y-6"
+    >
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
+        </p>
+      )}
+      {avisoDuplicado && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          {avisoDuplicado}
         </p>
       )}
 
@@ -109,13 +162,7 @@ export default function EditarVentaForm({
                 <select
                   name="producto_id[]"
                   value={linea.producto_id}
-                  onChange={(e) => {
-                    const producto = productos.find((p) => p.id === e.target.value);
-                    actualizarLinea(linea.key, {
-                      producto_id: e.target.value,
-                      precio_unitario: producto?.precio_venta ?? linea.precio_unitario,
-                    });
-                  }}
+                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 >
                   <option value="">Selecciona un producto</option>
