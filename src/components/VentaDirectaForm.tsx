@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SubmitButton from "./SubmitButton";
+import ClienteCombobox from "./ClienteCombobox";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -130,14 +131,7 @@ export default function VentaDirectaForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Cliente">
-            <select name="cliente_id" required className={inputClass}>
-              <option value="">Selecciona un cliente</option>
-              {clientes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
+            <ClienteCombobox clientes={clientes} />
           </Field>
           <Field label="Moneda">
             <select name="moneda" defaultValue="PEN" className={inputClass}>
