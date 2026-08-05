@@ -1,5 +1,12 @@
 import { createClient } from "./server";
 
+export type PagoDetalle = {
+  fecha: string;
+  monto: number;
+  metodoPago: string;
+  usuarioNombre: string | null;
+};
+
 export type VentaConSaldo = {
   id: string;
   fecha: string;
@@ -9,6 +16,7 @@ export type VentaConSaldo = {
   cliente_nombre: string | null;
   cobrado: number;
   saldo: number;
+  pagos: PagoDetalle[];
 };
 
 export type VentasFiltro = {
@@ -48,14 +56,32 @@ export async function fetchVentasConSaldo(
     ventaIds.length > 0
       ? await supabase
           .from("cobranzas")
-          .select("venta_id, monto")
+          .select("venta_id, monto, fecha, metodo_pago, usuarios(nombre)")
           .in("venta_id", ventaIds)
           .eq("estado", "activa")
-      : { data: [] as { venta_id: string; monto: number }[] };
+          .order("fecha", { ascending: true })
+      : {
+          data: [] as {
+            venta_id: string;
+            monto: number;
+            fecha: string;
+            metodo_pago: string;
+            usuarios: { nombre: string | null } | null;
+          }[],
+        };
 
   const cobradoPorVenta = new Map<string, number>();
+  const pagosPorVenta = new Map<string, PagoDetalle[]>();
   for (const c of cobranzas ?? []) {
     cobradoPorVenta.set(c.venta_id, (cobradoPorVenta.get(c.venta_id) ?? 0) + c.monto);
+    const lista = pagosPorVenta.get(c.venta_id) ?? [];
+    lista.push({
+      fecha: c.fecha,
+      monto: c.monto,
+      metodoPago: c.metodo_pago,
+      usuarioNombre: (c.usuarios as unknown as { nombre: string | null } | null)?.nombre ?? null,
+    });
+    pagosPorVenta.set(c.venta_id, lista);
   }
 
   const resultado = ventas.map((v) => {
@@ -70,6 +96,7 @@ export async function fetchVentasConSaldo(
         (v.clientes as unknown as { nombre: string } | null)?.nombre ?? null,
       cobrado,
       saldo: Math.round((v.total - cobrado) * 100) / 100,
+      pagos: pagosPorVenta.get(v.id) ?? [],
     };
   });
 

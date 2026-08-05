@@ -2,20 +2,24 @@ import Link from "next/link";
 import { FileDown, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
+import VentaFilaExpandible from "@/components/VentaFilaExpandible";
 
-function buildExportHref(params: {
-  q?: string;
-  desde?: string;
-  hasta?: string;
-  pendientes?: string;
-}) {
+function buildExportHref(
+  base: "/ventas/export" | "/ventas/export-detalle",
+  params: {
+    q?: string;
+    desde?: string;
+    hasta?: string;
+    pendientes?: string;
+  },
+) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
   if (params.desde) search.set("desde", params.desde);
   if (params.hasta) search.set("hasta", params.hasta);
   if (params.pendientes) search.set("pendientes", params.pendientes);
   const qs = search.toString();
-  return `/ventas/export${qs ? `?${qs}` : ""}`;
+  return `${base}${qs ? `?${qs}` : ""}`;
 }
 
 export default async function VentasPage({
@@ -47,11 +51,18 @@ export default async function VentasPage({
           <h1 className="text-2xl font-semibold text-gray-900">Ventas</h1>
           <div className="flex items-center gap-3">
             <a
-              href={buildExportHref({ q, desde, hasta, pendientes })}
+              href={buildExportHref("/ventas/export", { q, desde, hasta, pendientes })}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
-              Exportar a Excel
+              Exportar resumen
+            </a>
+            <a
+              href={buildExportHref("/ventas/export-detalle", { q, desde, hasta, pendientes })}
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <FileDown size={16} />
+              Exportar detalle de pagos
             </a>
             <Link
               href="/ventas/nueva"
@@ -144,10 +155,12 @@ export default async function VentasPage({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
               <tr>
+                <th className="px-2 py-3" />
+                <th className="px-4 py-3 font-medium">Código</th>
                 <th className="px-4 py-3 font-medium">Cliente</th>
                 <th className="px-4 py-3 font-medium">Fecha</th>
                 <th className="px-4 py-3 font-medium">Total</th>
-                <th className="px-4 py-3 font-medium">Cobrado</th>
+                <th className="px-4 py-3 font-medium">Pagado</th>
                 <th className="px-4 py-3 font-medium">Saldo pendiente</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3" />
@@ -155,55 +168,12 @@ export default async function VentasPage({
             </thead>
             <tbody>
               {ventas.map((venta) => (
-                <tr key={venta.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {venta.cliente_nombre ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {new Date(venta.fecha).toLocaleDateString("es-PE")}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {venta.moneda} {venta.total.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {venta.moneda} {venta.cobrado.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        venta.saldo > 0
-                          ? "font-semibold text-red-600"
-                          : "font-semibold text-green-600"
-                      }
-                    >
-                      {venta.moneda} {venta.saldo.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        venta.estado === "anulada"
-                          ? "rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
-                          : "rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
-                      }
-                    >
-                      {venta.estado === "anulada" ? "Anulada" : "Registrada"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/ventas/${venta.id}`}
-                      className="text-sm font-medium text-gray-700 hover:underline"
-                    >
-                      Ver
-                    </Link>
-                  </td>
-                </tr>
+                <VentaFilaExpandible key={venta.id} venta={venta} />
               ))}
 
               {ventas.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ninguna venta coincide con los filtros."
                       : "Aún no hay ventas registradas."}
