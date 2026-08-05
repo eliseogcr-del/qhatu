@@ -16,6 +16,7 @@ import {
   ScrollText,
   BarChart3,
   ShieldCheck,
+  UserCog,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -59,7 +60,10 @@ export default function SidebarNav({ isAdmin = false }: { isAdmin?: boolean }) {
         ...NAV_GROUPS,
         {
           label: "Administración",
-          items: [{ href: "/auditoria", label: "Auditoría", icon: ShieldCheck }],
+          items: [
+            { href: "/usuarios", label: "Usuarios", icon: UserCog },
+            { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
+          ],
         },
       ]
     : NAV_GROUPS;
