@@ -89,7 +89,7 @@ export default async function PedidosPage({
           </p>
         )}
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
               <tr>

@@ -54,7 +54,13 @@ const NAV_GROUPS = [
   },
 ];
 
-export default function SidebarNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export default function SidebarNav({
+  isAdmin = false,
+  onNavigate,
+}: {
+  isAdmin?: boolean;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   const groups = isAdmin
@@ -86,6 +92,7 @@ export default function SidebarNav({ isAdmin = false }: { isAdmin?: boolean }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   className={
                     active
                       ? "flex items-center gap-3 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm"

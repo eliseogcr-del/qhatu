@@ -55,7 +55,7 @@ export default async function NuevaVentaPage({
           <p className="mb-4 text-sm text-gray-600">
             O selecciona un pedido existente para registrar lo entregado.
           </p>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <ul>
               {pedidos?.map((p) => {
                 const cliente = p.clientes as unknown as { nombre: string } | null;
