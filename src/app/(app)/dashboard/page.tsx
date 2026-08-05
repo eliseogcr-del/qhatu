@@ -44,7 +44,7 @@ export default async function DashboardPage({
           </p>
         )}
 
-        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 text-white shadow-lg shadow-emerald-900/10">
+        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 p-8 text-white shadow-lg shadow-emerald-900/10">
           <h1 className="text-2xl font-semibold">Bienvenido a Qhatu</h1>
           <p className="mt-1 text-sm text-emerald-50">
             Sesión iniciada como{" "}
