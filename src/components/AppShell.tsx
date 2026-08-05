@@ -9,7 +9,7 @@ function BrandRow({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <Logo className="h-9 w-9" />
-      <span className="text-xl font-semibold tracking-tight text-emerald-950">
+      <span className="text-xl font-semibold tracking-tight text-white">
         Qhatu
       </span>
     </div>
@@ -24,12 +24,12 @@ function SignOutForm({
   userEmail: string;
 }) {
   return (
-    <div className="border-t border-emerald-900/10 p-4">
-      <p className="mb-2 truncate px-1 text-xs text-emerald-900/60">{userEmail}</p>
+    <div className="border-t border-white/10 p-4">
+      <p className="mb-2 truncate px-1 text-xs text-emerald-100/70">{userEmail}</p>
       <form action={signOutAction}>
         <button
           type="submit"
-          className="flex w-full items-center gap-2 rounded-xl border border-emerald-900/15 bg-white px-3 py-2 text-sm font-medium text-emerald-950 hover:bg-emerald-100"
+          className="flex w-full items-center gap-2 rounded-xl border border-white/15 bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-600"
         >
           <LogOut size={16} />
           Cerrar sesión
@@ -55,13 +55,13 @@ export default function AppShell({
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Barra superior — solo en móvil */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-emerald-900/10 bg-emerald-50 px-4 py-3 md:hidden">
+      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-white/10 bg-emerald-800 px-4 py-3 md:hidden">
         <BrandRow />
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Abrir menú"
-          className="rounded-lg p-2 text-emerald-900 hover:bg-emerald-100"
+          className="rounded-lg p-2 text-white hover:bg-emerald-700"
         >
           <Menu size={22} />
         </button>
@@ -75,14 +75,14 @@ export default function AppShell({
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
-          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-emerald-50 shadow-xl">
-            <div className="flex items-center justify-between border-b border-emerald-900/10 px-5 py-5">
+          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-emerald-800 shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
               <BrandRow />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar menú"
-                className="rounded-lg p-1 text-emerald-900/60 hover:bg-emerald-100"
+                className="rounded-lg p-1 text-white/70 hover:bg-emerald-700"
               >
                 <X size={20} />
               </button>
@@ -94,8 +94,8 @@ export default function AppShell({
       )}
 
       {/* Sidebar fijo — solo en desktop */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-emerald-900/10 bg-emerald-50 md:flex">
-        <div className="border-b border-emerald-900/10 px-5 py-5">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-emerald-800 md:flex">
+        <div className="border-b border-white/10 px-5 py-5">
           <BrandRow />
         </div>
         <SidebarNav isAdmin={isAdmin} />

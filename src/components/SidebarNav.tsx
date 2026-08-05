@@ -80,7 +80,7 @@ export default function SidebarNav({
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-800/60">
+          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-200/70">
             {group.label}
           </p>
           <div className="space-y-0.5">
@@ -96,7 +96,7 @@ export default function SidebarNav({
                   className={
                     active
                       ? "flex items-center gap-3 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm"
-                      : "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-emerald-950/80 transition-colors hover:bg-emerald-100"
+                      : "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-emerald-700"
                   }
                 >
                   <Icon size={18} strokeWidth={2} />
