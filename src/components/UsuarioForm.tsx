@@ -61,7 +61,13 @@ export default function UsuarioForm({
       {modo === "nuevo" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Correo electrónico">
-            <input type="email" name="email" required className={inputClass} />
+            <input
+              type="email"
+              name="email"
+              required
+              autoComplete="off"
+              className={inputClass}
+            />
           </Field>
           <Field label="Contraseña">
             <input
@@ -69,6 +75,7 @@ export default function UsuarioForm({
               name="password"
               required
               minLength={6}
+              autoComplete="new-password"
               className={inputClass}
             />
           </Field>
