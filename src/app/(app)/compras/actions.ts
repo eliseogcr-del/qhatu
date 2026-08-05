@@ -104,7 +104,7 @@ export async function createCompra(formData: FormData) {
     }
   });
 
-  await Promise.all([
+  const [, ...costoResultados] = await Promise.all([
     registrarMovimientosKardex(supabase, empresaId, userId, movimientosKardex),
     ...lineas.map((l) =>
       supabase
@@ -114,10 +114,21 @@ export async function createCompra(formData: FormData) {
     ),
   ]);
 
+  const costoError = costoResultados.find((r) => r.error)?.error ?? null;
+
   revalidatePath("/compras");
   revalidatePath("/inventario");
   revalidatePath("/kardex");
   revalidatePath("/productos");
+
+  if (costoError) {
+    redirect(
+      `/compras/${compra.id}?error=${encodeURIComponent(
+        `La compra se registró, pero no se pudo actualizar el costo de referencia: ${costoError.message}`,
+      )}`,
+    );
+  }
+
   redirect(`/compras/${compra.id}`);
 }
 
