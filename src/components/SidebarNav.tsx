@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Route,
   ShoppingCart,
+  ShoppingBag,
   Wallet,
   Boxes,
   Warehouse,
@@ -45,6 +46,7 @@ const NAV_GROUPS = [
   {
     label: "Finanzas",
     items: [
+      { href: "/compras", label: "Compras", icon: ShoppingBag },
       { href: "/ventas", label: "Ventas", icon: ShoppingCart },
       { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
       { href: "/reportes", label: "Reportes", icon: BarChart3 },
