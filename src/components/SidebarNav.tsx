@@ -20,6 +20,7 @@ import {
   UserCog,
   Image,
   DatabaseBackup,
+  FileText,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -50,6 +51,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/compras", label: "Compras", icon: ShoppingBag },
       { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+      { href: "/comprobantes", label: "Comprobantes", icon: FileText },
       { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
       { href: "/reportes", label: "Reportes", icon: BarChart3 },
     ],

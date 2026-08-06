@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { Pencil, Ban, XCircle } from "lucide-react";
+import { Pencil, Ban, XCircle, FileText, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_DEVOLUCION_LABEL, type TipoDevolucion } from "@/lib/devolucion-tipos";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
+import SubmitButton from "@/components/SubmitButton";
 import { anularVenta } from "./actions";
 import { anularCobranza } from "../../cobranzas/actions";
+import { emitirComprobante, anularComprobante } from "./comprobante/actions";
 
 export default async function VentaDetallePage({
   params,
@@ -21,13 +23,13 @@ export default async function VentaDetallePage({
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("*, clientes(nombre), pedidos(id)")
+    .select("*, clientes(nombre, tipo_documento), pedidos(id)")
     .eq("id", id)
     .single();
 
   if (!venta) notFound();
 
-  const [{ data: detalle }, { data: cobranzas }] = await Promise.all([
+  const [{ data: detalle }, { data: cobranzas }, { data: comprobantes }] = await Promise.all([
     supabase
       .from("venta_detalle")
       .select("id, cantidad, cantidad_entregada, precio_unitario, subtotal, productos(nombre)")
@@ -37,6 +39,11 @@ export default async function VentaDetallePage({
       .select("id, fecha, monto, moneda, metodo_pago, referencia, estado")
       .eq("venta_id", id)
       .order("fecha", { ascending: false }),
+    supabase
+      .from("comprobantes")
+      .select("*")
+      .eq("venta_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const detalleIds = (detalle ?? []).map((d) => d.id);
@@ -48,8 +55,12 @@ export default async function VentaDetallePage({
           .in("venta_detalle_id", detalleIds)
       : { data: [] as never[] };
 
-  const cliente = venta.clientes as unknown as { nombre: string } | null;
+  const cliente = venta.clientes as unknown as {
+    nombre: string;
+    tipo_documento: string;
+  } | null;
   const pedido = venta.pedidos as unknown as { id: string } | null;
+  const comprobanteVigente = comprobantes?.find((c) => c.estado === "emitido");
 
   const cobrado = (cobranzas ?? [])
     .filter((c) => c.estado === "activa")
@@ -190,6 +201,85 @@ export default async function VentaDetallePage({
           <p className="mt-4 text-right text-sm font-semibold text-gray-900">
             Total: {venta.moneda} {venta.total}
           </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Comprobante electrónico
+          </h2>
+
+          {comprobanteVigente ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">
+                  {comprobanteVigente.tipo_comprobante === 1 ? "Factura" : "Boleta"}{" "}
+                  {comprobanteVigente.serie}-{comprobanteVigente.numero}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {comprobanteVigente.aceptado_por_sunat
+                    ? "Aceptado por SUNAT"
+                    : (comprobanteVigente.sunat_description ?? "Enviado a Nubefact")}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {comprobanteVigente.enlace_pdf && (
+                  <a
+                    href={comprobanteVigente.enlace_pdf}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                  >
+                    <FileText size={14} />
+                    Ver PDF
+                  </a>
+                )}
+                <ConfirmFormButton
+                  action={anularComprobante.bind(null, comprobanteVigente.id, id)}
+                  confirmMessage="¿Anular este comprobante? Por ahora solo se marca como anulado en el sistema."
+                  icon={<XCircle size={14} />}
+                  pendingLabel="Anulando..."
+                  className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Anular
+                </ConfirmFormButton>
+              </div>
+            </div>
+          ) : anulada ? (
+            <p className="text-sm text-gray-400">
+              Esta venta está anulada, no se puede emitir un comprobante.
+            </p>
+          ) : (
+            <form
+              action={emitirComprobante.bind(null, id)}
+              className="flex flex-wrap items-end gap-3"
+            >
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Tipo</label>
+                <select
+                  name="tipo_comprobante"
+                  defaultValue={cliente?.tipo_documento === "RUC" ? "1" : "2"}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                >
+                  <option value="2">Boleta</option>
+                  <option value="1" disabled={cliente?.tipo_documento !== "RUC"}>
+                    Factura {cliente?.tipo_documento !== "RUC" ? "(requiere RUC)" : ""}
+                  </option>
+                </select>
+              </div>
+              <SubmitButton icon={<Send size={16} />} pendingLabel="Emitiendo...">
+                Emitir comprobante
+              </SubmitButton>
+            </form>
+          )}
+
+          {comprobantes && comprobantes.length > 0 && !comprobanteVigente && (
+            <p className="mt-3 text-xs text-gray-400">
+              Último intento:{" "}
+              {comprobantes[0].estado === "error"
+                ? `error — ${comprobantes[0].error_mensaje ?? "sin detalle"}`
+                : comprobantes[0].estado}
+            </p>
+          )}
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
