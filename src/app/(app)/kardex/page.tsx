@@ -6,7 +6,7 @@ export default async function KardexPage() {
   const { data: movimientos, error } = await supabase
     .from("kardex_movimientos")
     .select(
-      "id, fecha, tipo_movimiento, cantidad, saldo_resultante, productos(nombre), almacenes(nombre), usuarios(nombre)",
+      "id, fecha, tipo_movimiento, cantidad, saldo_resultante, detalle, productos(nombre), almacenes(nombre), usuarios(nombre)",
     )
     .order("fecha", { ascending: false })
     .limit(200);
@@ -36,6 +36,7 @@ export default async function KardexPage() {
                 <th className="px-4 py-3 font-medium">Cantidad</th>
                 <th className="px-4 py-3 font-medium">Saldo resultante</th>
                 <th className="px-4 py-3 font-medium">Usuario</th>
+                <th className="px-4 py-3 font-medium">Detalle</th>
               </tr>
             </thead>
             <tbody>
@@ -63,12 +64,13 @@ export default async function KardexPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-600">{m.saldo_resultante}</td>
                     <td className="px-4 py-3 text-gray-600">{usuario?.nombre ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500">{m.detalle ?? "—"}</td>
                   </tr>
                 );
               })}
               {movimientos?.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay movimientos registrados.
                   </td>
                 </tr>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+import { TIPOS_AJUSTE_VENTA, TIPO_AJUSTE_VENTA_LABEL } from "@/lib/ajuste-venta-tipos";
 
 type Producto = { id: string; nombre: string; precio_venta: number };
 
@@ -11,9 +12,12 @@ type Linea = {
   linea_id: string | null;
   producto_id: string;
   producto_nombre: string;
+  cantidadPedido: number;
   cantidad: number;
   precio_unitario: number;
   esNueva: boolean;
+  tipoAjuste: string;
+  detalleAjuste: string;
 };
 
 let nextKey = 0;
@@ -38,6 +42,7 @@ export default function EditarVentaForm({
     id: string;
     producto_id: string;
     producto_nombre: string;
+    cantidad_pedido: number;
     cantidad_entregada: number;
     precio_unitario: number;
   }[];
@@ -51,13 +56,16 @@ export default function EditarVentaForm({
       linea_id: l.id,
       producto_id: l.producto_id,
       producto_nombre: l.producto_nombre,
+      cantidadPedido: l.cantidad_pedido,
       cantidad: l.cantidad_entregada,
       precio_unitario: l.precio_unitario,
       esNueva: false,
+      tipoAjuste: "",
+      detalleAjuste: "",
     })),
   );
 
-  const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const actualizarLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -74,13 +82,13 @@ export default function EditarVentaForm({
         producto?.nombre ??
         lineas.find((l) => l.producto_id === productoId)?.producto_nombre ??
         "Este producto";
-      setAvisoDuplicado(
+      setAviso(
         `"${nombreExistente}" ya está en la venta. Ajusta la cantidad en esa línea en vez de agregarlo de nuevo.`,
       );
       return;
     }
 
-    setAvisoDuplicado(null);
+    setAviso(null);
     const producto = productos.find((p) => p.id === productoId);
     actualizarLinea(key, {
       producto_id: productoId,
@@ -96,9 +104,12 @@ export default function EditarVentaForm({
         linea_id: null,
         producto_id: "",
         producto_nombre: "",
+        cantidadPedido: 0,
         cantidad: 1,
         precio_unitario: 0,
         esNueva: true,
+        tipoAjuste: "",
+        detalleAjuste: "",
       },
     ]);
   };
@@ -120,14 +131,24 @@ export default function EditarVentaForm({
     return false;
   })();
 
+  const requiereMotivo = (l: Linea) => !l.esNueva && l.cantidad < l.cantidadPedido;
+  const faltaMotivo = lineas.some((l) => requiereMotivo(l) && !l.tipoAjuste);
+
   return (
     <form
       action={action}
       onSubmit={(e) => {
         if (tieneDuplicados) {
           e.preventDefault();
-          setAvisoDuplicado(
+          setAviso(
             "Hay un producto repetido en la venta. Quita la línea duplicada antes de guardar.",
+          );
+          return;
+        }
+        if (faltaMotivo) {
+          e.preventDefault();
+          setAviso(
+            "Indica el motivo por el que se redujo la cantidad de un producto por debajo de lo pedido.",
           );
         }
       }}
@@ -138,9 +159,9 @@ export default function EditarVentaForm({
           {error}
         </p>
       )}
-      {avisoDuplicado && (
+      {aviso && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-          {avisoDuplicado}
+          {aviso}
         </p>
       )}
 
@@ -148,11 +169,13 @@ export default function EditarVentaForm({
 
       <div className="space-y-3">
         {lineas.map((linea) => (
+          <div key={linea.key} className="space-y-2">
           <div
-            key={linea.key}
             className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
           >
             <input type="hidden" name="linea_id[]" value={linea.linea_id ?? ""} />
+            <input type="hidden" name="tipo_ajuste[]" value={linea.tipoAjuste} />
+            <input type="hidden" name="detalle_ajuste[]" value={linea.detalleAjuste} />
 
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -239,6 +262,46 @@ export default function EditarVentaForm({
               <Trash2 size={14} />
               Quitar
             </button>
+          </div>
+
+          {requiereMotivo(linea) && (
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-amber-800">
+                  Motivo — pediste {linea.cantidadPedido} y se entregan {linea.cantidad}
+                </label>
+                <select
+                  value={linea.tipoAjuste}
+                  onChange={(e) =>
+                    actualizarLinea(linea.key, { tipoAjuste: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="">Selecciona un motivo</option>
+                  {TIPOS_AJUSTE_VENTA.map((t) => (
+                    <option key={t} value={t}>
+                      {TIPO_AJUSTE_VENTA_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-amber-800">
+                  Detalle (opcional)
+                </label>
+                <input
+                  value={linea.detalleAjuste}
+                  onChange={(e) =>
+                    actualizarLinea(linea.key, { detalleAjuste: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+              <p className="sm:col-span-2 text-xs text-amber-700">
+                El producto vuelve a stock (no es merma) — se podrá vender de nuevo.
+              </p>
+            </div>
+          )}
           </div>
         ))}
 

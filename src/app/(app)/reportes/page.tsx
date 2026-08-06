@@ -57,6 +57,12 @@ export default async function ReportesPage({
             <Link href="/kardex" className="font-medium text-gray-600 hover:underline">
               Ver kardex
             </Link>
+            <Link
+              href="/reportes/diferencias"
+              className="font-medium text-gray-600 hover:underline"
+            >
+              Diferencias pedido vs venta
+            </Link>
           </div>
         </div>
 

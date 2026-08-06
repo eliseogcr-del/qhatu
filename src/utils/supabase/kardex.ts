@@ -9,6 +9,7 @@ export async function registrarMovimientoKardex(
     tipoMovimiento: string;
     cantidad: number; // signed: positivo = entrada, negativo = salida
     referenciaId?: string | null;
+    detalle?: string | null;
     usuarioId: string;
   },
 ) {
@@ -30,6 +31,7 @@ export async function registrarMovimientoKardex(
     cantidad: params.cantidad,
     saldo_resultante: saldoResultante,
     referencia_id: params.referenciaId ?? null,
+    detalle: params.detalle ?? null,
     usuario_id: params.usuarioId,
   });
 
@@ -63,6 +65,7 @@ export async function registrarMovimientosKardex(
     tipoMovimiento: string;
     cantidad: number;
     referenciaId?: string | null;
+    detalle?: string | null;
   }[],
 ) {
   if (movimientos.length === 0) return;
@@ -97,6 +100,7 @@ export async function registrarMovimientosKardex(
       cantidad: m.cantidad,
       saldo_resultante: saldoResultante,
       referencia_id: m.referenciaId ?? null,
+      detalle: m.detalle ?? null,
       usuario_id: usuarioId,
     };
   });

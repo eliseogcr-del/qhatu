@@ -7,6 +7,7 @@ import { getEmpresaSession } from "@/utils/supabase/session";
 import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
+import { TIPO_AJUSTE_VENTA_LABEL, type TipoAjusteVenta } from "@/lib/ajuste-venta-tipos";
 
 export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const supabase = await createClient();
@@ -44,12 +45,16 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
+  const tiposAjuste = formData.getAll("tipo_ajuste[]").map(String);
+  const detallesAjuste = formData.getAll("detalle_ajuste[]").map(String);
 
   const enviadas = lineaIds.map((id, i) => ({
     id: id || null,
     producto_id: productoIds[i],
     cantidad: cantidades[i],
     precio_unitario: precios[i],
+    tipoAjuste: tiposAjuste[i] || "",
+    detalleAjuste: detallesAjuste[i] || "",
   }));
 
   const productoIdsActivos = enviadas
@@ -73,6 +78,22 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       original.precio_unitario !== l.precio_unitario
     );
   });
+
+  // Si una línea baja de cantidad por debajo de lo que decía el pedido
+  // original, hay que saber por qué (el producto vuelve a stock, no es
+  // merma) — se valida acá, antes de escribir nada.
+  for (const linea of lineasModificadas) {
+    const original = detalleOriginal!.find((d) => d.id === linea.id)!;
+    if (linea.cantidad < original.cantidad && !linea.tipoAjuste) {
+      const productoNombre =
+        (original.productos as unknown as { nombre: string } | null)?.nombre ?? "el producto";
+      redirect(
+        `/ventas/${ventaId}/editar?error=${encodeURIComponent(
+          `Indica el motivo por el que "${productoNombre}" se redujo por debajo de lo pedido (${original.cantidad}).`,
+        )}`,
+      );
+    }
+  }
 
   const nuevoTotal =
     Math.round(
@@ -220,6 +241,16 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       (original.productos as unknown as { nombre: string } | null)?.nombre ?? null;
     const deltaCantidad = linea.cantidad - original.cantidad_entregada;
 
+    // Si la nueva cantidad quedó por debajo de lo pedido, el motivo ya se
+    // validó arriba — acá solo se arma el texto para dejarlo en el
+    // kardex (vuelve a stock, no es merma) y en la auditoría.
+    const esReduccionBajoPedido = linea.cantidad < original.cantidad;
+    const motivoTexto = esReduccionBajoPedido
+      ? `${TIPO_AJUSTE_VENTA_LABEL[linea.tipoAjuste as TipoAjusteVenta] ?? linea.tipoAjuste}${
+          linea.detalleAjuste ? ` — ${linea.detalleAjuste}` : ""
+        }`
+      : null;
+
     if (producto?.control_inventario && almacen && deltaCantidad !== 0) {
       movimientosKardex.push({
         productoId: linea.producto_id,
@@ -227,6 +258,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         tipoMovimiento: "ajuste",
         cantidad: -deltaCantidad,
         referenciaId: linea.id,
+        detalle: motivoTexto,
       });
     }
 
@@ -241,7 +273,9 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       cantidad: linea.cantidad,
       precioUnitario: linea.precio_unitario,
       monto: subtotal,
-      detalle: `Cantidad: ${original.cantidad_entregada} → ${linea.cantidad}. Precio unitario: ${original.precio_unitario} → ${linea.precio_unitario}.`,
+      detalle: `Cantidad: ${original.cantidad_entregada} → ${linea.cantidad}. Precio unitario: ${original.precio_unitario} → ${linea.precio_unitario}.${
+        motivoTexto ? ` Motivo: ${motivoTexto}.` : ""
+      }`,
     });
   }
 

@@ -43,7 +43,7 @@ export default async function EditarVentaPage({
   const [{ data: detalle }, { data: productos }] = await Promise.all([
     supabase
       .from("venta_detalle")
-      .select("id, producto_id, cantidad_entregada, precio_unitario, productos(nombre)")
+      .select("id, producto_id, cantidad, cantidad_entregada, precio_unitario, productos(nombre)")
       .eq("venta_id", id),
     supabase
       .from("productos")
@@ -57,6 +57,7 @@ export default async function EditarVentaPage({
     producto_id: d.producto_id,
     producto_nombre:
       (d.productos as unknown as { nombre: string } | null)?.nombre ?? "—",
+    cantidad_pedido: d.cantidad,
     cantidad_entregada: d.cantidad_entregada,
     precio_unitario: d.precio_unitario,
   }));
