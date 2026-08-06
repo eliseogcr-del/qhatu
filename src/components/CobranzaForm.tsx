@@ -1,6 +1,6 @@
-import { Paperclip } from "lucide-react";
 import { METODOS_PAGO, METODO_PAGO_LABEL } from "@/lib/cobranza-tipos";
 import SubmitButton from "./SubmitButton";
+import EvidenciaPagoInput from "./EvidenciaPagoInput";
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
@@ -116,24 +116,7 @@ export default function CobranzaForm({
             liberar espacio desde &quot;Evidencias de pago&quot;.
           </p>
         ) : (
-          <>
-            <div className="flex items-center gap-2">
-              <Paperclip size={16} className="shrink-0 text-gray-400" />
-              <input
-                type="file"
-                name="evidencias"
-                multiple
-                accept="image/*"
-                className="block w-full text-sm text-gray-600"
-              />
-            </div>
-            {almacenamientoAviso && (
-              <p className="mt-2 text-sm text-amber-600">
-                El almacenamiento de imágenes está por llenarse — pronto un
-                administrador tendrá que liberar espacio.
-              </p>
-            )}
-          </>
+          <EvidenciaPagoInput aviso={almacenamientoAviso} />
         )}
       </Field>
 
