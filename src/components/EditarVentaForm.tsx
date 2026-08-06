@@ -114,7 +114,17 @@ export default function EditarVentaForm({
     ]);
   };
 
+  // Para una línea que ya venía del pedido, "Quitar" no la borra sin
+  // dejar rastro: la deja en cantidad 0, lo que activa el mismo cuadro
+  // de motivo que una reducción parcial (el producto vuelve a stock, no
+  // es merma). Solo las líneas agregadas en esta misma edición (esNueva)
+  // se pueden quitar sin más, porque todavía no existen en la base.
   const quitarLinea = (key: string) => {
+    const linea = lineas.find((l) => l.key === key);
+    if (linea && !linea.esNueva) {
+      actualizarLinea(key, { cantidad: 0 });
+      return;
+    }
     setLineas((prev) => prev.filter((l) => l.key !== key));
   };
 
@@ -257,10 +267,11 @@ export default function EditarVentaForm({
             <button
               type="button"
               onClick={() => quitarLinea(linea.key)}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm text-gray-500 hover:bg-gray-100"
+              disabled={!linea.esNueva && linea.cantidad === 0}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Trash2 size={14} />
-              Quitar
+              {!linea.esNueva && linea.cantidad === 0 ? "Quitado" : "Quitar"}
             </button>
           </div>
 
