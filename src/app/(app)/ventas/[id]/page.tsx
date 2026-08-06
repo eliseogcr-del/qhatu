@@ -243,6 +243,16 @@ export default async function VentaDetallePage({
                     Ver PDF
                   </a>
                 )}
+                {comprobantePrincipal.enlace_xml && (
+                  <a
+                    href={comprobantePrincipal.enlace_xml}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-emerald-700 hover:underline"
+                  >
+                    XML
+                  </a>
+                )}
                 <ConfirmFormButton
                   action={anularComprobante.bind(null, comprobantePrincipal.id, id)}
                   confirmMessage="¿Anular este comprobante? Se emitirá una Nota de Crédito en Nubefact por el mismo total."
@@ -264,17 +274,29 @@ export default async function VentaDetallePage({
                   </p>
                   <p className="text-sm text-red-600">Anulado</p>
                 </div>
-                {comprobantePrincipal.enlace_pdf && (
-                  <a
-                    href={comprobantePrincipal.enlace_pdf}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
-                  >
-                    <FileText size={14} />
-                    Ver PDF
-                  </a>
-                )}
+                <div className="flex items-center gap-3">
+                  {comprobantePrincipal.enlace_pdf && (
+                    <a
+                      href={comprobantePrincipal.enlace_pdf}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                    >
+                      <FileText size={14} />
+                      Ver PDF
+                    </a>
+                  )}
+                  {comprobantePrincipal.enlace_xml && (
+                    <a
+                      href={comprobantePrincipal.enlace_xml}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-emerald-700 hover:underline"
+                    >
+                      XML
+                    </a>
+                  )}
+                </div>
               </div>
               {notaCredito && (
                 <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -293,17 +315,29 @@ export default async function VentaDetallePage({
                           : notaCredito.estado}
                     </p>
                   </div>
-                  {notaCredito.enlace_pdf && (
-                    <a
-                      href={notaCredito.enlace_pdf}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
-                    >
-                      <FileText size={14} />
-                      Ver PDF
-                    </a>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {notaCredito.enlace_pdf && (
+                      <a
+                        href={notaCredito.enlace_pdf}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                      >
+                        <FileText size={14} />
+                        Ver PDF
+                      </a>
+                    )}
+                    {notaCredito.enlace_xml && (
+                      <a
+                        href={notaCredito.enlace_xml}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-emerald-700 hover:underline"
+                      >
+                        XML
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -22,8 +22,8 @@ export default async function ComprobantesPage({
     .from("comprobantes")
     .select(
       q
-        ? "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, fecha_emision, venta_id, ventas!inner(total, moneda, clientes!inner(nombre))"
-        : "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, fecha_emision, venta_id, ventas(total, moneda, clientes(nombre))",
+        ? "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, enlace_xml, fecha_emision, venta_id, ventas!inner(total, moneda, clientes!inner(nombre))"
+        : "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, enlace_xml, fecha_emision, venta_id, ventas(total, moneda, clientes(nombre))",
     )
     .order("fecha_emision", { ascending: false });
 
@@ -169,6 +169,16 @@ export default async function ComprobantesPage({
                             className="text-sm font-medium text-emerald-700 hover:underline"
                           >
                             Ver PDF
+                          </a>
+                        )}
+                        {c.enlace_xml && (
+                          <a
+                            href={c.enlace_xml}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-emerald-700 hover:underline"
+                          >
+                            XML
                           </a>
                         )}
                         <Link
