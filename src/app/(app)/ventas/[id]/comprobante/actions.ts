@@ -57,6 +57,17 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
     );
   }
 
+  const documento = cliente.numero_documento.trim();
+  const longitudEsperada: Record<string, number> = { DNI: 8, RUC: 11 };
+  const esperada = longitudEsperada[cliente.tipo_documento];
+  if (esperada && documento.length !== esperada) {
+    redirect(
+      `/ventas/${ventaId}?error=${encodeURIComponent(
+        `El ${cliente.tipo_documento} del cliente debe tener ${esperada} dígitos (tiene ${documento.length}: "${documento}"). Corrígelo en Clientes antes de emitir el comprobante.`,
+      )}`,
+    );
+  }
+
   const { data: detalle } = await supabase
     .from("venta_detalle")
     .select("cantidad_entregada, precio_unitario, subtotal, productos(nombre)")
