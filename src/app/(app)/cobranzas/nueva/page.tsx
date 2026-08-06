@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import CobranzaForm from "@/components/CobranzaForm";
+import { UMBRAL_AVISO_BYTES, UMBRAL_BLOQUEO_BYTES } from "@/lib/cobranza-adjuntos";
 import { createCobranza } from "../actions";
 
 export default async function NuevaCobranzaPage({
@@ -95,6 +96,10 @@ export default async function NuevaCobranzaPage({
 
   const cliente = pedido.clientes as unknown as { nombre: string } | null;
 
+  const { data: bytesUsados } = await supabase.rpc("total_storage_usado_bytes");
+  const almacenamientoBloqueado = (bytesUsados ?? 0) >= UMBRAL_BLOQUEO_BYTES;
+  const almacenamientoAviso = (bytesUsados ?? 0) >= UMBRAL_AVISO_BYTES;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-2xl">
@@ -118,6 +123,8 @@ export default async function NuevaCobranzaPage({
             clienteNombre={cliente?.nombre ?? "—"}
             monedaSugerida={monedaReferencia}
             saldoPendiente={saldoPendiente}
+            almacenamientoBloqueado={almacenamientoBloqueado}
+            almacenamientoAviso={almacenamientoAviso}
           />
         </div>
       </div>

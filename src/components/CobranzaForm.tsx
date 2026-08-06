@@ -1,3 +1,4 @@
+import { Paperclip } from "lucide-react";
 import { METODOS_PAGO, METODO_PAGO_LABEL } from "@/lib/cobranza-tipos";
 import SubmitButton from "./SubmitButton";
 
@@ -28,6 +29,8 @@ export default function CobranzaForm({
   clienteNombre,
   monedaSugerida,
   saldoPendiente,
+  almacenamientoBloqueado,
+  almacenamientoAviso,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -35,6 +38,8 @@ export default function CobranzaForm({
   clienteNombre: string;
   monedaSugerida: string;
   saldoPendiente: number | null;
+  almacenamientoBloqueado?: boolean;
+  almacenamientoAviso?: boolean;
 }) {
   return (
     <form action={action} className="space-y-6">
@@ -101,6 +106,35 @@ export default function CobranzaForm({
 
       <Field label="Referencia (N° de operación, etc.)">
         <input name="referencia" className={inputClass} />
+      </Field>
+
+      <Field label="Evidencia de pago (foto del Yape/Plin/etc.)">
+        {almacenamientoBloqueado ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            Se alcanzó el límite de almacenamiento de imágenes. Este cobro se
+            puede registrar igual, pero sin foto — un administrador debe
+            liberar espacio desde &quot;Evidencias de pago&quot;.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <Paperclip size={16} className="shrink-0 text-gray-400" />
+              <input
+                type="file"
+                name="evidencias"
+                multiple
+                accept="image/*"
+                className="block w-full text-sm text-gray-600"
+              />
+            </div>
+            {almacenamientoAviso && (
+              <p className="mt-2 text-sm text-amber-600">
+                El almacenamiento de imágenes está por llenarse — pronto un
+                administrador tendrá que liberar espacio.
+              </p>
+            )}
+          </>
+        )}
       </Field>
 
       <SubmitButton pendingLabel="Registrando cobro...">

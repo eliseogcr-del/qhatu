@@ -18,6 +18,7 @@ import {
   BarChart3,
   ShieldCheck,
   UserCog,
+  Image,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -71,6 +72,7 @@ export default function SidebarNav({
           items: [
             { href: "/usuarios", label: "Usuarios", icon: UserCog },
             { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
+            { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },
           ],
         },
       ]
