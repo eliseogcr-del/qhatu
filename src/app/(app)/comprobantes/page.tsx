@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileText, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { TIPO_COMPROBANTE_LABEL } from "@/utils/nubefact";
 
 const ESTADO_BADGE: Record<string, string> = {
   emitido: "bg-green-100 text-green-700",
@@ -139,7 +140,8 @@ export default async function ComprobantesPage({
                 return (
                   <tr key={c.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
-                      {c.tipo_comprobante === 1 ? "Factura" : "Boleta"} {c.serie}-{c.numero}
+                      {TIPO_COMPROBANTE_LABEL[c.tipo_comprobante] ?? "Comprobante"} {c.serie}-
+                      {c.numero}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {venta?.clientes?.nombre ?? "—"}

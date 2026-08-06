@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_DEVOLUCION_LABEL, type TipoDevolucion } from "@/lib/devolucion-tipos";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
+import { TIPO_COMPROBANTE_LABEL } from "@/utils/nubefact";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
 import { anularVenta } from "./actions";
@@ -60,7 +61,16 @@ export default async function VentaDetallePage({
     tipo_documento: string;
   } | null;
   const pedido = venta.pedidos as unknown as { id: string } | null;
-  const comprobanteVigente = comprobantes?.find((c) => c.estado === "emitido");
+  const principales = (comprobantes ?? []).filter(
+    (c) => c.tipo_comprobante === 1 || c.tipo_comprobante === 2,
+  );
+  const comprobantePrincipal = principales.find(
+    (c) => c.estado === "emitido" || c.estado === "anulado",
+  );
+  const notaCredito =
+    comprobantePrincipal?.estado === "anulado"
+      ? comprobantes?.find((c) => c.tipo_comprobante === 3)
+      : undefined;
 
   const cobrado = (cobranzas ?? [])
     .filter((c) => c.estado === "activa")
@@ -208,23 +218,23 @@ export default async function VentaDetallePage({
             Comprobante electrónico
           </h2>
 
-          {comprobanteVigente ? (
+          {comprobantePrincipal?.estado === "emitido" ? (
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">
-                  {comprobanteVigente.tipo_comprobante === 1 ? "Factura" : "Boleta"}{" "}
-                  {comprobanteVigente.serie}-{comprobanteVigente.numero}
+                  {TIPO_COMPROBANTE_LABEL[comprobantePrincipal.tipo_comprobante]}{" "}
+                  {comprobantePrincipal.serie}-{comprobantePrincipal.numero}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {comprobanteVigente.aceptado_por_sunat
+                  {comprobantePrincipal.aceptado_por_sunat
                     ? "Aceptado por SUNAT"
-                    : (comprobanteVigente.sunat_description ?? "Enviado a Nubefact")}
+                    : (comprobantePrincipal.sunat_description ?? "Enviado a Nubefact")}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {comprobanteVigente.enlace_pdf && (
+                {comprobantePrincipal.enlace_pdf && (
                   <a
-                    href={comprobanteVigente.enlace_pdf}
+                    href={comprobantePrincipal.enlace_pdf}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
@@ -234,8 +244,8 @@ export default async function VentaDetallePage({
                   </a>
                 )}
                 <ConfirmFormButton
-                  action={anularComprobante.bind(null, comprobanteVigente.id, id)}
-                  confirmMessage="¿Anular este comprobante? Por ahora solo se marca como anulado en el sistema."
+                  action={anularComprobante.bind(null, comprobantePrincipal.id, id)}
+                  confirmMessage="¿Anular este comprobante? Se emitirá una Nota de Crédito en Nubefact por el mismo total."
                   icon={<XCircle size={14} />}
                   pendingLabel="Anulando..."
                   className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
@@ -243,6 +253,59 @@ export default async function VentaDetallePage({
                   Anular
                 </ConfirmFormButton>
               </div>
+            </div>
+          ) : comprobantePrincipal?.estado === "anulado" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {TIPO_COMPROBANTE_LABEL[comprobantePrincipal.tipo_comprobante]}{" "}
+                    {comprobantePrincipal.serie}-{comprobantePrincipal.numero}
+                  </p>
+                  <p className="text-sm text-red-600">Anulado</p>
+                </div>
+                {comprobantePrincipal.enlace_pdf && (
+                  <a
+                    href={comprobantePrincipal.enlace_pdf}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                  >
+                    <FileText size={14} />
+                    Ver PDF
+                  </a>
+                )}
+              </div>
+              {notaCredito && (
+                <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {TIPO_COMPROBANTE_LABEL[notaCredito.tipo_comprobante]}{" "}
+                      {notaCredito.serie}-{notaCredito.numero}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {notaCredito.estado === "emitido"
+                        ? notaCredito.aceptado_por_sunat
+                          ? "Aceptada por SUNAT"
+                          : (notaCredito.sunat_description ?? "Enviada a Nubefact")
+                        : notaCredito.estado === "error"
+                          ? `error — ${notaCredito.error_mensaje ?? "sin detalle"}`
+                          : notaCredito.estado}
+                    </p>
+                  </div>
+                  {notaCredito.enlace_pdf && (
+                    <a
+                      href={notaCredito.enlace_pdf}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                    >
+                      <FileText size={14} />
+                      Ver PDF
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           ) : anulada ? (
             <p className="text-sm text-gray-400">
@@ -272,7 +335,7 @@ export default async function VentaDetallePage({
             </form>
           )}
 
-          {comprobantes && comprobantes.length > 0 && !comprobanteVigente && (
+          {comprobantes && comprobantes.length > 0 && !comprobantePrincipal && (
             <p className="mt-3 text-xs text-gray-400">
               Último intento:{" "}
               {comprobantes[0].estado === "error"

@@ -52,6 +52,13 @@ export type NubefactResponse = {
   codigo?: number;
 };
 
+export const TIPO_COMPROBANTE_LABEL: Record<number, string> = {
+  1: "Factura",
+  2: "Boleta",
+  3: "Nota de Crédito",
+  4: "Nota de Débito",
+};
+
 // Catálogo 06 de SUNAT (tipo de documento de identidad).
 export function tipoDocumentoNubefact(tipoDocumentoCliente: string): string {
   switch (tipoDocumentoCliente) {
