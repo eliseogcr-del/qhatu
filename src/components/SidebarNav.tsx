@@ -21,6 +21,7 @@ import {
   Image,
   DatabaseBackup,
   FileText,
+  Settings,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -77,6 +78,11 @@ export default function SidebarNav({
             { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
             { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },
             { href: "/respaldo", label: "Respaldo de datos", icon: DatabaseBackup },
+            {
+              href: "/configuracion-facturacion",
+              label: "Facturación electrónica",
+              icon: Settings,
+            },
           ],
         },
       ]

@@ -11,9 +11,6 @@ import {
   type NubefactResponse,
 } from "@/utils/nubefact";
 
-// Series asignadas por Nubefact a esta cuenta (panel Locales → Local
-// principal → "Tipos de comprobantes y series asignados").
-const SERIE_POR_TIPO: Record<number, string> = { 1: "FFF1", 2: "BBB1" };
 const PORCENTAJE_IGV = 0.18;
 
 export async function emitirComprobante(ventaId: string, formData: FormData) {
@@ -80,7 +77,21 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
     );
   }
 
-  const serie = SERIE_POR_TIPO[tipoComprobante] ?? "B001";
+  const { data: config } = await supabase
+    .from("configuracion_facturacion")
+    .select("serie_factura, serie_boleta")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+
+  if (!config) {
+    redirect(
+      `/ventas/${ventaId}?error=${encodeURIComponent(
+        "Falta configurar las series de facturación. Ve a Administración → Facturación electrónica.",
+      )}`,
+    );
+  }
+
+  const serie = tipoComprobante === 1 ? config.serie_factura : config.serie_boleta;
   const { data: ultimo } = await supabase
     .from("comprobantes")
     .select("numero")
