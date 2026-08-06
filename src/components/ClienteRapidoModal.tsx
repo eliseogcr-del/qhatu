@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import { createClienteRapido } from "@/app/(app)/clientes/actions";
+import { Loader2, Search, X } from "lucide-react";
+import { createClienteRapido, consultarDocumento } from "@/app/(app)/clientes/actions";
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
@@ -19,6 +19,37 @@ export default function ClienteRapidoModal({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const tipoDocumentoRef = useRef<HTMLSelectElement>(null);
+  const numeroDocumentoRef = useRef<HTMLInputElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const [buscandoDocumento, setBuscandoDocumento] = useState(false);
+  const [avisoDocumento, setAvisoDocumento] = useState<string | null>(null);
+
+  const buscarDocumento = async () => {
+    const tipo = tipoDocumentoRef.current?.value ?? "";
+    const numero = numeroDocumentoRef.current?.value.trim() ?? "";
+    if (!numero) {
+      setAvisoDocumento("Ingresa el número de documento primero.");
+      return;
+    }
+    setBuscandoDocumento(true);
+    setAvisoDocumento(null);
+    try {
+      const resultado = await consultarDocumento(tipo, numero);
+      if ("error" in resultado) {
+        setAvisoDocumento(resultado.error);
+        return;
+      }
+      if (nombreRef.current) nombreRef.current.value = resultado.nombre;
+    } catch (err) {
+      setAvisoDocumento(
+        err instanceof Error ? err.message : "No se pudo consultar el documento.",
+      );
+    } finally {
+      setBuscandoDocumento(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,7 +100,12 @@ export default function ClienteRapidoModal({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Tipo de documento
               </label>
-              <select name="tipo_documento" defaultValue="DNI" className={inputClass}>
+              <select
+                ref={tipoDocumentoRef}
+                name="tipo_documento"
+                defaultValue="DNI"
+                className={inputClass}
+              >
                 <option value="DNI">DNI</option>
                 <option value="RUC">RUC</option>
                 <option value="CE">Carné de extranjería</option>
@@ -80,19 +116,36 @@ export default function ClienteRapidoModal({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Número de documento
               </label>
-              <input
-                name="numero_documento"
-                required
-                autoFocus
-                className={inputClass}
-              />
+              <div className="flex gap-2">
+                <input
+                  ref={numeroDocumentoRef}
+                  name="numero_documento"
+                  required
+                  autoFocus
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={buscarDocumento}
+                  disabled={buscandoDocumento}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {buscandoDocumento ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Search size={14} />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
+          {avisoDocumento && <p className="text-sm text-amber-600">{avisoDocumento}</p>}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Nombre / Razón social
             </label>
             <input
+              ref={nombreRef}
               name="nombre"
               required
               defaultValue={nombreInicial}

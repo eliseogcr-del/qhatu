@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Save, Search, Loader2 } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode";
+import { consultarDocumento } from "@/app/(app)/clientes/actions";
 import SubmitButton from "./SubmitButton";
 
 const ClienteMapPicker = dynamic(() => import("./ClienteMapPicker"), {
@@ -94,6 +95,12 @@ export default function ClienteForm({
   const [lat, setLat] = useState<number | null>(values.latitud);
   const [lng, setLng] = useState<number | null>(values.longitud);
 
+  const tipoDocumentoRef = useRef<HTMLSelectElement>(null);
+  const numeroDocumentoRef = useRef<HTMLInputElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const [buscandoDocumento, setBuscandoDocumento] = useState(false);
+  const [avisoDocumento, setAvisoDocumento] = useState<string | null>(null);
+
   const [ubicacion, setUbicacion] = useState({
     departamento: values.departamento ?? "",
     provincia: values.provincia ?? "",
@@ -144,6 +151,40 @@ export default function ClienteForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ubicacion, ubicacionTocada]);
 
+  const buscarDocumento = async () => {
+    const tipo = tipoDocumentoRef.current?.value ?? "";
+    const numero = numeroDocumentoRef.current?.value.trim() ?? "";
+    if (!numero) {
+      setAvisoDocumento("Ingresa el número de documento primero.");
+      return;
+    }
+    setBuscandoDocumento(true);
+    setAvisoDocumento(null);
+    try {
+      const resultado = await consultarDocumento(tipo, numero);
+      if ("error" in resultado) {
+        setAvisoDocumento(resultado.error);
+        return;
+      }
+      if (nombreRef.current) nombreRef.current.value = resultado.nombre;
+      if (resultado.direccion || resultado.departamento || resultado.provincia || resultado.distrito) {
+        setUbicacionTocada(true);
+        setUbicacion((prev) => ({
+          departamento: resultado.departamento || prev.departamento,
+          provincia: resultado.provincia || prev.provincia,
+          distrito: resultado.distrito || prev.distrito,
+          direccion: resultado.direccion || prev.direccion,
+        }));
+      }
+    } catch (err) {
+      setAvisoDocumento(
+        err instanceof Error ? err.message : "No se pudo consultar el documento.",
+      );
+    } finally {
+      setBuscandoDocumento(false);
+    }
+  };
+
   const campoUbicacion = (campo: keyof typeof ubicacion) => ({
     value: ubicacion[campo],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,6 +208,7 @@ export default function ClienteForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Tipo de documento">
             <select
+              ref={tipoDocumentoRef}
               name="tipo_documento"
               defaultValue={values.tipo_documento}
               className={inputClass}
@@ -178,21 +220,41 @@ export default function ClienteForm({
             </select>
           </Field>
           <Field label="Número de documento">
-            <input
-              name="numero_documento"
-              required
-              defaultValue={values.numero_documento}
-              className={inputClass}
-            />
+            <div className="flex gap-2">
+              <input
+                ref={numeroDocumentoRef}
+                name="numero_documento"
+                required
+                defaultValue={values.numero_documento}
+                className={inputClass}
+              />
+              <button
+                type="button"
+                onClick={buscarDocumento}
+                disabled={buscandoDocumento}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {buscandoDocumento ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Search size={14} />
+                )}
+                Buscar
+              </button>
+            </div>
           </Field>
           <Field label="Nombre / Razón social">
             <input
+              ref={nombreRef}
               name="nombre"
               required
               defaultValue={values.nombre}
               className={inputClass}
             />
           </Field>
+          {avisoDocumento && (
+            <p className="-mt-2 text-sm text-amber-600 sm:col-span-2">{avisoDocumento}</p>
+          )}
           <Field label="Persona de contacto">
             <input
               name="contacto"

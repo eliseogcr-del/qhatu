@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { consultarDni, consultarRuc, type ConsultaDocumento } from "@/utils/decolecta";
 
 function clienteFromForm(formData: FormData) {
   const num = (key: string) => {
@@ -100,6 +101,34 @@ export async function updateCliente(id: string, formData: FormData) {
 
   revalidatePath("/clientes");
   redirect("/clientes");
+}
+
+// Autocompletar nombre/razón social y dirección a partir del número de
+// documento (DNI o RUC), consultando SUNAT/RENIEC vía Decolecta.
+export async function consultarDocumento(
+  tipoDocumento: string,
+  numeroDocumento: string,
+): Promise<ConsultaDocumento | { error: string }> {
+  const supabase = await createClient();
+  await getEmpresaSession(supabase);
+
+  const numero = numeroDocumento.trim();
+
+  try {
+    if (tipoDocumento === "RUC") {
+      if (numero.length !== 11) return { error: "El RUC debe tener 11 dígitos." };
+      return await consultarRuc(numero);
+    }
+    if (tipoDocumento === "DNI") {
+      if (numero.length !== 8) return { error: "El DNI debe tener 8 dígitos." };
+      return await consultarDni(numero);
+    }
+    return { error: "La búsqueda automática solo está disponible para DNI y RUC." };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "No se pudo consultar el documento.",
+    };
+  }
 }
 
 export async function toggleActivo(id: string, activo: boolean) {
