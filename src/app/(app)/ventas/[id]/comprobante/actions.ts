@@ -11,9 +11,9 @@ import {
   type NubefactResponse,
 } from "@/utils/nubefact";
 
-// Series por defecto — ajustables el día que la cuenta real de Nubefact
-// asigne otras (F001/B001 es la convención estándar en Perú).
-const SERIE_POR_TIPO: Record<number, string> = { 1: "F001", 2: "B001" };
+// Series asignadas por Nubefact a esta cuenta (panel Locales → Local
+// principal → "Tipos de comprobantes y series asignados").
+const SERIE_POR_TIPO: Record<number, string> = { 1: "FFF1", 2: "BBB1" };
 const PORCENTAJE_IGV = 0.18;
 
 export async function emitirComprobante(ventaId: string, formData: FormData) {
