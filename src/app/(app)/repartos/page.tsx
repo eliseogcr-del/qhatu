@@ -29,7 +29,7 @@ export default async function RepartosPage({
     .select(
       "id, fecha_reparto, tipo_transporte, transportista_nombre, estado, usuarios(nombre), pedidos(id, clientes(nombre, direccion, latitud, longitud))",
     )
-    .order("fecha_reparto", { ascending: true });
+    .order("fecha_reparto", { ascending: false });
 
   if (fecha) query = query.eq("fecha_reparto", fecha);
 
