@@ -5,6 +5,15 @@
 -- inventario, kardex) solo son visibles para quien pertenece a ese
 -- almacén. Admin (almacen_id null) sigue viendo y operando en todos.
 
+-- ── Columnas nuevas (antes de las funciones: las funciones SQL se
+-- validan contra el esquema en el momento de crearse, así que la
+-- columna almacen_id debe existir primero) ─────────────────────────
+
+alter table public.usuarios add column if not exists almacen_id uuid references public.almacenes (id);
+alter table public.pedidos add column if not exists almacen_id uuid references public.almacenes (id);
+alter table public.ventas add column if not exists almacen_id uuid references public.almacenes (id);
+alter table public.compras add column if not exists almacen_id uuid references public.almacenes (id);
+
 -- ── Funciones helper (mismo patrón que current_empresa_id) ────────────
 
 create or replace function public.current_almacen_id()
@@ -26,13 +35,6 @@ stable
 as $$
   select coalesce(rol = 'admin', false) from public.usuarios where id = auth.uid()
 $$;
-
--- ── Columnas nuevas ─────────────────────────────────────────────────
-
-alter table public.usuarios add column if not exists almacen_id uuid references public.almacenes (id);
-alter table public.pedidos add column if not exists almacen_id uuid references public.almacenes (id);
-alter table public.ventas add column if not exists almacen_id uuid references public.almacenes (id);
-alter table public.compras add column if not exists almacen_id uuid references public.almacenes (id);
 
 -- ── Backfill ────────────────────────────────────────────────────────
 
