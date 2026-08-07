@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import CompraForm from "@/components/CompraForm";
 import { createCompra } from "../actions";
 
@@ -11,15 +12,25 @@ export default async function NuevaCompraPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const { empresaId, almacenId } = await getEmpresaSession(supabase);
 
-  const [{ data: proveedores }, { data: productos }] = await Promise.all([
-    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase
-      .from("productos")
-      .select("id, nombre, costo_referencial")
-      .eq("activo", true)
-      .order("nombre"),
-  ]);
+  const [{ data: proveedores }, { data: productos }, { data: almacenes }] =
+    await Promise.all([
+      supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
+      supabase
+        .from("productos")
+        .select("id, nombre, costo_referencial")
+        .eq("activo", true)
+        .order("nombre"),
+      almacenId
+        ? Promise.resolve({ data: null })
+        : supabase
+            .from("almacenes")
+            .select("id, nombre")
+            .eq("empresa_id", empresaId)
+            .eq("activo", true)
+            .order("nombre"),
+    ]);
 
   return (
     <div className="p-8">
@@ -44,6 +55,7 @@ export default async function NuevaCompraPage({
             error={error}
             proveedores={proveedores ?? []}
             productos={productos ?? []}
+            almacenes={almacenes ?? undefined}
           />
         </div>
       </div>

@@ -15,10 +15,18 @@ export async function createUsuario(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rol = String(formData.get("rol") ?? "vendedor");
   const activo = formData.get("activo") === "on";
+  const almacenIdRaw = String(formData.get("almacen_id") ?? "");
+  const almacenId = rol === "admin" ? null : almacenIdRaw || null;
 
   if (!email || !nombre || password.length < 6) {
     redirect(
       `/usuarios/nuevo?error=${encodeURIComponent("Completa correo y nombre, con una contraseña de al menos 6 caracteres.")}`,
+    );
+  }
+
+  if (rol !== "admin" && !almacenId) {
+    redirect(
+      `/usuarios/nuevo?error=${encodeURIComponent("Selecciona el almacén/local al que pertenece este usuario.")}`,
     );
   }
 
@@ -42,6 +50,7 @@ export async function createUsuario(formData: FormData) {
     nombre,
     rol,
     activo,
+    almacen_id: almacenId,
   });
 
   if (perfilError) {
@@ -61,15 +70,23 @@ export async function updateUsuario(id: string, formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rol = String(formData.get("rol") ?? "vendedor");
   const activo = formData.get("activo") === "on";
+  const almacenIdRaw = String(formData.get("almacen_id") ?? "");
+  const almacenId = rol === "admin" ? null : almacenIdRaw || null;
 
   if (!nombre) {
     redirect(`/usuarios/${id}/editar?error=${encodeURIComponent("El nombre es obligatorio.")}`);
   }
 
+  if (rol !== "admin" && !almacenId) {
+    redirect(
+      `/usuarios/${id}/editar?error=${encodeURIComponent("Selecciona el almacén/local al que pertenece este usuario.")}`,
+    );
+  }
+
   const admin = createAdminClient();
   const { error } = await admin
     .from("usuarios")
-    .update({ nombre, rol, activo })
+    .update({ nombre, rol, activo, almacen_id: almacenId })
     .eq("id", id);
 
   if (error) {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession } from "@/utils/supabase/session";
+import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
 import { getSaldoCompra } from "@/utils/supabase/compras";
 
@@ -12,7 +12,15 @@ import { getSaldoCompra } from "@/utils/supabase/compras";
 // pedido→venta, que separa lo pedido de lo entregado).
 export async function createCompra(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const session = await getEmpresaSession(supabase);
+  const { userId, empresaId } = session;
+
+  const almacenId = resolverAlmacenId(session, formData);
+  if (!almacenId) {
+    redirect(
+      `/compras/nueva?error=${encodeURIComponent("Selecciona el almacén/local para esta compra.")}`,
+    );
+  }
 
   const proveedorId = String(formData.get("proveedor_id") ?? "");
   const moneda = String(formData.get("moneda") ?? "PEN");
@@ -55,6 +63,7 @@ export async function createCompra(formData: FormData) {
       tipo_cambio_aplicado: tipoCambio,
       total,
       usuario_id: userId,
+      almacen_id: almacenId,
     })
     .select("id")
     .single();
@@ -65,7 +74,7 @@ export async function createCompra(formData: FormData) {
     );
   }
 
-  const [{ data: compraDetalleRows }, { data: productosInfo }, { data: almacen }] =
+  const [{ data: compraDetalleRows }, { data: productosInfo }] =
     await Promise.all([
       supabase
         .from("compra_detalle")
@@ -83,7 +92,6 @@ export async function createCompra(formData: FormData) {
         .from("productos")
         .select("id, control_inventario")
         .in("id", [...productoIdsUnicos]),
-      supabase.from("almacenes").select("id").eq("activo", true).limit(1).maybeSingle(),
     ]);
 
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
@@ -93,10 +101,10 @@ export async function createCompra(formData: FormData) {
       (p) => p.id === linea.producto_id,
     )?.control_inventario;
 
-    if (llevaInventario && almacen) {
+    if (llevaInventario) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId,
         tipoMovimiento: "compra",
         cantidad: linea.cantidad,
         referenciaId: compraDetalleId ?? null,
@@ -140,7 +148,7 @@ export async function anularCompra(compraId: string) {
 
   const { data: compra } = await supabase
     .from("compras")
-    .select("id, estado")
+    .select("id, estado, almacen_id")
     .eq("id", compraId)
     .single();
 
@@ -169,23 +177,16 @@ export async function anularCompra(compraId: string) {
     .select("id, producto_id, cantidad, productos(control_inventario)")
     .eq("compra_id", compraId);
 
-  const { data: almacen } = await supabase
-    .from("almacenes")
-    .select("id")
-    .eq("activo", true)
-    .limit(1)
-    .maybeSingle();
-
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
   for (const linea of detalle ?? []) {
     const llevaInventario = (
       linea.productos as unknown as { control_inventario: boolean } | null
     )?.control_inventario;
 
-    if (llevaInventario && almacen) {
+    if (llevaInventario) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId: compra.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: -linea.cantidad,
         referenciaId: linea.id,

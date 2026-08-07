@@ -50,11 +50,15 @@ export default function VentaDirectaForm({
   error,
   clientes,
   productos,
+  almacenes,
 }: {
   action: (formData: FormData) => void;
   error?: string;
   clientes: Cliente[];
   productos: Producto[];
+  // Solo se pasa (con al menos un local) cuando quien registra es admin
+  // — un vendedor tiene su almacén fijo y el servidor lo asigna solo.
+  almacenes?: { id: string; nombre: string }[];
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
@@ -148,6 +152,20 @@ export default function VentaDirectaForm({
               className={inputClass}
             />
           </Field>
+          {almacenes && almacenes.length > 0 && (
+            <Field label="Almacén / Local">
+              <select name="almacen_id" required defaultValue="" className={inputClass}>
+                <option value="" disabled>
+                  Selecciona un local
+                </option>
+                {almacenes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
         </div>
       </section>
 

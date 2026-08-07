@@ -15,7 +15,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   const { data: venta, error: ventaError } = await supabase
     .from("ventas")
-    .select("id, total, moneda, estado")
+    .select("id, total, moneda, estado, almacen_id")
     .eq("id", ventaId)
     .single();
 
@@ -119,15 +119,12 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     ]),
   ];
 
-  const [{ data: productosInfo }, { data: almacen }] = await Promise.all([
-    productoIdsInvolucrados.length > 0
-      ? supabase
-          .from("productos")
-          .select("id, nombre, control_inventario")
-          .in("id", productoIdsInvolucrados)
-      : Promise.resolve({ data: [] as { id: string; nombre: string; control_inventario: boolean }[] }),
-    supabase.from("almacenes").select("id").eq("activo", true).limit(1).maybeSingle(),
-  ]);
+  const { data: productosInfo } = productoIdsInvolucrados.length > 0
+    ? await supabase
+        .from("productos")
+        .select("id, nombre, control_inventario")
+        .in("id", productoIdsInvolucrados)
+    : { data: [] as { id: string; nombre: string; control_inventario: boolean }[] };
 
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
 
@@ -148,10 +145,10 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     const productoNombre =
       (linea.productos as unknown as { nombre: string } | null)?.nombre ?? null;
 
-    if (producto?.control_inventario && almacen && linea.cantidad_entregada > 0) {
+    if (producto?.control_inventario && linea.cantidad_entregada > 0) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: linea.cantidad_entregada,
         referenciaId: linea.id,
@@ -191,10 +188,10 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
     const producto = productosInfo?.find((p) => p.id === linea.producto_id);
 
-    if (producto?.control_inventario && almacen) {
+    if (producto?.control_inventario) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId: venta.almacen_id,
         tipoMovimiento: "venta",
         cantidad: -linea.cantidad,
         referenciaId: nuevaLinea?.id ?? null,
@@ -251,10 +248,10 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         }`
       : null;
 
-    if (producto?.control_inventario && almacen && deltaCantidad !== 0) {
+    if (producto?.control_inventario && deltaCantidad !== 0) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: -deltaCantidad,
         referenciaId: linea.id,
@@ -300,7 +297,7 @@ export async function anularVenta(ventaId: string) {
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, moneda, estado, pedido_id")
+    .select("id, total, moneda, estado, pedido_id, almacen_id")
     .eq("id", ventaId)
     .single();
 
@@ -329,23 +326,16 @@ export async function anularVenta(ventaId: string) {
     .select("id, producto_id, cantidad_entregada, productos(control_inventario)")
     .eq("venta_id", ventaId);
 
-  const { data: almacen } = await supabase
-    .from("almacenes")
-    .select("id")
-    .eq("activo", true)
-    .limit(1)
-    .maybeSingle();
-
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
   for (const linea of detalle ?? []) {
     const llevaInventario = (
       linea.productos as unknown as { control_inventario: boolean } | null
     )?.control_inventario;
 
-    if (llevaInventario && almacen && linea.cantidad_entregada > 0) {
+    if (llevaInventario && linea.cantidad_entregada > 0) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: linea.cantidad_entregada,
         referenciaId: linea.id,

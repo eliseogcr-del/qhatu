@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { requireAdmin } from "@/utils/supabase/session";
 import { createAlmacen, toggleActivoAlmacen } from "./actions";
 
 export default async function AlmacenesPage({
@@ -8,6 +9,7 @@ export default async function AlmacenesPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  await requireAdmin(supabase);
   const { data: almacenes } = await supabase
     .from("almacenes")
     .select("id, nombre, direccion, activo")
@@ -17,6 +19,11 @@ export default async function AlmacenesPage({
     <div className="p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <h1 className="text-2xl font-semibold text-gray-900">Almacenes</h1>
+        <p className="-mt-4 text-sm text-gray-500">
+          Cada almacén representa un local físico. Asigna a cada usuario a uno
+          desde Usuarios para que sus pedidos, ventas y compras queden
+          separados por local.
+        </p>
 
         {error && (
           <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

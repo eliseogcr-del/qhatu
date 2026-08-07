@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession } from "@/utils/supabase/session";
+import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
 
 export async function createVenta(formData: FormData) {
@@ -22,7 +22,11 @@ export async function createVenta(formData: FormData) {
 
   const [{ data: pedido, error: pedidoError }, { data: pedidoDetalle }] =
     await Promise.all([
-      supabase.from("pedidos").select("id, cliente_id").eq("id", pedidoId).single(),
+      supabase
+        .from("pedidos")
+        .select("id, cliente_id, almacen_id")
+        .eq("id", pedidoId)
+        .single(),
       supabase
         .from("pedido_detalle")
         .select("id, producto_id, cantidad")
@@ -63,7 +67,7 @@ export async function createVenta(formData: FormData) {
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
-  const [{ data: venta, error: ventaError }, { data: productosInfo }, { data: almacen }] =
+  const [{ data: venta, error: ventaError }, { data: productosInfo }] =
     await Promise.all([
       supabase
         .from("ventas")
@@ -74,6 +78,7 @@ export async function createVenta(formData: FormData) {
           moneda,
           tipo_cambio_aplicado: tipoCambio,
           total,
+          almacen_id: pedido.almacen_id,
         })
         .select("id")
         .single(),
@@ -81,7 +86,6 @@ export async function createVenta(formData: FormData) {
         .from("productos")
         .select("id, control_inventario")
         .in("id", [...new Set(lineas.map((l) => l.producto_id))]),
-      supabase.from("almacenes").select("id").eq("activo", true).limit(1).maybeSingle(),
     ]);
 
   if (ventaError || !venta) {
@@ -135,11 +139,11 @@ export async function createVenta(formData: FormData) {
       (p) => p.id === linea.producto_id,
     )?.control_inventario;
 
-    if (llevaInventario && almacen) {
+    if (llevaInventario) {
       if (linea.cantidad_entregada > 0) {
         movimientosKardex.push({
           productoId: linea.producto_id,
-          almacenId: almacen.id,
+          almacenId: pedido.almacen_id,
           tipoMovimiento: "venta",
           cantidad: -linea.cantidad_entregada,
           referenciaId: ventaDetalleId,
@@ -148,7 +152,7 @@ export async function createVenta(formData: FormData) {
       if (diferencia > 0) {
         movimientosKardex.push({
           productoId: linea.producto_id,
-          almacenId: almacen.id,
+          almacenId: pedido.almacen_id,
           tipoMovimiento: "merma",
           cantidad: -diferencia,
           referenciaId: ventaDetalleId,
@@ -188,7 +192,15 @@ export async function createVenta(formData: FormData) {
 // cualquier otro pedido — evita duplicar esa lógica para este caso.
 export async function createVentaDirecta(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const session = await getEmpresaSession(supabase);
+  const { userId, empresaId } = session;
+
+  const almacenId = resolverAlmacenId(session, formData);
+  if (!almacenId) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Selecciona el almacén/local para esta venta.")}`,
+    );
+  }
 
   const clienteId = String(formData.get("cliente_id") ?? "");
   const moneda = String(formData.get("moneda") ?? "PEN");
@@ -234,6 +246,7 @@ export async function createVentaDirecta(formData: FormData) {
       moneda,
       total,
       usuario_id: userId,
+      almacen_id: almacenId,
     })
     .select("id")
     .single();
@@ -244,7 +257,7 @@ export async function createVentaDirecta(formData: FormData) {
     );
   }
 
-  const [, { data: venta, error: ventaError }, { data: productosInfo }, { data: almacen }] =
+  const [, { data: venta, error: ventaError }, { data: productosInfo }] =
     await Promise.all([
       supabase.from("pedido_detalle").insert(
         lineas.map((l) => ({ ...l, pedido_id: pedido.id })),
@@ -258,6 +271,7 @@ export async function createVentaDirecta(formData: FormData) {
           moneda,
           tipo_cambio_aplicado: tipoCambio,
           total,
+          almacen_id: almacenId,
         })
         .select("id")
         .single(),
@@ -265,7 +279,6 @@ export async function createVentaDirecta(formData: FormData) {
         .from("productos")
         .select("id, control_inventario")
         .in("id", [...new Set(lineas.map((l) => l.producto_id))]),
-      supabase.from("almacenes").select("id").eq("activo", true).limit(1).maybeSingle(),
     ]);
 
   if (ventaError || !venta) {
@@ -297,10 +310,10 @@ export async function createVentaDirecta(formData: FormData) {
       (p) => p.id === linea.producto_id,
     )?.control_inventario;
 
-    if (llevaInventario && almacen) {
+    if (llevaInventario) {
       movimientosKardex.push({
         productoId: linea.producto_id,
-        almacenId: almacen.id,
+        almacenId,
         tipoMovimiento: "venta",
         cantidad: -linea.cantidad,
         referenciaId: ventaDetalleId,

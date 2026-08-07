@@ -42,7 +42,6 @@ const NAV_GROUPS = [
     label: "Logística",
     items: [
       { href: "/repartos", label: "Reparto", icon: Route },
-      { href: "/almacenes", label: "Almacenes", icon: Warehouse },
       { href: "/inventario", label: "Inventario", icon: Boxes },
       { href: "/kardex", label: "Kardex", icon: ScrollText },
     ],
@@ -74,6 +73,7 @@ export default function SidebarNav({
         {
           label: "Administración",
           items: [
+            { href: "/almacenes", label: "Almacenes", icon: Warehouse },
             { href: "/usuarios", label: "Usuarios", icon: UserCog },
             { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
             { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { registrarMovimientoManual } from "../actions";
 import { TIPOS_MOVIMIENTO_MANUAL, TIPO_MOVIMIENTO_LABEL } from "@/lib/kardex-tipos";
 
@@ -13,6 +14,7 @@ export default async function MovimientoInventarioPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const { empresaId, almacenId } = await getEmpresaSession(supabase);
 
   const [{ data: productos }, { data: almacenes }] = await Promise.all([
     supabase
@@ -21,7 +23,15 @@ export default async function MovimientoInventarioPage({
       .eq("activo", true)
       .eq("control_inventario", true)
       .order("nombre"),
-    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+    (() => {
+      let query = supabase
+        .from("almacenes")
+        .select("id, nombre")
+        .eq("empresa_id", empresaId)
+        .eq("activo", true);
+      if (almacenId) query = query.eq("id", almacenId);
+      return query.order("nombre");
+    })(),
   ]);
 
   return (

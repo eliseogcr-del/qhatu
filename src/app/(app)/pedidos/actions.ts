@@ -4,11 +4,19 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession } from "@/utils/supabase/session";
+import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 
 export async function createPedido(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const session = await getEmpresaSession(supabase);
+  const { userId, empresaId } = session;
+
+  const almacenId = resolverAlmacenId(session, formData);
+  if (!almacenId) {
+    redirect(
+      `/pedidos/nuevo?error=${encodeURIComponent("Selecciona el almacén/local para este pedido.")}`,
+    );
+  }
 
   const clienteId = String(formData.get("cliente_id") ?? "");
   const canalPedido = String(formData.get("canal_pedido") ?? "telefono");
@@ -53,6 +61,7 @@ export async function createPedido(formData: FormData) {
       moneda,
       total,
       usuario_id: userId,
+      almacen_id: almacenId,
     })
     .select("id")
     .single();

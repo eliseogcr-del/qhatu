@@ -18,13 +18,17 @@ export default async function EditarUsuarioPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  await requireAdmin(supabase);
+  const { empresaId } = await requireAdmin(supabase);
 
-  const { data: usuario } = await supabase
-    .from("usuarios")
-    .select("id, nombre, rol, activo")
-    .eq("id", id)
-    .single();
+  const [{ data: usuario }, { data: almacenes }] = await Promise.all([
+    supabase.from("usuarios").select("id, nombre, rol, activo, almacen_id").eq("id", id).single(),
+    supabase
+      .from("almacenes")
+      .select("id, nombre")
+      .eq("empresa_id", empresaId)
+      .eq("activo", true)
+      .order("nombre"),
+  ]);
 
   if (!usuario) notFound();
 
@@ -54,9 +58,11 @@ export default async function EditarUsuarioPage({
               nombre: usuario.nombre ?? "",
               rol: usuario.rol,
               activo: usuario.activo,
+              almacenId: usuario.almacen_id,
             }}
             correoActual={authUser?.user?.email ?? ""}
             submitLabel="Guardar cambios"
+            almacenes={almacenes ?? []}
           />
         </div>
       </div>

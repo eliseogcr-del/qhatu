@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession } from "@/utils/supabase/session";
+import { requireAdmin } from "@/utils/supabase/session";
 
 export async function createAlmacen(formData: FormData) {
   const supabase = await createClient();
-  const { empresaId } = await getEmpresaSession(supabase);
+  const { empresaId } = await requireAdmin(supabase);
 
   const nombre = String(formData.get("nombre") ?? "");
   const direccion = String(formData.get("direccion") ?? "") || null;
@@ -26,7 +26,7 @@ export async function createAlmacen(formData: FormData) {
 
 export async function toggleActivoAlmacen(id: string, activo: boolean) {
   const supabase = await createClient();
-  await getEmpresaSession(supabase);
+  await requireAdmin(supabase);
 
   const { error } = await supabase
     .from("almacenes")

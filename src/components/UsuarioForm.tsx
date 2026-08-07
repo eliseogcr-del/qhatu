@@ -25,12 +25,14 @@ export type UsuarioInitialValues = {
   nombre: string;
   rol: string;
   activo: boolean;
+  almacenId: string | null;
 };
 
 const emptyValues: UsuarioInitialValues = {
   nombre: "",
   rol: "vendedor",
   activo: true,
+  almacenId: null,
 };
 
 export default function UsuarioForm({
@@ -40,6 +42,7 @@ export default function UsuarioForm({
   initialValues,
   correoActual,
   submitLabel,
+  almacenes,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -47,6 +50,7 @@ export default function UsuarioForm({
   initialValues?: UsuarioInitialValues;
   correoActual?: string;
   submitLabel: string;
+  almacenes: { id: string; nombre: string }[];
 }) {
   const values = initialValues ?? emptyValues;
 
@@ -106,6 +110,25 @@ export default function UsuarioForm({
           </select>
         </Field>
       </div>
+
+      <Field label="Almacén / Local">
+        <select
+          name="almacen_id"
+          defaultValue={values.almacenId ?? ""}
+          className={inputClass}
+        >
+          <option value="">Todos los locales (solo Administrador)</option>
+          {almacenes.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.nombre}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-400">
+          Si el perfil es Vendedor, sus pedidos/ventas/compras quedarán
+          amarrados a este almacén y solo verá lo de ese local.
+        </p>
+      </Field>
 
       <label className="flex items-center gap-2 text-sm text-gray-700">
         <input

@@ -30,6 +30,7 @@ export default function CompraFilaExpandible({ compra }: { compra: CompraConSald
         <td className="px-4 py-3 font-medium text-gray-900">
           {compra.proveedor_nombre ?? "—"}
         </td>
+        <td className="px-4 py-3 text-gray-600">{compra.almacen_nombre ?? "—"}</td>
         <td className="px-4 py-3 text-gray-600">
           {new Date(compra.fecha).toLocaleDateString("es-PE")}
         </td>
@@ -73,7 +74,7 @@ export default function CompraFilaExpandible({ compra }: { compra: CompraConSald
       {abierta && tienePagos && (
         <tr className="border-b border-gray-100 bg-gray-50">
           <td />
-          <td colSpan={8} className="px-4 py-3">
+          <td colSpan={9} className="px-4 py-3">
             <table className="w-full text-left text-xs">
               <thead className="text-gray-400">
                 <tr>

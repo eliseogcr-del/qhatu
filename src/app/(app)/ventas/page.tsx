@@ -158,6 +158,7 @@ export default async function VentasPage({
                 <th className="px-2 py-3" />
                 <th className="px-4 py-3 font-medium">Código</th>
                 <th className="px-4 py-3 font-medium">Cliente</th>
+                <th className="px-4 py-3 font-medium">Local</th>
                 <th className="px-4 py-3 font-medium">Fecha</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Pagado</th>
@@ -173,7 +174,7 @@ export default async function VentasPage({
 
               {ventas.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={10} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ninguna venta coincide con los filtros."
                       : "Aún no hay ventas registradas."}

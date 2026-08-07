@@ -20,8 +20,8 @@ export default async function PedidosPage({
     .from("pedidos")
     .select(
       q
-        ? "id, fecha, fecha_entrega_requerida, canal_pedido, estado, moneda, total, clientes!inner(nombre)"
-        : "id, fecha, fecha_entrega_requerida, canal_pedido, estado, moneda, total, clientes(nombre)",
+        ? "id, fecha, fecha_entrega_requerida, canal_pedido, estado, moneda, total, clientes!inner(nombre), almacenes(nombre)"
+        : "id, fecha, fecha_entrega_requerida, canal_pedido, estado, moneda, total, clientes(nombre), almacenes(nombre)",
     )
     .order("fecha", { ascending: false });
 
@@ -94,6 +94,7 @@ export default async function PedidosPage({
             <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Cliente</th>
+                <th className="px-4 py-3 font-medium">Local</th>
                 <th className="px-4 py-3 font-medium">Canal</th>
                 <th className="px-4 py-3 font-medium">Fecha</th>
                 <th className="px-4 py-3 font-medium">Entrega requerida</th>
@@ -112,6 +113,10 @@ export default async function PedidosPage({
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {(pedido.clientes as unknown as { nombre: string } | null)
+                        ?.nombre ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {(pedido.almacenes as unknown as { nombre: string } | null)
                         ?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
@@ -148,7 +153,7 @@ export default async function PedidosPage({
 
               {pedidos?.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
                     {q
                       ? `Ningún pedido de un cliente que coincida con "${q}".`
                       : "Aún no hay pedidos registrados."}

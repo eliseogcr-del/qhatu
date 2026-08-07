@@ -12,7 +12,7 @@ export default async function UsuariosPage() {
 
   const { data: usuarios, error } = await supabase
     .from("usuarios")
-    .select("id, nombre, rol, activo")
+    .select("id, nombre, rol, activo, almacenes(nombre)")
     .eq("empresa_id", empresaId)
     .order("nombre");
 
@@ -52,12 +52,15 @@ export default async function UsuariosPage() {
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Correo</th>
                 <th className="px-4 py-3 font-medium">Perfil</th>
+                <th className="px-4 py-3 font-medium">Almacén</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {usuarios?.map((u) => (
+              {usuarios?.map((u) => {
+                const almacen = u.almacenes as unknown as { nombre: string } | null;
+                return (
                 <tr key={u.id} className="border-b border-gray-100 last:border-0">
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {u.nombre ?? "—"}
@@ -67,6 +70,9 @@ export default async function UsuariosPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {u.rol === "admin" ? "Administrador" : "Vendedor"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {u.rol === "admin" ? "Todos" : (almacen?.nombre ?? "—")}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -104,11 +110,12 @@ export default async function UsuariosPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
 
               {usuarios?.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay usuarios registrados.
                   </td>
                 </tr>

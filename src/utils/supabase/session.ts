@@ -12,7 +12,7 @@ export async function getEmpresaSession(
 
   const { data: usuario, error } = await supabase
     .from("usuarios")
-    .select("empresa_id, rol")
+    .select("empresa_id, rol, almacen_id")
     .eq("id", user.id)
     .single();
 
@@ -26,7 +26,23 @@ export async function getEmpresaSession(
     userId: user.id,
     empresaId: usuario.empresa_id as string,
     rol: usuario.rol as string,
+    // null = admin (ve/opera en todos los almacenes); para un vendedor
+    // siempre viene fijo por el administrador desde Usuarios.
+    almacenId: usuario.almacen_id as string | null,
   };
+}
+
+// Resuelve a qué almacén pertenece el movimiento que se está registrando:
+// si el usuario tiene un almacén fijo (vendedor) se usa ese, ignorando
+// cualquier valor del formulario; si no lo tiene (admin, ve todos), se
+// toma del selector que el formulario debe incluir en ese caso.
+export function resolverAlmacenId(
+  session: { almacenId: string | null },
+  formData: FormData,
+): string | null {
+  if (session.almacenId) return session.almacenId;
+  const value = formData.get("almacen_id");
+  return value ? String(value) : null;
 }
 
 // Bloquea el acceso a secciones sensibles (ej. auditoría) a quien no

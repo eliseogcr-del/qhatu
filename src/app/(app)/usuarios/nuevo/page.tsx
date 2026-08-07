@@ -12,7 +12,13 @@ export default async function NuevoUsuarioPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  await requireAdmin(supabase);
+  const { empresaId } = await requireAdmin(supabase);
+  const { data: almacenes } = await supabase
+    .from("almacenes")
+    .select("id, nombre")
+    .eq("empresa_id", empresaId)
+    .eq("activo", true)
+    .order("nombre");
 
   return (
     <div className="p-8">
@@ -34,6 +40,7 @@ export default async function NuevoUsuarioPage({
             error={error}
             modo="nuevo"
             submitLabel="Crear usuario"
+            almacenes={almacenes ?? []}
           />
         </div>
       </div>
