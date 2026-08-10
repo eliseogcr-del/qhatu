@@ -84,12 +84,23 @@ const MIS_REPARTOS = {
   items: [{ href: "/mis-repartos", label: "Mis repartos", icon: Route }],
 };
 
+const COMERCIAL_VENDEDOR = {
+  label: "Comercial",
+  items: [{ href: "/pedidos", label: "Pedidos", icon: ClipboardList }],
+};
+
+const FINANZAS_VENDEDOR = {
+  label: "Finanzas",
+  items: [{ href: "/ventas", label: "Ventas", icon: ShoppingCart }],
+};
+
 function gruposPorRol(rol: string) {
   if (rol === "admin") return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS, ADMINISTRACION];
   if (rol === "logistica") return [GENERAL, LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
-  // vendedor (y cualquier valor no reconocido): comportamiento de siempre.
-  return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS];
+  // vendedor (y cualquier valor no reconocido): solo Pedidos y Ventas, sin
+  // Logística.
+  return [GENERAL, COMERCIAL_VENDEDOR, FINANZAS_VENDEDOR];
 }
 
 export default function SidebarNav({

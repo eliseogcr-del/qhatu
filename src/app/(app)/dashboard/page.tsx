@@ -39,10 +39,16 @@ const QUICK_LINKS_REPARTIDOR = [
   { href: "/mis-repartos", label: "Mis repartos", icon: Route },
 ];
 
+const QUICK_LINKS_VENDEDOR = [
+  { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+];
+
 function quickLinksPorRol(rol: string) {
+  if (rol === "admin") return QUICK_LINKS_COMPLETO;
   if (rol === "logistica") return QUICK_LINKS_LOGISTICA;
   if (rol === "repartidor") return QUICK_LINKS_REPARTIDOR;
-  return QUICK_LINKS_COMPLETO;
+  return QUICK_LINKS_VENDEDOR;
 }
 
 export default async function DashboardPage({
