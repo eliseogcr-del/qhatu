@@ -156,6 +156,7 @@ export default async function PedidoDetallePage({
             className="flex items-center gap-3"
           >
             <select
+              key={pedido.estado}
               name="estado"
               defaultValue={pedido.estado}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
