@@ -100,7 +100,10 @@ const LOGISTICA_VENDEDOR = {
 
 const FINANZAS_VENDEDOR = {
   label: "Finanzas",
-  items: [{ href: "/ventas", label: "Ventas", icon: ShoppingCart }],
+  items: [
+    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+    { href: "/reportes", label: "Reportes", icon: BarChart3 },
+  ],
 };
 
 function gruposPorRol(rol: string) {

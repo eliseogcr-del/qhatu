@@ -45,6 +45,7 @@ const QUICK_LINKS_VENDEDOR = [
   { href: "/inventario", label: "Inventario", icon: Boxes },
   { href: "/kardex", label: "Kardex", icon: ScrollText },
   { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 function quickLinksPorRol(rol: string) {
