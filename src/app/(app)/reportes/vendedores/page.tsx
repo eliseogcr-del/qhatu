@@ -74,6 +74,16 @@ export default async function ReporteVendedoresPage({
   const filas = [...mapa.values()].sort((a, b) => b.totalVendido - a.totalVendido);
   const hayFiltros = !!(desde || hasta);
 
+  const totales = filas.reduce(
+    (acc, f) => ({
+      numVentas: acc.numVentas + f.numVentas,
+      totalVendido: Math.round((acc.totalVendido + f.totalVendido) * 100) / 100,
+      totalCobrado: Math.round((acc.totalCobrado + f.totalCobrado) * 100) / 100,
+    }),
+    { numVentas: 0, totalVendido: 0, totalCobrado: 0 },
+  );
+  const saldoTotal = Math.round((totales.totalVendido - totales.totalCobrado) * 100) / 100;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-4xl">
@@ -178,6 +188,21 @@ export default async function ReporteVendedoresPage({
                 </tr>
               )}
             </tbody>
+            {filas.length > 0 && (
+              <tfoot className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-gray-900">
+                <tr>
+                  <td className="px-4 py-3" colSpan={2}>
+                    Total
+                  </td>
+                  <td className="px-4 py-3">{totales.numVentas}</td>
+                  <td className="px-4 py-3">{totales.totalVendido.toFixed(2)}</td>
+                  <td className="px-4 py-3">{totales.totalCobrado.toFixed(2)}</td>
+                  <td className={saldoTotal > 0 ? "px-4 py-3 text-red-600" : "px-4 py-3 text-green-600"}>
+                    {saldoTotal.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
