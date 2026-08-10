@@ -63,6 +63,12 @@ export default async function ReportesPage({
             >
               Diferencias pedido vs venta
             </Link>
+            <Link
+              href="/reportes/traslados"
+              className="font-medium text-gray-600 hover:underline"
+            >
+              Cruce por almacén
+            </Link>
           </div>
         </div>
 
