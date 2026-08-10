@@ -20,10 +20,13 @@ export default async function AppLayout({
     .select("rol")
     .eq("id", user.id)
     .maybeSingle();
-  const isAdmin = usuario?.rol === "admin";
 
   return (
-    <AppShell isAdmin={isAdmin} userEmail={user.email ?? ""} signOutAction={signOut}>
+    <AppShell
+      rol={usuario?.rol ?? "vendedor"}
+      userEmail={user.email ?? ""}
+      signOutAction={signOut}
+    >
       {children}
     </AppShell>
   );

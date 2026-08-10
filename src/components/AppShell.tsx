@@ -40,12 +40,12 @@ function SignOutForm({
 }
 
 export default function AppShell({
-  isAdmin,
+  rol,
   userEmail,
   signOutAction,
   children,
 }: {
-  isAdmin: boolean;
+  rol: string;
   userEmail: string;
   signOutAction: (formData: FormData) => void;
   children: React.ReactNode;
@@ -87,7 +87,7 @@ export default function AppShell({
                 <X size={20} />
               </button>
             </div>
-            <SidebarNav isAdmin={isAdmin} onNavigate={() => setOpen(false)} />
+            <SidebarNav rol={rol} onNavigate={() => setOpen(false)} />
             <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
           </aside>
         </div>
@@ -98,7 +98,7 @@ export default function AppShell({
         <div className="border-b border-white/10 px-5 py-5">
           <BrandRow />
         </div>
-        <SidebarNav isAdmin={isAdmin} />
+        <SidebarNav rol={rol} />
         <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
       </aside>
 

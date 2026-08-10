@@ -3,6 +3,7 @@ import { Plus, Pencil, Power, ShieldCheck } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { ROL_LABEL, requiereAlmacen, type Rol } from "@/lib/roles";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { toggleActivoUsuario } from "./actions";
 
@@ -69,10 +70,14 @@ export default async function UsuariosPage() {
                     {correoPorId.get(u.id) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {u.rol === "admin" ? "Administrador" : "Vendedor"}
+                    {ROL_LABEL[u.rol as Rol] ?? u.rol}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {u.rol === "admin" ? "Todos" : (almacen?.nombre ?? "—")}
+                    {requiereAlmacen(u.rol)
+                      ? (almacen?.nombre ?? "—")
+                      : u.rol === "repartidor"
+                        ? "—"
+                        : "Todos"}
                   </td>
                   <td className="px-4 py-3">
                     <span

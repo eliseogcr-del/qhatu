@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { requireAdmin } from "@/utils/supabase/session";
+import { ROLES, requiereAlmacen } from "@/lib/roles";
 
 export async function createUsuario(formData: FormData) {
   const supabase = await createClient();
@@ -13,10 +14,11 @@ export async function createUsuario(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const nombre = String(formData.get("nombre") ?? "").trim();
-  const rol = String(formData.get("rol") ?? "vendedor");
+  const rolRaw = String(formData.get("rol") ?? "vendedor");
+  const rol = ROLES.includes(rolRaw as (typeof ROLES)[number]) ? rolRaw : "vendedor";
   const activo = formData.get("activo") === "on";
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
-  const almacenId = rol === "admin" ? null : almacenIdRaw || null;
+  const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
 
   if (!email || !nombre || password.length < 6) {
     redirect(
@@ -24,7 +26,7 @@ export async function createUsuario(formData: FormData) {
     );
   }
 
-  if (rol !== "admin" && !almacenId) {
+  if (requiereAlmacen(rol) && !almacenId) {
     redirect(
       `/usuarios/nuevo?error=${encodeURIComponent("Selecciona el almacén/local al que pertenece este usuario.")}`,
     );
@@ -68,16 +70,17 @@ export async function updateUsuario(id: string, formData: FormData) {
   await requireAdmin(supabase);
 
   const nombre = String(formData.get("nombre") ?? "").trim();
-  const rol = String(formData.get("rol") ?? "vendedor");
+  const rolRaw = String(formData.get("rol") ?? "vendedor");
+  const rol = ROLES.includes(rolRaw as (typeof ROLES)[number]) ? rolRaw : "vendedor";
   const activo = formData.get("activo") === "on";
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
-  const almacenId = rol === "admin" ? null : almacenIdRaw || null;
+  const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
 
   if (!nombre) {
     redirect(`/usuarios/${id}/editar?error=${encodeURIComponent("El nombre es obligatorio.")}`);
   }
 
-  if (rol !== "admin" && !almacenId) {
+  if (requiereAlmacen(rol) && !almacenId) {
     redirect(
       `/usuarios/${id}/editar?error=${encodeURIComponent("Selecciona el almacén/local al que pertenece este usuario.")}`,
     );

@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { Save } from "lucide-react";
+import { ROLES, ROL_LABEL, requiereAlmacen } from "@/lib/roles";
 import SubmitButton from "./SubmitButton";
 
 const inputClass =
@@ -53,6 +57,7 @@ export default function UsuarioForm({
   almacenes: { id: string; nombre: string }[];
 }) {
   const values = initialValues ?? emptyValues;
+  const [rol, setRol] = useState(values.rol);
 
   return (
     <form action={action} className="space-y-6">
@@ -104,31 +109,60 @@ export default function UsuarioForm({
           />
         </Field>
         <Field label="Perfil">
-          <select name="rol" defaultValue={values.rol} className={inputClass}>
-            <option value="vendedor">Vendedor</option>
-            <option value="admin">Administrador</option>
+          <select
+            name="rol"
+            value={rol}
+            onChange={(e) => setRol(e.target.value)}
+            className={inputClass}
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROL_LABEL[r]}
+              </option>
+            ))}
           </select>
         </Field>
       </div>
 
-      <Field label="Almacén / Local">
-        <select
-          name="almacen_id"
-          defaultValue={values.almacenId ?? ""}
-          className={inputClass}
-        >
-          <option value="">Todos los locales (solo Administrador)</option>
-          {almacenes.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.nombre}
+      {requiereAlmacen(rol) && (
+        <Field label="Almacén / Local">
+          <select
+            name="almacen_id"
+            required
+            defaultValue={values.almacenId ?? ""}
+            className={inputClass}
+          >
+            <option value="" disabled>
+              Selecciona un local
             </option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-400">
-          Si el perfil es Vendedor, sus pedidos/ventas/compras quedarán
-          amarrados a este almacén y solo verá lo de ese local.
+            {almacenes.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">
+            Sus pedidos/ventas/compras quedarán amarrados a este almacén y
+            solo verá lo de ese local.
+          </p>
+        </Field>
+      )}
+
+      {rol === "logistica" && (
+        <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
+          Logística ve y opera en Reparto, Traslados, Abastecimiento en
+          campo, Inventario y Kardex de todos los almacenes — no entra a
+          Usuarios, Facturación ni Auditoría.
         </p>
-      </Field>
+      )}
+
+      {rol === "repartidor" && (
+        <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
+          Repartidor solo ve y actualiza el estado de los repartos que se le
+          asignen — no accede a ventas, compras, inventario ni al resto del
+          sistema.
+        </p>
+      )}
 
       <label className="flex items-center gap-2 text-sm text-gray-700">
         <input

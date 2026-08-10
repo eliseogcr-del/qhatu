@@ -49,10 +49,10 @@ export async function createTraslado(formData: FormData) {
   }
 
   // Un vendedor solo puede trasladar entre su propio almacén y otro — no
-  // puede mover mercadería entre dos almacenes ajenos. El admin no tiene
-  // esta restricción.
+  // puede mover mercadería entre dos almacenes ajenos. Admin y logística no
+  // tienen esta restricción (ven/operan en todos los almacenes).
   const esParte = almacenId === almacenOrigenId || almacenId === almacenDestinoId;
-  if (rol !== "admin" && !esParte) {
+  if (rol !== "admin" && rol !== "logistica" && !esParte) {
     redirect(
       `/traslados/nuevo?error=${encodeURIComponent("Solo puedes trasladar mercadería desde o hacia tu propio almacén.")}`,
     );

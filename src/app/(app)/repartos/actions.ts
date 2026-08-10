@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { ESTADOS_REPARTO, type EstadoReparto } from "@/lib/reparto-estados";
 
 function repartoFromForm(formData: FormData) {
   const text = (key: string) => {
@@ -57,4 +58,23 @@ export async function updateReparto(id: string, formData: FormData) {
   revalidatePath("/repartos");
   revalidatePath(`/repartos/${id}/editar`);
   redirect("/repartos");
+}
+
+// Acción angosta pensada para el repartidor: solo toca el estado, nunca
+// reasigna el pedido, el transporte ni el repartidor — a diferencia de
+// updateReparto (edición completa, reservada a admin/logística/vendedor).
+export async function actualizarEstadoReparto(id: string, estado: string) {
+  const supabase = await createClient();
+  await getEmpresaSession(supabase);
+
+  if (!ESTADOS_REPARTO.includes(estado as EstadoReparto)) {
+    throw new Error("Estado inválido.");
+  }
+
+  const { error } = await supabase.from("repartos").update({ estado }).eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/mis-repartos");
+  revalidatePath("/repartos");
 }

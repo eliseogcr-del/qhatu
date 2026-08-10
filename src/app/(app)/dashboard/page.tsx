@@ -9,10 +9,13 @@ import {
   Wallet,
   Boxes,
   BarChart3,
+  ArrowLeftRight,
+  PackagePlus,
+  ScrollText,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 
-const QUICK_LINKS = [
+const QUICK_LINKS_COMPLETO = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/productos", label: "Productos", icon: Package },
   { href: "/proveedores", label: "Proveedores", icon: Truck },
@@ -24,6 +27,24 @@ const QUICK_LINKS = [
   { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
+const QUICK_LINKS_LOGISTICA = [
+  { href: "/repartos", label: "Reparto", icon: Route },
+  { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
+  { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
+  { href: "/inventario", label: "Inventario", icon: Boxes },
+  { href: "/kardex", label: "Kardex", icon: ScrollText },
+];
+
+const QUICK_LINKS_REPARTIDOR = [
+  { href: "/mis-repartos", label: "Mis repartos", icon: Route },
+];
+
+function quickLinksPorRol(rol: string) {
+  if (rol === "logistica") return QUICK_LINKS_LOGISTICA;
+  if (rol === "repartidor") return QUICK_LINKS_REPARTIDOR;
+  return QUICK_LINKS_COMPLETO;
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -34,6 +55,10 @@ export default async function DashboardPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const { data: usuario } = user
+    ? await supabase.from("usuarios").select("rol").eq("id", user.id).maybeSingle()
+    : { data: null };
+  const QUICK_LINKS = quickLinksPorRol(usuario?.rol ?? "vendedor");
 
   return (
     <div className="p-8">

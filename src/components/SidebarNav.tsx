@@ -26,71 +26,81 @@ import {
   Settings,
 } from "lucide-react";
 
-const NAV_GROUPS = [
-  {
-    label: "General",
-    items: [{ href: "/dashboard", label: "Panel", icon: LayoutDashboard }],
-  },
-  {
-    label: "Comercial",
-    items: [
-      { href: "/clientes", label: "Clientes", icon: Users },
-      { href: "/productos", label: "Productos", icon: Package },
-      { href: "/proveedores", label: "Proveedores", icon: Truck },
-      { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "Logística",
-    items: [
-      { href: "/repartos", label: "Reparto", icon: Route },
-      { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
-      { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
-      { href: "/inventario", label: "Inventario", icon: Boxes },
-      { href: "/kardex", label: "Kardex", icon: ScrollText },
-    ],
-  },
-  {
-    label: "Finanzas",
-    items: [
-      { href: "/compras", label: "Compras", icon: ShoppingBag },
-      { href: "/ventas", label: "Ventas", icon: ShoppingCart },
-      { href: "/comprobantes", label: "Comprobantes", icon: FileText },
-      { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
-      { href: "/reportes", label: "Reportes", icon: BarChart3 },
-    ],
-  },
-];
+const GENERAL = {
+  label: "General",
+  items: [{ href: "/dashboard", label: "Panel", icon: LayoutDashboard }],
+};
+
+const COMERCIAL = {
+  label: "Comercial",
+  items: [
+    { href: "/clientes", label: "Clientes", icon: Users },
+    { href: "/productos", label: "Productos", icon: Package },
+    { href: "/proveedores", label: "Proveedores", icon: Truck },
+    { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+  ],
+};
+
+const LOGISTICA = {
+  label: "Logística",
+  items: [
+    { href: "/repartos", label: "Reparto", icon: Route },
+    { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
+    { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
+    { href: "/inventario", label: "Inventario", icon: Boxes },
+    { href: "/kardex", label: "Kardex", icon: ScrollText },
+  ],
+};
+
+const FINANZAS = {
+  label: "Finanzas",
+  items: [
+    { href: "/compras", label: "Compras", icon: ShoppingBag },
+    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+    { href: "/comprobantes", label: "Comprobantes", icon: FileText },
+    { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
+    { href: "/reportes", label: "Reportes", icon: BarChart3 },
+  ],
+};
+
+const ADMINISTRACION = {
+  label: "Administración",
+  items: [
+    { href: "/almacenes", label: "Almacenes", icon: Warehouse },
+    { href: "/usuarios", label: "Usuarios", icon: UserCog },
+    { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
+    { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },
+    { href: "/respaldo", label: "Respaldo de datos", icon: DatabaseBackup },
+    {
+      href: "/configuracion-facturacion",
+      label: "Facturación electrónica",
+      icon: Settings,
+    },
+  ],
+};
+
+const MIS_REPARTOS = {
+  label: "Reparto",
+  items: [{ href: "/mis-repartos", label: "Mis repartos", icon: Route }],
+};
+
+function gruposPorRol(rol: string) {
+  if (rol === "admin") return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS, ADMINISTRACION];
+  if (rol === "logistica") return [GENERAL, LOGISTICA];
+  if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
+  // vendedor (y cualquier valor no reconocido): comportamiento de siempre.
+  return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS];
+}
 
 export default function SidebarNav({
-  isAdmin = false,
+  rol = "vendedor",
   onNavigate,
 }: {
-  isAdmin?: boolean;
+  rol?: string;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-
-  const groups = isAdmin
-    ? [
-        ...NAV_GROUPS,
-        {
-          label: "Administración",
-          items: [
-            { href: "/almacenes", label: "Almacenes", icon: Warehouse },
-            { href: "/usuarios", label: "Usuarios", icon: UserCog },
-            { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
-            { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },
-            { href: "/respaldo", label: "Respaldo de datos", icon: DatabaseBackup },
-            {
-              href: "/configuracion-facturacion",
-              label: "Facturación electrónica",
-              icon: Settings,
-            },
-          ],
-        },
-      ]
-    : NAV_GROUPS;
+  const groups = gruposPorRol(rol);
 
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
