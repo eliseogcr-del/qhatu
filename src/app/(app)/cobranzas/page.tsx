@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { XCircle, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
@@ -209,7 +210,7 @@ export default async function CobranzasPage({
                       {cliente?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {new Date(cobranza.fecha).toLocaleDateString("es-PE")}
+                      {formatFecha(cobranza.fecha)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {cobranza.moneda} {cobranza.monto}

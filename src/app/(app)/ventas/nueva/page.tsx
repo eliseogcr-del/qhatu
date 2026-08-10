@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import VentaForm from "@/components/VentaForm";
@@ -69,7 +70,7 @@ export default async function NuevaVentaPage({
                         {cliente?.nombre ?? "—"}
                       </span>
                       <span className="text-gray-500">
-                        {new Date(p.fecha).toLocaleDateString("es-PE")}
+                        {formatFecha(p.fecha)}
                       </span>
                     </Link>
                   </li>

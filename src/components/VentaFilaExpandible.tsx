@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
@@ -32,7 +33,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
         </td>
         <td className="px-4 py-3 text-gray-600">{venta.almacen_nombre ?? "—"}</td>
         <td className="px-4 py-3 text-gray-600">
-          {new Date(venta.fecha).toLocaleDateString("es-PE")}
+          {formatFecha(venta.fecha)}
         </td>
         <td className="px-4 py-3 text-gray-600">
           {venta.moneda} {venta.total.toFixed(2)}
@@ -88,7 +89,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
                 {venta.pagos.map((p, i) => (
                   <tr key={i} className="border-t border-gray-200 first:border-0">
                     <td className="py-1.5 pr-6 text-gray-600">
-                      {new Date(p.fecha).toLocaleDateString("es-PE")}
+                      {formatFecha(p.fecha)}
                     </td>
                     <td className="py-1.5 pr-6 font-medium text-gray-900">
                       {venta.moneda} {p.monto.toFixed(2)}

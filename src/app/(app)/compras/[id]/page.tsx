@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha, formatFechaHora } from "@/lib/fecha";
 import { Ban, XCircle, Save } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
@@ -94,7 +95,7 @@ export default async function CompraDetallePage({
           <div>
             <p className="text-sm text-gray-500">Fecha</p>
             <p className="font-medium text-gray-900">
-              {new Date(compra.fecha).toLocaleString("es-PE")}
+              {formatFechaHora(compra.fecha)}
             </p>
           </div>
           <div>
@@ -173,7 +174,7 @@ export default async function CompraDetallePage({
                     className={`border-b border-gray-100 last:border-0 ${p.estado === "anulada" ? "opacity-50" : ""}`}
                   >
                     <td className="py-2 text-gray-600">
-                      {new Date(p.fecha).toLocaleDateString("es-PE")}
+                      {formatFecha(p.fecha)}
                     </td>
                     <td className="py-2 text-gray-600">
                       {p.moneda} {p.monto}

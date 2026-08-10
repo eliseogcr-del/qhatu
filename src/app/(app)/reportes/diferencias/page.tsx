@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 
@@ -169,7 +170,7 @@ export default async function DiferenciasPedidoVentaPage({
                 <div>
                   <p className="font-medium text-gray-900">{p.clienteNombre}</p>
                   <p className="text-xs text-gray-500">
-                    {new Date(p.fecha).toLocaleDateString("es-PE")}
+                    {formatFecha(p.fecha)}
                   </p>
                 </div>
                 <Link

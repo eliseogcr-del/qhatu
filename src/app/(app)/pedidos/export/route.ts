@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { formatFecha } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { ESTADO_LABEL, canalLabel, type EstadoPedido } from "@/lib/pedido-estados";
 import { buildExcelText } from "@/lib/csv";
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     return [
       cliente,
       canalLabel(p.canal_pedido),
-      new Date(p.fecha).toLocaleDateString("es-PE"),
+      formatFecha(p.fecha),
       p.fecha_entrega_requerida,
       ESTADO_LABEL[estado] ?? p.estado,
       p.moneda,

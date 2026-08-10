@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { formatFecha } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { fetchComprasConSaldo } from "@/utils/supabase/compras";
 import { buildExcelText } from "@/lib/csv";
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
   const rows = compras.map((c) => [
     c.id.slice(0, 8).toUpperCase(),
     c.proveedor_nombre,
-    new Date(c.fecha).toLocaleDateString("es-PE"),
+    formatFecha(c.fecha),
     c.moneda,
     c.total,
     c.pagado,

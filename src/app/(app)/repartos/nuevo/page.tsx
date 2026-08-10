@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import RepartoForm from "@/components/RepartoForm";
 import { createReparto } from "../actions";
@@ -22,7 +23,7 @@ export default async function NuevoRepartoPage({
 
   const pedidos = (pedidosData ?? []).map((p) => {
     const cliente = p.clientes as unknown as { nombre: string } | null;
-    const fecha = new Date(p.fecha).toLocaleDateString("es-PE");
+    const fecha = formatFecha(p.fecha);
     return { id: p.id, label: `${cliente?.nombre ?? "—"} — ${fecha}` };
   });
 

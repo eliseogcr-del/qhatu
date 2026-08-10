@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { Plus, FileDown, Search, Eye, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import {
@@ -123,7 +124,7 @@ export default async function PedidosPage({
                       {canalLabel(pedido.canal_pedido)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {new Date(pedido.fecha).toLocaleDateString("es-PE")}
+                      {formatFecha(pedido.fecha)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {pedido.fecha_entrega_requerida ?? "—"}

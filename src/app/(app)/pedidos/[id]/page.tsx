@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha, formatFechaHora } from "@/lib/fecha";
 import {
   ShoppingCart,
   Route,
@@ -128,7 +129,7 @@ export default async function PedidoDetallePage({
             </p>
             <p className="text-sm text-gray-500">Fecha del pedido</p>
             <p className="mb-2 font-medium text-gray-900">
-              {new Date(pedido.fecha).toLocaleString("es-PE")}
+              {formatFechaHora(pedido.fecha)}
             </p>
             <p className="text-sm text-gray-500">Entrega requerida</p>
             <p className="font-medium text-gray-900">
@@ -254,7 +255,7 @@ export default async function PedidoDetallePage({
                     className={`border-b border-gray-100 last:border-0 ${c.estado === "anulada" ? "opacity-50" : ""}`}
                   >
                     <td className="py-2 text-gray-600">
-                      {new Date(c.fecha).toLocaleDateString("es-PE")}
+                      {formatFecha(c.fecha)}
                     </td>
                     <td className="py-2 text-gray-600">
                       {c.moneda} {c.monto}

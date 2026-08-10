@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { FileText, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_COMPROBANTE_LABEL } from "@/utils/nubefact";
@@ -147,7 +148,7 @@ export default async function ComprobantesPage({
                       {venta?.clientes?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {new Date(c.fecha_emision).toLocaleDateString("es-PE")}
+                      {formatFecha(c.fecha_emision)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {venta ? `${venta.moneda} ${venta.total.toFixed(2)}` : "—"}

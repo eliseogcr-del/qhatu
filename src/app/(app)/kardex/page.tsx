@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFechaHora } from "@/lib/fecha";
 import { Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
@@ -124,7 +125,7 @@ export default async function KardexPage({
                 return (
                   <tr key={m.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 text-gray-600">
-                      {new Date(m.fecha).toLocaleString("es-PE")}
+                      {formatFechaHora(m.fecha)}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {producto?.nombre ?? "—"}

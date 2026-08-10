@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFechaHora } from "@/lib/fecha";
 import { Plus, ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 
@@ -61,7 +62,7 @@ export default async function TrasladosPage() {
                     <span>{destino?.nombre ?? "—"}</span>
                   </div>
                   <div className="text-right text-xs text-gray-500">
-                    <p>{new Date(t.fecha).toLocaleString("es-PE")}</p>
+                    <p>{formatFechaHora(t.fecha)}</p>
                     <p>{usuario?.nombre ?? "—"}</p>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { FolderDown, ShieldCheck, Trash2, ImageOff, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
@@ -222,7 +223,7 @@ export default async function EvidenciasPagoPage({
                   <tr key={a.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">{cliente}</td>
                     <td className="px-4 py-3 text-gray-600">
-                      {cobranza ? new Date(cobranza.fecha).toLocaleDateString("es-PE") : "—"}
+                      {cobranza ? formatFecha(cobranza.fecha) : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{a.nombre_archivo}</td>
                     <td className="px-4 py-3 text-gray-600">

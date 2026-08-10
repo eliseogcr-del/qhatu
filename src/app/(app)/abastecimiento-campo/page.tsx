@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFechaHora } from "@/lib/fecha";
 import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 
@@ -65,7 +66,7 @@ export default async function AbastecimientoCampoPage() {
                     </p>
                   </div>
                   <div className="text-right text-xs text-gray-500">
-                    <p>{new Date(a.fecha).toLocaleString("es-PE")}</p>
+                    <p>{formatFechaHora(a.fecha)}</p>
                     <p>{usuario?.nombre ?? "—"}</p>
                   </div>
                 </div>

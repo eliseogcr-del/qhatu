@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFecha } from "@/lib/fecha";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import CobranzaForm from "@/components/CobranzaForm";
@@ -51,7 +52,7 @@ export default async function NuevaCobranzaPage({
                         {cliente?.nombre ?? "—"}
                       </span>
                       <span className="text-gray-500">
-                        {new Date(p.fecha).toLocaleDateString("es-PE")}
+                        {formatFecha(p.fecha)}
                       </span>
                     </Link>
                   </li>

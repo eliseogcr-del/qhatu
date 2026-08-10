@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { formatFecha } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
@@ -38,9 +39,9 @@ export async function GET(request: NextRequest) {
     v.pagos.map((p) => [
       v.id.slice(0, 8).toUpperCase(),
       v.cliente_nombre,
-      new Date(v.fecha).toLocaleDateString("es-PE"),
+      formatFecha(v.fecha),
       v.total,
-      new Date(p.fecha).toLocaleDateString("es-PE"),
+      formatFecha(p.fecha),
       p.monto,
       METODO_PAGO_LABEL[p.metodoPago as MetodoPago] ?? p.metodoPago,
       p.usuarioNombre ?? "",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatFechaHora } from "@/lib/fecha";
 import { ShieldCheck, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
@@ -150,7 +151,7 @@ export default async function AuditoriaPage({
                 return (
                   <tr key={r.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 whitespace-nowrap text-gray-600">
-                      {new Date(r.fecha).toLocaleString("es-PE")}
+                      {formatFechaHora(r.fecha)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {usuario?.nombre ?? "—"}
