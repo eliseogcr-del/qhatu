@@ -15,6 +15,7 @@ import {
   Boxes,
   Warehouse,
   ArrowLeftRight,
+  PackagePlus,
   ScrollText,
   BarChart3,
   ShieldCheck,
@@ -44,6 +45,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/repartos", label: "Reparto", icon: Route },
       { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
+      { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
       { href: "/inventario", label: "Inventario", icon: Boxes },
       { href: "/kardex", label: "Kardex", icon: ScrollText },
     ],

@@ -8,6 +8,7 @@ type Fila = {
   productoId: string;
   productoNombre: string;
   cargado: number;
+  recogidoEnCampo: number;
   compradoEnRuta: number;
   vendido: number;
   merma: number;
@@ -39,6 +40,7 @@ export default async function ReporteTrasladosPage({
       "traslado_salida",
       "venta",
       "compra",
+      "abastecimiento_campo",
       "merma",
     ]);
 
@@ -61,6 +63,7 @@ export default async function ReporteTrasladosPage({
         productoId: m.producto_id,
         productoNombre: producto?.nombre ?? "—",
         cargado: 0,
+        recogidoEnCampo: 0,
         compradoEnRuta: 0,
         vendido: 0,
         merma: 0,
@@ -74,6 +77,7 @@ export default async function ReporteTrasladosPage({
     else if (m.tipo_movimiento === "traslado_salida") fila.trasladadoAfuera += cantidad;
     else if (m.tipo_movimiento === "venta") fila.vendido += cantidad;
     else if (m.tipo_movimiento === "compra") fila.compradoEnRuta += cantidad;
+    else if (m.tipo_movimiento === "abastecimiento_campo") fila.recogidoEnCampo += cantidad;
     else if (m.tipo_movimiento === "merma") fila.merma += cantidad;
   }
 
@@ -118,10 +122,11 @@ export default async function ReporteTrasladosPage({
         </div>
         <p className="mb-6 text-sm text-gray-500">
           Pensado para el almacén móvil de un vendedor de campo: cuánto se le
-          cargó, cuánto compró en ruta, cuánto vendió, cuánta merma tuvo y
-          cuánto trasladó de vuelta — para saber cuánto debería devolver. El
-          &quot;stock actual&quot; es el de hoy, no necesariamente el del
-          final del rango filtrado.
+          cargó, cuánto recogió de un proveedor en el camino (sin
+          documento), cuánto compró en ruta (con documento), cuánto vendió,
+          cuánta merma tuvo y cuánto trasladó de vuelta — para saber cuánto
+          debería devolver. El &quot;stock actual&quot; es el de hoy, no
+          necesariamente el del final del rango filtrado.
         </p>
 
         <form className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm" method="get">
@@ -198,6 +203,7 @@ export default async function ReporteTrasladosPage({
                       <tr>
                         <th className="px-4 py-2 font-medium">Producto</th>
                         <th className="px-4 py-2 font-medium">Cargado</th>
+                        <th className="px-4 py-2 font-medium">Recogido en campo</th>
                         <th className="px-4 py-2 font-medium">Comprado en ruta</th>
                         <th className="px-4 py-2 font-medium">Vendido</th>
                         <th className="px-4 py-2 font-medium">Merma</th>
@@ -213,6 +219,9 @@ export default async function ReporteTrasladosPage({
                           </td>
                           <td className="px-4 py-2 text-green-700">
                             {f.cargado > 0 ? `+${f.cargado}` : "—"}
+                          </td>
+                          <td className="px-4 py-2 text-green-700">
+                            {f.recogidoEnCampo > 0 ? `+${f.recogidoEnCampo}` : "—"}
                           </td>
                           <td className="px-4 py-2 text-green-700">
                             {f.compradoEnRuta > 0 ? `+${f.compradoEnRuta}` : "—"}

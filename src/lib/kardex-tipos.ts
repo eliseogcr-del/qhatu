@@ -5,6 +5,7 @@ export const TIPOS_MOVIMIENTO = [
   "merma",
   "traslado_salida",
   "traslado_entrada",
+  "abastecimiento_campo",
 ] as const;
 
 export type TipoMovimiento = (typeof TIPOS_MOVIMIENTO)[number];
@@ -16,6 +17,7 @@ export const TIPO_MOVIMIENTO_LABEL: Record<TipoMovimiento, string> = {
   merma: "Merma",
   traslado_salida: "Traslado (salida)",
   traslado_entrada: "Traslado (entrada)",
+  abastecimiento_campo: "Abastecimiento en campo",
 };
 
 // Tipos que el usuario puede registrar manualmente. "venta" y "merma" solo
