@@ -41,6 +41,7 @@ const QUICK_LINKS_REPARTIDOR = [
 
 const QUICK_LINKS_VENDEDOR = [
   { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
   { href: "/inventario", label: "Inventario", icon: Boxes },
   { href: "/kardex", label: "Kardex", icon: ScrollText },

@@ -92,6 +92,7 @@ const COMERCIAL_VENDEDOR = {
 const LOGISTICA_VENDEDOR = {
   label: "Logística",
   items: [
+    { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
     { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
     { href: "/inventario", label: "Inventario", icon: Boxes },
     { href: "/kardex", label: "Kardex", icon: ScrollText },
