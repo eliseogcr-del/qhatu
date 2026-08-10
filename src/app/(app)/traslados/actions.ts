@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
+import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 
 // Traslado entre almacenes (ej. carga inicial de un vendedor antes de salir
 // a ruta, o el retorno de lo no vendido). Genera SIEMPRE los dos lados del
@@ -58,6 +58,32 @@ export async function createTraslado(formData: FormData) {
     );
   }
 
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, nombre, control_inventario")
+    .in("id", [...productoIdsUnicos]);
+
+  const lineasConControl = lineas
+    .map((l) => {
+      const producto = productosInfo?.find((p) => p.id === l.producto_id);
+      return {
+        productoId: l.producto_id,
+        productoNombre: producto?.nombre ?? l.producto_id,
+        cantidad: l.cantidad,
+        controlInventario: producto?.control_inventario,
+      };
+    })
+    .filter((l) => l.controlInventario);
+
+  const errorStock = await validarStockDisponible(
+    supabase,
+    almacenOrigenId,
+    lineasConControl,
+  );
+  if (errorStock) {
+    redirect(`/traslados/nuevo?error=${encodeURIComponent(errorStock)}`);
+  }
+
   const { data: traslado, error: trasladoError } = await supabase
     .from("traslados")
     .insert({
@@ -92,11 +118,6 @@ export async function createTraslado(formData: FormData) {
       `/traslados/nuevo?error=${encodeURIComponent(detalleError?.message ?? "No se pudo registrar el detalle del traslado.")}`,
     );
   }
-
-  const { data: productosInfo } = await supabase
-    .from("productos")
-    .select("id, control_inventario")
-    .in("id", [...productoIdsUnicos]);
 
   const movimientos: Parameters<typeof registrarMovimientosKardex>[3] = [];
   for (const row of detalleRows) {
