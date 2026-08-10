@@ -1,9 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X, LogOut } from "lucide-react";
 import Logo from "./Logo";
 import SidebarNav from "./SidebarNav";
+
+// Los <input type="number"> cambian de valor un "paso" (step) si el mouse
+// hace scroll sobre ellos estando enfocados — un gesto pensado para
+// scrollear la página, no para editar el campo. Eso causó que un "100"
+// terminara guardado como "99.99" sin que nadie lo notara. Blureamos el
+// campo apenas se detecta scroll para que el navegador no le aplique ese
+// cambio y la página siga scrolleando normal.
+function useDeshabilitarScrollEnNumeros() {
+  useEffect(() => {
+    function handleWheel() {
+      const activo = document.activeElement;
+      if (activo instanceof HTMLInputElement && activo.type === "number") {
+        activo.blur();
+      }
+    }
+    document.addEventListener("wheel", handleWheel, { passive: true });
+    return () => document.removeEventListener("wheel", handleWheel);
+  }, []);
+}
 
 function BrandRow({ className = "" }: { className?: string }) {
   return (
@@ -51,6 +70,7 @@ export default function AppShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  useDeshabilitarScrollEnNumeros();
 
   return (
     <div className="flex min-h-screen bg-gray-50">
