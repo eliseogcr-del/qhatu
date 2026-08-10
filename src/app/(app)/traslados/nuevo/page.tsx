@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import TrasladoForm from "@/components/TrasladoForm";
 import { createTraslado } from "../actions";
 
@@ -11,6 +12,7 @@ export default async function NuevoTrasladoPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
 
   const [{ data: almacenes }, { data: productos }] = await Promise.all([
     supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
@@ -47,6 +49,7 @@ export default async function NuevoTrasladoPage({
             error={error}
             almacenes={almacenes ?? []}
             productos={productos ?? []}
+            almacenSesion={session.rol === "admin" ? null : session.almacenId}
           />
         </div>
       </div>

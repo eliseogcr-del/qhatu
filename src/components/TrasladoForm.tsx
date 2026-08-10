@@ -42,16 +42,29 @@ export default function TrasladoForm({
   error,
   almacenes,
   productos,
+  almacenSesion,
 }: {
   action: (formData: FormData) => void;
   error?: string;
   almacenes: Almacen[];
   productos: Producto[];
+  // Si viene con valor (vendedor), el origen queda fijo a su propio
+  // almacén y el destino no puede ser él mismo — un vendedor solo puede
+  // enviar mercadería desde su almacén, nunca recibir hacia él (eso lo
+  // controla admin/logística). Si es null/undefined (admin/logística),
+  // ambos campos quedan libres.
+  almacenSesion?: string | null;
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
-  const [origenId, setOrigenId] = useState("");
+  const [origenId, setOrigenId] = useState(almacenSesion ?? "");
   const [destinoId, setDestinoId] = useState("");
+  const almacenPropio = almacenSesion
+    ? almacenes.find((a) => a.id === almacenSesion)
+    : null;
+  const almacenesDestino = almacenSesion
+    ? almacenes.filter((a) => a.id !== almacenSesion)
+    : almacenes;
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -120,20 +133,31 @@ export default function TrasladoForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Almacén de origen">
-            <select
-              name="almacen_origen_id"
-              required
-              value={origenId}
-              onChange={(e) => setOrigenId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Selecciona un almacén</option>
-              {almacenes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
+            {almacenSesion ? (
+              <>
+                <input
+                  disabled
+                  value={almacenPropio?.nombre ?? "Tu almacén"}
+                  className={`${inputClass} bg-gray-50 text-gray-500`}
+                />
+                <input type="hidden" name="almacen_origen_id" value={almacenSesion} />
+              </>
+            ) : (
+              <select
+                name="almacen_origen_id"
+                required
+                value={origenId}
+                onChange={(e) => setOrigenId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Selecciona un almacén</option>
+                {almacenes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
           <Field label="Almacén de destino">
             <select
@@ -144,12 +168,17 @@ export default function TrasladoForm({
               className={inputClass}
             >
               <option value="">Selecciona un almacén</option>
-              {almacenes.map((a) => (
+              {almacenesDestino.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.nombre}
                 </option>
               ))}
             </select>
+            {almacenSesion && (
+              <p className="mt-1 text-xs text-gray-400">
+                Solo puedes enviar mercadería desde tu almacén, no recibirla.
+              </p>
+            )}
           </Field>
         </div>
         <Field label="Nota (opcional)">

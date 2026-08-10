@@ -48,13 +48,13 @@ export async function createTraslado(formData: FormData) {
     );
   }
 
-  // Un vendedor solo puede trasladar entre su propio almacén y otro — no
-  // puede mover mercadería entre dos almacenes ajenos. Admin y logística no
-  // tienen esta restricción (ven/operan en todos los almacenes).
-  const esParte = almacenId === almacenOrigenId || almacenId === almacenDestinoId;
-  if (rol !== "admin" && rol !== "logistica" && !esParte) {
+  // Solo el administrador puede mover mercadería entre almacenes libremente
+  // (cualquier origen, cualquier destino). Cualquier otro rol —vendedor,
+  // logística— solo puede ENVIAR desde su propio almacén hacia otro, nunca
+  // recibir ni mover entre dos almacenes que no sean el suyo.
+  if (rol !== "admin" && almacenId !== almacenOrigenId) {
     redirect(
-      `/traslados/nuevo?error=${encodeURIComponent("Solo puedes trasladar mercadería desde o hacia tu propio almacén.")}`,
+      `/traslados/nuevo?error=${encodeURIComponent("Solo puedes enviar mercadería desde tu propio almacén.")}`,
     );
   }
 
