@@ -207,7 +207,14 @@ export default function VentaDirectaForm({
         )}
 
         <div className="space-y-3">
-          {lineas.map((linea) => (
+          {lineas.map((linea) => {
+            const productoElegido = productos.find((p) => p.id === linea.producto_id);
+            const stockDisponible =
+              productoElegido?.control_inventario && almacenSeleccionado
+                ? stockPorAlmacen[`${linea.producto_id}::${almacenSeleccionado}`] ?? 0
+                : null;
+
+            return (
             <div
               key={linea.key}
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
@@ -232,6 +239,7 @@ export default function VentaDirectaForm({
                   type="number"
                   step="0.01"
                   min="0"
+                  max={stockDisponible ?? undefined}
                   name="cantidad[]"
                   value={linea.cantidad}
                   onChange={(e) =>
@@ -241,6 +249,13 @@ export default function VentaDirectaForm({
                   }
                   className={inputClass}
                 />
+                {stockDisponible !== null && (
+                  <p
+                    className={`mt-1 text-xs ${linea.cantidad > stockDisponible ? "text-red-600" : "text-gray-400"}`}
+                  >
+                    Disponible: {stockDisponible}
+                  </p>
+                )}
               </Field>
               <Field label="Precio unitario">
                 <input
@@ -278,7 +293,8 @@ export default function VentaDirectaForm({
                 Quitar
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <button

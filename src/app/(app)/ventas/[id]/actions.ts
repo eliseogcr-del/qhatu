@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
+import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
 import { TIPO_AJUSTE_VENTA_LABEL, type TipoAjusteVenta } from "@/lib/ajuste-venta-tipos";
@@ -125,6 +125,46 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         .select("id, nombre, control_inventario")
         .in("id", productoIdsInvolucrados)
     : { data: [] as { id: string; nombre: string; control_inventario: boolean }[] };
+
+  // Antes de escribir nada: las líneas nuevas y los aumentos de cantidad
+  // en líneas modificadas descuentan stock adicional — hay que confirmar
+  // que el almacén realmente lo tiene (bajar cantidad, en cambio, devuelve
+  // stock y no necesita validarse).
+  const lineasQueDescuentan: { productoId: string; productoNombre: string; cantidad: number }[] =
+    [];
+  for (const linea of lineasNuevas) {
+    const producto = productosInfo?.find((p) => p.id === linea.producto_id);
+    if (producto?.control_inventario) {
+      lineasQueDescuentan.push({
+        productoId: linea.producto_id,
+        productoNombre: producto.nombre,
+        cantidad: linea.cantidad,
+      });
+    }
+  }
+  for (const linea of lineasModificadas) {
+    const original = detalleOriginal!.find((d) => d.id === linea.id)!;
+    const delta = Math.round((linea.cantidad - original.cantidad_entregada) * 100) / 100;
+    if (delta > 0) {
+      const producto = productosInfo?.find((p) => p.id === linea.producto_id);
+      if (producto?.control_inventario) {
+        lineasQueDescuentan.push({
+          productoId: linea.producto_id,
+          productoNombre: producto.nombre,
+          cantidad: delta,
+        });
+      }
+    }
+  }
+
+  const errorStock = await validarStockDisponible(
+    supabase,
+    venta.almacen_id,
+    lineasQueDescuentan,
+  );
+  if (errorStock) {
+    redirect(`/ventas/${ventaId}/editar?error=${encodeURIComponent(errorStock)}`);
+  }
 
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
 

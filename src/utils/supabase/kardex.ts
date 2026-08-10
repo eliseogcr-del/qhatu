@@ -1,5 +1,43 @@
 import { createClient } from "./server";
 
+// Antes de descontar stock (venta, traslado hacia afuera, etc.) hay que
+// confirmar que el almacén realmente tiene esa cantidad — sin esto,
+// registrar una venta más grande que lo disponible dejaba el inventario en
+// negativo silenciosamente. Solo aplica a productos con control de
+// inventario; el resto no tiene fila en `inventario` y no se valida.
+export async function validarStockDisponible(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  almacenId: string,
+  lineas: { productoId: string; productoNombre: string; cantidad: number }[],
+): Promise<string | null> {
+  if (lineas.length === 0) return null;
+
+  const { data: inventarios } = await supabase
+    .from("inventario")
+    .select("producto_id, stock_actual")
+    .eq("almacen_id", almacenId)
+    .in("producto_id", lineas.map((l) => l.productoId));
+
+  const stockPorProducto = new Map(
+    (inventarios ?? []).map((i) => [i.producto_id, i.stock_actual]),
+  );
+
+  const insuficientes = lineas.filter(
+    (l) => l.cantidad > (stockPorProducto.get(l.productoId) ?? 0),
+  );
+
+  if (insuficientes.length === 0) return null;
+
+  const detalle = insuficientes
+    .map(
+      (l) =>
+        `${l.productoNombre} (disponible: ${stockPorProducto.get(l.productoId) ?? 0}, solicitado: ${l.cantidad})`,
+    )
+    .join("; ");
+
+  return `No hay stock suficiente en ese almacén: ${detalle}.`;
+}
+
 export async function registrarMovimientoKardex(
   supabase: Awaited<ReturnType<typeof createClient>>,
   params: {

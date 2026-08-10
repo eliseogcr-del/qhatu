@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
-import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
+import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 
 export async function createVenta(formData: FormData) {
   const supabase = await createClient();
@@ -67,26 +67,39 @@ export async function createVenta(formData: FormData) {
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
-  const [{ data: venta, error: ventaError }, { data: productosInfo }] =
-    await Promise.all([
-      supabase
-        .from("ventas")
-        .insert({
-          empresa_id: empresaId,
-          pedido_id: pedidoId,
-          cliente_id: pedido.cliente_id,
-          moneda,
-          tipo_cambio_aplicado: tipoCambio,
-          total,
-          almacen_id: pedido.almacen_id,
-        })
-        .select("id")
-        .single(),
-      supabase
-        .from("productos")
-        .select("id, control_inventario")
-        .in("id", [...new Set(lineas.map((l) => l.producto_id))]),
-    ]);
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, nombre, control_inventario")
+    .in("id", [...new Set(lineas.map((l) => l.producto_id))]);
+
+  const lineasControladas = lineas
+    .filter((l) => productosInfo?.find((p) => p.id === l.producto_id)?.control_inventario)
+    .map((l) => ({
+      productoId: l.producto_id,
+      productoNombre: productosInfo!.find((p) => p.id === l.producto_id)!.nombre,
+      cantidad: l.cantidad_entregada,
+    }));
+
+  const errorStock = await validarStockDisponible(supabase, pedido.almacen_id, lineasControladas);
+  if (errorStock) {
+    redirect(
+      `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent(errorStock)}`,
+    );
+  }
+
+  const { data: venta, error: ventaError } = await supabase
+    .from("ventas")
+    .insert({
+      empresa_id: empresaId,
+      pedido_id: pedidoId,
+      cliente_id: pedido.cliente_id,
+      moneda,
+      tipo_cambio_aplicado: tipoCambio,
+      total,
+      almacen_id: pedido.almacen_id,
+    })
+    .select("id")
+    .single();
 
   if (ventaError || !venta) {
     redirect(
@@ -235,6 +248,24 @@ export async function createVentaDirecta(formData: FormData) {
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, nombre, control_inventario")
+    .in("id", [...productoIdsUnicos]);
+
+  const lineasControladas = lineas
+    .filter((l) => productosInfo?.find((p) => p.id === l.producto_id)?.control_inventario)
+    .map((l) => ({
+      productoId: l.producto_id,
+      productoNombre: productosInfo!.find((p) => p.id === l.producto_id)!.nombre,
+      cantidad: l.cantidad,
+    }));
+
+  const errorStock = await validarStockDisponible(supabase, almacenId, lineasControladas);
+  if (errorStock) {
+    redirect(`/ventas/directa?error=${encodeURIComponent(errorStock)}`);
+  }
+
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
     .insert({
@@ -257,29 +288,24 @@ export async function createVentaDirecta(formData: FormData) {
     );
   }
 
-  const [, { data: venta, error: ventaError }, { data: productosInfo }] =
-    await Promise.all([
-      supabase.from("pedido_detalle").insert(
-        lineas.map((l) => ({ ...l, pedido_id: pedido.id })),
-      ),
-      supabase
-        .from("ventas")
-        .insert({
-          empresa_id: empresaId,
-          pedido_id: pedido.id,
-          cliente_id: clienteId,
-          moneda,
-          tipo_cambio_aplicado: tipoCambio,
-          total,
-          almacen_id: almacenId,
-        })
-        .select("id")
-        .single(),
-      supabase
-        .from("productos")
-        .select("id, control_inventario")
-        .in("id", [...new Set(lineas.map((l) => l.producto_id))]),
-    ]);
+  const [, { data: venta, error: ventaError }] = await Promise.all([
+    supabase.from("pedido_detalle").insert(
+      lineas.map((l) => ({ ...l, pedido_id: pedido.id })),
+    ),
+    supabase
+      .from("ventas")
+      .insert({
+        empresa_id: empresaId,
+        pedido_id: pedido.id,
+        cliente_id: clienteId,
+        moneda,
+        tipo_cambio_aplicado: tipoCambio,
+        total,
+        almacen_id: almacenId,
+      })
+      .select("id")
+      .single(),
+  ]);
 
   if (ventaError || !venta) {
     redirect(
