@@ -13,7 +13,7 @@ export default async function VentaDirectaPage({
 
   const supabase = await createClient();
   const { empresaId, almacenId } = await getEmpresaSession(supabase);
-  const [{ data: clientes }, { data: productos }, { data: almacenes }] =
+  const [{ data: clientes }, { data: productos }, { data: almacenes }, { data: inventario }] =
     await Promise.all([
       supabase
         .from("clientes")
@@ -22,7 +22,7 @@ export default async function VentaDirectaPage({
         .order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, precio_venta, precio_venta_moneda")
+        .select("id, nombre, precio_venta, precio_venta_moneda, control_inventario")
         .eq("activo", true)
         .order("nombre"),
       almacenId
@@ -33,7 +33,12 @@ export default async function VentaDirectaPage({
             .eq("empresa_id", empresaId)
             .eq("activo", true)
             .order("nombre"),
+      supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
     ]);
+
+  const stockPorAlmacen = Object.fromEntries(
+    (inventario ?? []).map((i) => [`${i.producto_id}::${i.almacen_id}`, i.stock_actual]),
+  );
 
   return (
     <div className="p-8">
@@ -61,6 +66,8 @@ export default async function VentaDirectaPage({
             clientes={clientes ?? []}
             productos={productos ?? []}
             almacenes={almacenes ?? undefined}
+            stockPorAlmacen={stockPorAlmacen}
+            almacenSesion={almacenId}
           />
         </div>
       </div>

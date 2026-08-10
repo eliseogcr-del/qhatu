@@ -10,6 +10,7 @@ type Producto = {
   nombre: string;
   precio_venta: number;
   precio_venta_moneda: string;
+  control_inventario: boolean;
 };
 
 type Linea = {
@@ -51,6 +52,8 @@ export default function VentaDirectaForm({
   clientes,
   productos,
   almacenes,
+  stockPorAlmacen,
+  almacenSesion,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -59,9 +62,22 @@ export default function VentaDirectaForm({
   // Solo se pasa (con al menos un local) cuando quien registra es admin
   // — un vendedor tiene su almacén fijo y el servidor lo asigna solo.
   almacenes?: { id: string; nombre: string }[];
+  // Stock por producto+almacén, clave `${productoId}::${almacenId}`, para
+  // solo ofrecer lo que ese almacén realmente tiene (ej. lo que un
+  // vendedor de campo lleva cargado en su almacén móvil).
+  stockPorAlmacen: Record<string, number>;
+  // Almacén fijo del usuario (vendedor); null/undefined si es admin.
+  almacenSesion?: string | null;
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
+  const [almacenSeleccionado, setAlmacenSeleccionado] = useState(almacenSesion ?? "");
+
+  const productosDisponibles = productos.filter((p) => {
+    if (!p.control_inventario) return true;
+    if (!almacenSeleccionado) return true;
+    return (stockPorAlmacen[`${p.id}::${almacenSeleccionado}`] ?? 0) > 0;
+  });
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) =>
@@ -154,7 +170,18 @@ export default function VentaDirectaForm({
           </Field>
           {almacenes && almacenes.length > 0 && (
             <Field label="Almacén / Local">
-              <select name="almacen_id" required defaultValue="" className={inputClass}>
+              <select
+                name="almacen_id"
+                required
+                value={almacenSeleccionado}
+                onChange={(e) => {
+                  setAlmacenSeleccionado(e.target.value);
+                  setLineas((prev) =>
+                    prev.map((l) => ({ ...l, producto_id: "", precio_unitario: 0 })),
+                  );
+                }}
+                className={inputClass}
+              >
                 <option value="" disabled>
                   Selecciona un local
                 </option>
@@ -173,6 +200,11 @@ export default function VentaDirectaForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Productos vendidos
         </h2>
+        {almacenSeleccionado && productosDisponibles.length === 0 && (
+          <p className="text-sm text-amber-600">
+            Ese almacén no tiene productos con stock disponible en este momento.
+          </p>
+        )}
 
         <div className="space-y-3">
           {lineas.map((linea) => (
@@ -188,7 +220,7 @@ export default function VentaDirectaForm({
                   className={inputClass}
                 >
                   <option value="">Selecciona un producto</option>
-                  {productos.map((p) => (
+                  {productosDisponibles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nombre}
                     </option>
