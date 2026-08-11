@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFechaHora } from "@/lib/fecha";
+import { formatFechaHora, hoyLima } from "@/lib/fecha";
 import { Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
@@ -7,16 +7,28 @@ import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
 export default async function KardexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ desde?: string; hasta?: string; producto_id?: string }>;
+  searchParams: Promise<{
+    desde?: string;
+    hasta?: string;
+    producto_id?: string;
+    almacen_id?: string;
+  }>;
 }) {
-  const { desde, hasta, producto_id } = await searchParams;
+  const { desde, hasta, producto_id, almacen_id: almacenId } = await searchParams;
   const supabase = await createClient();
 
-  const { data: productos } = await supabase
-    .from("productos")
-    .select("id, nombre")
-    .eq("activo", true)
-    .order("nombre");
+  // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
+  // defecto, para no traer siempre los últimos 200 movimientos de
+  // cualquier fecha. Si el usuario borra los campos y filtra, quedan como
+  // string vacío (presentes pero sin valor) y ahí sí se ve todo.
+  const hoy = hoyLima();
+  const desdeEfectivo = desde === undefined ? hoy : desde;
+  const hastaEfectivo = hasta === undefined ? hoy : hasta;
+
+  const [{ data: productos }, { data: almacenes }] = await Promise.all([
+    supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+  ]);
 
   let query = supabase
     .from("kardex_movimientos")
@@ -26,13 +38,19 @@ export default async function KardexPage({
     .order("fecha", { ascending: false })
     .limit(200);
 
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (desdeEfectivo) query = query.gte("fecha", desdeEfectivo);
+  if (hastaEfectivo) query = query.lte("fecha", `${hastaEfectivo}T23:59:59`);
   if (producto_id) query = query.eq("producto_id", producto_id);
+  if (almacenId) query = query.eq("almacen_id", almacenId);
 
   const { data: movimientos, error } = await query;
 
-  const hayFiltros = !!(desde || hasta || producto_id);
+  const hayFiltros = !!(
+    desde !== undefined ||
+    hasta !== undefined ||
+    producto_id ||
+    almacenId
+  );
 
   return (
     <div className="p-8">
@@ -66,7 +84,7 @@ export default async function KardexPage({
             <input
               type="date"
               name="desde"
-              defaultValue={desde ?? ""}
+              defaultValue={desdeEfectivo}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -75,9 +93,24 @@ export default async function KardexPage({
             <input
               type="date"
               name="hasta"
-              defaultValue={hasta ?? ""}
+              defaultValue={hastaEfectivo}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
+            <select
+              name="almacen_id"
+              defaultValue={almacenId ?? ""}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Todos</option>
+              {almacenes?.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
           </div>
           <button
             type="submit"
@@ -88,7 +121,7 @@ export default async function KardexPage({
           </button>
           {hayFiltros && (
             <Link
-              href="/kardex"
+              href="/kardex?desde=&hasta="
               className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
             >
               <X size={14} />
