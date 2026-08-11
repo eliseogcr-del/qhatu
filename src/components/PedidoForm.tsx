@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2, Save, Paperclip } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+
+// Un admin/logística no tiene un almacén fijo propio (puede operar en
+// cualquiera), pero en la práctica suele trabajar seguido desde el mismo
+// local — se recuerda su última selección en este navegador para no
+// obligarlo a elegir de nuevo en cada pedido.
+const ALMACEN_RECORDADO_KEY = "qhatu:almacenPedido";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -72,6 +78,23 @@ export default function PedidoForm({
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
   const [almacenSeleccionado, setAlmacenSeleccionado] = useState(almacenSesion ?? "");
+
+  // Se hace en un efecto (no en el useState inicial) para que el primer
+  // render en el cliente coincida con el del servidor y React no se queje
+  // de un mismatch de hidratación — leer localStorage antes de montar no
+  // es seguro porque el servidor nunca tiene ese valor.
+  useEffect(() => {
+    if (almacenSesion) return; // vendedor: ya viene fijo, no hay nada que recordar
+    const recordado = localStorage.getItem(ALMACEN_RECORDADO_KEY);
+    if (recordado && almacenes?.some((a) => a.id === recordado)) {
+      // localStorage no existe en el servidor, así que esto solo puede
+      // leerse después de montar — no hay forma de evitar el efecto sin
+      // arriesgar un mismatch de hidratación.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAlmacenSeleccionado(recordado);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const productosDisponibles = productos.filter((p) => {
     if (!p.control_inventario) return true;
@@ -192,6 +215,7 @@ export default function PedidoForm({
                 value={almacenSeleccionado}
                 onChange={(e) => {
                   setAlmacenSeleccionado(e.target.value);
+                  localStorage.setItem(ALMACEN_RECORDADO_KEY, e.target.value);
                   // El catálogo disponible cambia con el almacén, así que
                   // las líneas ya elegidas dejan de ser válidas.
                   setLineas((prev) =>
@@ -225,7 +249,14 @@ export default function PedidoForm({
         )}
 
         <div className="space-y-3">
-          {lineas.map((linea) => (
+          {lineas.map((linea) => {
+            const productoElegido = productos.find((p) => p.id === linea.producto_id);
+            const stockDisponible =
+              productoElegido?.control_inventario && almacenSeleccionado
+                ? stockPorAlmacen[`${linea.producto_id}::${almacenSeleccionado}`] ?? 0
+                : null;
+
+            return (
             <div
               key={linea.key}
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
@@ -250,6 +281,7 @@ export default function PedidoForm({
                   type="number"
                   step="0.01"
                   min="0"
+                  max={stockDisponible ?? undefined}
                   name="cantidad[]"
                   value={linea.cantidad}
                   onChange={(e) =>
@@ -259,6 +291,13 @@ export default function PedidoForm({
                   }
                   className={inputClass}
                 />
+                {stockDisponible !== null && (
+                  <p
+                    className={`mt-1 text-xs ${linea.cantidad > stockDisponible ? "text-red-600" : "text-gray-400"}`}
+                  >
+                    Disponible: {stockDisponible}
+                  </p>
+                )}
               </Field>
               <Field label="Precio unitario">
                 <input
@@ -297,7 +336,8 @@ export default function PedidoForm({
                 Quitar
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <button
