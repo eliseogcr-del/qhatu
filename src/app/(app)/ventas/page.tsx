@@ -11,6 +11,8 @@ function buildExportHref(
     desde?: string;
     hasta?: string;
     pendientes?: string;
+    almacen_id?: string;
+    vendedor_id?: string;
   },
 ) {
   const search = new URLSearchParams();
@@ -18,6 +20,8 @@ function buildExportHref(
   if (params.desde) search.set("desde", params.desde);
   if (params.hasta) search.set("hasta", params.hasta);
   if (params.pendientes) search.set("pendientes", params.pendientes);
+  if (params.almacen_id) search.set("almacen_id", params.almacen_id);
+  if (params.vendedor_id) search.set("vendedor_id", params.vendedor_id);
   const qs = search.toString();
   return `${base}${qs ? `?${qs}` : ""}`;
 }
@@ -30,19 +34,33 @@ export default async function VentasPage({
     desde?: string;
     hasta?: string;
     pendientes?: string;
+    almacen_id?: string;
+    vendedor_id?: string;
   }>;
 }) {
-  const { q, desde, hasta, pendientes } = await searchParams;
+  const { q, desde, hasta, pendientes, almacen_id: almacenId, vendedor_id: vendedorId } =
+    await searchParams;
   const supabase = await createClient();
 
-  const { ventas, error } = await fetchVentasConSaldo(supabase, {
-    clienteNombre: q,
-    fechaDesde: desde,
-    fechaHasta: hasta,
-    soloPendientes: pendientes === "1",
-  });
+  const [{ ventas, error }, { data: almacenes }, { data: vendedores }] = await Promise.all([
+    fetchVentasConSaldo(supabase, {
+      clienteNombre: q,
+      fechaDesde: desde,
+      fechaHasta: hasta,
+      soloPendientes: pendientes === "1",
+      almacenId,
+      vendedorId,
+    }),
+    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase
+      .from("usuarios")
+      .select("id, nombre")
+      .eq("rol", "vendedor")
+      .not("almacen_id", "is", null)
+      .order("nombre"),
+  ]);
 
-  const hayFiltros = !!(q || desde || hasta || pendientes);
+  const hayFiltros = !!(q || desde || hasta || pendientes || almacenId || vendedorId);
 
   return (
     <div className="p-8">
@@ -51,14 +69,28 @@ export default async function VentasPage({
           <h1 className="text-2xl font-semibold text-gray-900">Ventas</h1>
           <div className="flex items-center gap-3">
             <a
-              href={buildExportHref("/ventas/export", { q, desde, hasta, pendientes })}
+              href={buildExportHref("/ventas/export", {
+                q,
+                desde,
+                hasta,
+                pendientes,
+                almacen_id: almacenId,
+                vendedor_id: vendedorId,
+              })}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
               Exportar resumen
             </a>
             <a
-              href={buildExportHref("/ventas/export-detalle", { q, desde, hasta, pendientes })}
+              href={buildExportHref("/ventas/export-detalle", {
+                q,
+                desde,
+                hasta,
+                pendientes,
+                almacen_id: almacenId,
+                vendedor_id: vendedorId,
+              })}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
@@ -117,6 +149,40 @@ export default async function VentasPage({
               defaultValue={hasta ?? ""}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Almacén
+            </label>
+            <select
+              name="almacen_id"
+              defaultValue={almacenId ?? ""}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Todos</option>
+              {almacenes?.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Vendedor
+            </label>
+            <select
+              name="vendedor_id"
+              defaultValue={vendedorId ?? ""}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Todos</option>
+              {vendedores?.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nombre}
+                </option>
+              ))}
+            </select>
           </div>
           <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
             <input

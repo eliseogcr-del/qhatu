@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
     fechaDesde: params.get("desde"),
     fechaHasta: params.get("hasta"),
     soloPendientes: params.get("pendientes") === "1",
+    almacenId: params.get("almacen_id"),
+    vendedorId: params.get("vendedor_id"),
   });
 
   const rows = ventas.map((v) => [

@@ -25,6 +25,11 @@ export type VentasFiltro = {
   fechaDesde?: string | null;
   fechaHasta?: string | null;
   soloPendientes?: boolean;
+  almacenId?: string | null;
+  // Un vendedor no es una columna propia de ventas — se resuelve a su
+  // almacén fijo (usuarios.almacen_id) y se filtra por ese almacén, igual
+  // que el reporte de ventas por vendedor.
+  vendedorId?: string | null;
 };
 
 // Comparte la lógica de filtrado + cálculo de saldo pendiente entre el
@@ -32,7 +37,7 @@ export type VentasFiltro = {
 // exactamente los mismos datos.
 export async function fetchVentasConSaldo(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  { clienteNombre, fechaDesde, fechaHasta, soloPendientes }: VentasFiltro,
+  { clienteNombre, fechaDesde, fechaHasta, soloPendientes, almacenId, vendedorId }: VentasFiltro,
 ): Promise<{ ventas: VentaConSaldo[]; error: string | null }> {
   let query = supabase
     .from("ventas")
@@ -46,6 +51,15 @@ export async function fetchVentasConSaldo(
   if (clienteNombre) query = query.ilike("clientes.nombre", `%${clienteNombre}%`);
   if (fechaDesde) query = query.gte("fecha", fechaDesde);
   if (fechaHasta) query = query.lte("fecha", `${fechaHasta}T23:59:59`);
+  if (almacenId) query = query.eq("almacen_id", almacenId);
+  if (vendedorId) {
+    const { data: vendedor } = await supabase
+      .from("usuarios")
+      .select("almacen_id")
+      .eq("id", vendedorId)
+      .maybeSingle();
+    query = query.eq("almacen_id", vendedor?.almacen_id ?? "00000000-0000-0000-0000-000000000000");
+  }
 
   const { data: ventas, error } = await query;
   if (error || !ventas) {
