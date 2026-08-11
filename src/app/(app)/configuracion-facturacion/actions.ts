@@ -35,3 +35,43 @@ export async function guardarConfiguracionFacturacion(formData: FormData) {
   revalidatePath("/configuracion-facturacion");
   redirect("/configuracion-facturacion?guardado=1");
 }
+
+// La serie de nota de venta es por almacén (no por empresa como
+// factura/boleta) — se leen los almacenes desde la BD en vez de confiar
+// en una lista que venga del formulario, así el usuario no puede inyectar
+// un almacen_id ajeno a su empresa.
+export async function guardarSeriesNotaVenta(formData: FormData) {
+  const supabase = await createClient();
+  const { empresaId } = await requireAdmin(supabase);
+
+  const { data: almacenes } = await supabase
+    .from("almacenes")
+    .select("id")
+    .eq("empresa_id", empresaId)
+    .eq("activo", true);
+
+  const filas = (almacenes ?? [])
+    .map((a) => ({
+      almacen_id: a.id,
+      serie: String(formData.get(`serie_${a.id}`) ?? "").trim().toUpperCase(),
+      updated_at: new Date().toISOString(),
+    }))
+    .filter((f) => f.serie);
+
+  if (filas.length === 0) {
+    redirect(
+      `/configuracion-facturacion?error=${encodeURIComponent("No hay series de nota de venta para guardar.")}`,
+    );
+  }
+
+  const { error } = await supabase
+    .from("series_nota_venta")
+    .upsert(filas, { onConflict: "almacen_id" });
+
+  if (error) {
+    redirect(`/configuracion-facturacion?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/configuracion-facturacion");
+  redirect("/configuracion-facturacion?guardado=1");
+}

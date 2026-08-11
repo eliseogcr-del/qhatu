@@ -2,7 +2,7 @@ import { Settings, Save } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import SubmitButton from "@/components/SubmitButton";
-import { guardarConfiguracionFacturacion } from "./actions";
+import { guardarConfiguracionFacturacion, guardarSeriesNotaVenta } from "./actions";
 
 export default async function ConfiguracionFacturacionPage({
   searchParams,
@@ -18,6 +18,16 @@ export default async function ConfiguracionFacturacionPage({
     .select("serie_factura, serie_boleta")
     .eq("empresa_id", empresaId)
     .maybeSingle();
+
+  const [{ data: almacenes }, { data: seriesNotaVenta }] = await Promise.all([
+    supabase
+      .from("almacenes")
+      .select("id, nombre")
+      .eq("empresa_id", empresaId)
+      .eq("activo", true)
+      .order("nombre"),
+    supabase.from("series_nota_venta").select("almacen_id, serie"),
+  ]);
 
   return (
     <div className="p-8">
@@ -74,6 +84,45 @@ export default async function ConfiguracionFacturacionPage({
 
             <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
           </form>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="mb-1 text-lg font-semibold text-gray-900">
+            Notas de venta (documento interno)
+          </h2>
+          <p className="mb-4 text-sm text-gray-500">
+            No pasan por Nubefact/SUNAT — cada almacén tiene su propia serie
+            y numeración independiente.
+          </p>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+            {almacenes && almacenes.length > 0 ? (
+              <form action={guardarSeriesNotaVenta} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {almacenes.map((a) => (
+                    <div key={a.id}>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Serie para {a.nombre}
+                      </label>
+                      <input
+                        name={`serie_${a.id}`}
+                        required
+                        defaultValue={
+                          seriesNotaVenta?.find((s) => s.almacen_id === a.id)?.serie ?? "NV01"
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <SubmitButton icon={<Save size={16} />}>Guardar series</SubmitButton>
+              </form>
+            ) : (
+              <p className="text-sm text-gray-400">
+                No hay almacenes activos. Crea uno primero en Administración → Almacenes.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

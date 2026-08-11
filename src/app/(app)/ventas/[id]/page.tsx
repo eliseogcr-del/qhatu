@@ -5,12 +5,17 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_DEVOLUCION_LABEL, type TipoDevolucion } from "@/lib/devolucion-tipos";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
-import { TIPO_COMPROBANTE_LABEL } from "@/utils/nubefact";
+import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA, enlacePdfComprobante } from "@/lib/comprobante-links";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
 import { anularVenta } from "./actions";
 import { anularCobranza } from "../../cobranzas/actions";
-import { emitirComprobante, anularComprobante } from "./comprobante/actions";
+import {
+  emitirComprobante,
+  anularComprobante,
+  emitirNotaVenta,
+  anularNotaVenta,
+} from "./comprobante/actions";
 
 export default async function VentaDetallePage({
   params,
@@ -72,6 +77,7 @@ export default async function VentaDetallePage({
     comprobantePrincipal?.estado === "anulado"
       ? comprobantes?.find((c) => c.tipo_comprobante === 3)
       : undefined;
+  const notaVenta = comprobantes?.find((c) => c.tipo_comprobante === TIPO_NOTA_VENTA);
 
   const cobrado = (cobranzas ?? [])
     .filter((c) => c.estado === "activa")
@@ -233,9 +239,9 @@ export default async function VentaDetallePage({
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {comprobantePrincipal.enlace_pdf && (
+                {enlacePdfComprobante(comprobantePrincipal) && (
                   <a
-                    href={comprobantePrincipal.enlace_pdf}
+                    href={enlacePdfComprobante(comprobantePrincipal)!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
@@ -276,9 +282,9 @@ export default async function VentaDetallePage({
                   <p className="text-sm text-red-600">Anulado</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {comprobantePrincipal.enlace_pdf && (
+                  {enlacePdfComprobante(comprobantePrincipal) && (
                     <a
-                      href={comprobantePrincipal.enlace_pdf}
+                      href={enlacePdfComprobante(comprobantePrincipal)!}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
@@ -317,9 +323,9 @@ export default async function VentaDetallePage({
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {notaCredito.enlace_pdf && (
+                    {enlacePdfComprobante(notaCredito) && (
                       <a
-                        href={notaCredito.enlace_pdf}
+                        href={enlacePdfComprobante(notaCredito)!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
@@ -377,6 +383,74 @@ export default async function VentaDetallePage({
                 ? `error — ${comprobantes[0].error_mensaje ?? "sin detalle"}`
                 : comprobantes[0].estado}
             </p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Nota de venta
+          </h2>
+          <p className="mb-4 text-xs text-gray-400">
+            Documento interno, no pasa por SUNAT/Nubefact — no tiene XML ni
+            código QR.
+          </p>
+
+          {notaVenta?.estado === "emitido" ? (
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-gray-900">
+                {TIPO_COMPROBANTE_LABEL[notaVenta.tipo_comprobante]} {notaVenta.serie}-
+                {notaVenta.numero}
+              </p>
+              <div className="flex items-center gap-3">
+                <a
+                  href={enlacePdfComprobante(notaVenta)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                >
+                  <FileText size={14} />
+                  Ver / imprimir
+                </a>
+                <ConfirmFormButton
+                  action={anularNotaVenta.bind(null, notaVenta.id, id)}
+                  confirmMessage="¿Anular esta nota de venta?"
+                  icon={<XCircle size={14} />}
+                  pendingLabel="Anulando..."
+                  className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Anular
+                </ConfirmFormButton>
+              </div>
+            </div>
+          ) : notaVenta?.estado === "anulado" ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">
+                  {TIPO_COMPROBANTE_LABEL[notaVenta.tipo_comprobante]} {notaVenta.serie}-
+                  {notaVenta.numero}
+                </p>
+                <p className="text-sm text-red-600">Anulada</p>
+              </div>
+              <a
+                href={enlacePdfComprobante(notaVenta)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+              >
+                <FileText size={14} />
+                Ver
+              </a>
+            </div>
+          ) : anulada ? (
+            <p className="text-sm text-gray-400">
+              Esta venta está anulada, no se puede emitir una nota de venta.
+            </p>
+          ) : (
+            <form action={emitirNotaVenta.bind(null, id)}>
+              <SubmitButton icon={<Send size={16} />} pendingLabel="Emitiendo...">
+                Emitir nota de venta
+              </SubmitButton>
+            </form>
           )}
         </div>
 

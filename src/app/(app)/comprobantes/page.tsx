@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatFecha } from "@/lib/fecha";
 import { FileText, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { TIPO_COMPROBANTE_LABEL } from "@/utils/nubefact";
+import { TIPO_COMPROBANTE_LABEL, enlacePdfComprobante } from "@/lib/comprobante-links";
 
 const ESTADO_BADGE: Record<string, string> = {
   emitido: "bg-green-100 text-green-700",
@@ -23,8 +23,8 @@ export default async function ComprobantesPage({
     .from("comprobantes")
     .select(
       q
-        ? "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, enlace_xml, fecha_emision, venta_id, ventas!inner(total, moneda, clientes!inner(nombre))"
-        : "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, enlace_xml, fecha_emision, venta_id, ventas(total, moneda, clientes(nombre))",
+        ? "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, enlace_xml, fecha_emision, venta_id, almacenes(nombre), ventas!inner(total, moneda, clientes!inner(nombre))"
+        : "id, tipo_comprobante, serie, numero, estado, aceptado_por_sunat, enlace_pdf, enlace_xml, fecha_emision, venta_id, almacenes(nombre), ventas(total, moneda, clientes(nombre))",
     )
     .order("fecha_emision", { ascending: false });
 
@@ -45,7 +45,8 @@ export default async function ComprobantesPage({
           <h1 className="text-2xl font-semibold text-gray-900">Comprobantes electrónicos</h1>
         </div>
         <p className="mb-6 text-sm text-gray-500">
-          Facturas y boletas emitidas a través de Nubefact.
+          Facturas y boletas emitidas a través de Nubefact, y notas de venta
+          (documento interno, sin XML ni valor fiscal).
         </p>
 
         <form
@@ -125,6 +126,7 @@ export default async function ComprobantesPage({
               <tr>
                 <th className="px-4 py-3 font-medium">Comprobante</th>
                 <th className="px-4 py-3 font-medium">Cliente</th>
+                <th className="px-4 py-3 font-medium">Almacén</th>
                 <th className="px-4 py-3 font-medium">Fecha</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
@@ -138,6 +140,8 @@ export default async function ComprobantesPage({
                   moneda: string;
                   clientes: { nombre: string } | null;
                 } | null;
+                const almacen = c.almacenes as unknown as { nombre: string } | null;
+                const enlacePdf = enlacePdfComprobante(c);
                 return (
                   <tr key={c.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
@@ -146,6 +150,9 @@ export default async function ComprobantesPage({
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {venta?.clientes?.nombre ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {almacen?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {formatFecha(c.fecha_emision)}
@@ -162,9 +169,9 @@ export default async function ComprobantesPage({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        {c.enlace_pdf && (
+                        {enlacePdf && (
                           <a
-                            href={c.enlace_pdf}
+                            href={enlacePdf}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-medium text-emerald-700 hover:underline"
@@ -196,7 +203,7 @@ export default async function ComprobantesPage({
 
               {comprobantes?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ningún comprobante coincide con los filtros."
                       : "Aún no hay comprobantes emitidos."}

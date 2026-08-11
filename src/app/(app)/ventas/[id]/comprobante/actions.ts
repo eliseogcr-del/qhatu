@@ -4,60 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { construirItemsYTotales, fechaDeHoy } from "@/utils/supabase/comprobantes";
+import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 import {
   llamarNubefact,
   tipoDocumentoNubefact,
-  type NubefactItem,
   type NubefactRequest,
   type NubefactResponse,
 } from "@/utils/nubefact";
-
-const PORCENTAJE_IGV = 0.18;
-
-async function construirItemsYTotales(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  ventaId: string,
-) {
-  const { data: detalle } = await supabase
-    .from("venta_detalle")
-    .select("cantidad_entregada, precio_unitario, subtotal, productos(nombre)")
-    .eq("venta_id", ventaId)
-    .gt("cantidad_entregada", 0);
-
-  if (!detalle || detalle.length === 0) return null;
-
-  const items: NubefactItem[] = detalle.map((d) => {
-    const valorUnitario = Math.round((d.precio_unitario / (1 + PORCENTAJE_IGV)) * 100) / 100;
-    const subtotalSinIgv = Math.round(valorUnitario * d.cantidad_entregada * 100) / 100;
-    const igvLinea = Math.round((d.subtotal - subtotalSinIgv) * 100) / 100;
-    return {
-      unidad_de_medida: "NIU",
-      descripcion: (d.productos as unknown as { nombre: string } | null)?.nombre ?? "Producto",
-      cantidad: d.cantidad_entregada,
-      valor_unitario: valorUnitario,
-      precio_unitario: d.precio_unitario,
-      subtotal: subtotalSinIgv,
-      tipo_de_igv: 1,
-      igv: igvLinea,
-      total: d.subtotal,
-      anticipo_regularizacion: false,
-    };
-  });
-
-  const totalGravada = Math.round(items.reduce((acc, i) => acc + i.subtotal, 0) * 100) / 100;
-  const totalIgv = Math.round(items.reduce((acc, i) => acc + i.igv, 0) * 100) / 100;
-  const total = Math.round((totalGravada + totalIgv) * 100) / 100;
-
-  return { items, totalGravada, totalIgv, total };
-}
-
-function fechaDeHoy() {
-  const hoy = new Date();
-  return `${String(hoy.getDate()).padStart(2, "0")}-${String(hoy.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${hoy.getFullYear()}`;
-}
 
 // Reserva la fila en comprobantes, llama a Nubefact, y actualiza el
 // resultado (o el error) — compartido entre emitir un comprobante nuevo
@@ -69,6 +23,7 @@ async function guardarYEmitir(
     empresaId: string;
     userId: string;
     ventaId: string;
+    almacenId: string | null;
     tipoComprobante: number;
     serie: string;
     numero: number;
@@ -76,13 +31,15 @@ async function guardarYEmitir(
     etiqueta: string;
   },
 ) {
-  const { empresaId, userId, ventaId, tipoComprobante, serie, numero, payload, etiqueta } = params;
+  const { empresaId, userId, ventaId, almacenId, tipoComprobante, serie, numero, payload, etiqueta } =
+    params;
 
   const { data: comprobante, error: insertError } = await supabase
     .from("comprobantes")
     .insert({
       empresa_id: empresaId,
       venta_id: ventaId,
+      almacen_id: almacenId,
       tipo_comprobante: tipoComprobante,
       serie,
       numero,
@@ -153,7 +110,7 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
   const { data: venta } = await supabase
     .from("ventas")
     .select(
-      "id, total, moneda, estado, clientes(tipo_documento, numero_documento, nombre, direccion)",
+      "id, total, moneda, estado, almacen_id, clientes(tipo_documento, numero_documento, nombre, direccion)",
     )
     .eq("id", ventaId)
     .single();
@@ -253,6 +210,7 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
     empresaId,
     userId,
     ventaId,
+    almacenId: venta.almacen_id,
     tipoComprobante,
     serie,
     numero,
@@ -286,7 +244,7 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, moneda, clientes(tipo_documento, numero_documento, nombre, direccion)")
+    .select("id, moneda, almacen_id, clientes(tipo_documento, numero_documento, nombre, direccion)")
     .eq("id", ventaId)
     .single();
 
@@ -366,6 +324,7 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
     empresaId,
     userId,
     ventaId,
+    almacenId: venta.almacen_id,
     tipoComprobante: 3,
     serie: serieNota,
     numero: numeroNota,
@@ -376,6 +335,98 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
   // Solo llega hasta acá si la nota de crédito se emitió y fue aceptada
   // (guardarYEmitir redirige antes en cualquier caso de error).
   await supabase.from("comprobantes").update({ estado: "anulado" }).eq("id", comprobanteId);
+
+  revalidatePath(`/ventas/${ventaId}`);
+  revalidatePath("/comprobantes");
+  redirect(`/ventas/${ventaId}`);
+}
+
+// Nota de venta: documento interno, no pasa por Nubefact/SUNAT — se
+// registra directamente como "emitido", sin llamar a ningún proveedor
+// externo. La numeración usa una serie propia por almacén
+// (series_nota_venta), no la de configuracion_facturacion.
+export async function emitirNotaVenta(ventaId: string) {
+  const supabase = await createClient();
+  const { userId, empresaId } = await getEmpresaSession(supabase);
+
+  const { data: venta } = await supabase
+    .from("ventas")
+    .select("id, estado, almacen_id")
+    .eq("id", ventaId)
+    .single();
+
+  if (!venta) redirect(`/ventas/${ventaId}`);
+
+  if (venta.estado === "anulada") {
+    redirect(
+      `/ventas/${ventaId}?error=${encodeURIComponent("No se puede emitir una nota de venta de una venta anulada.")}`,
+    );
+  }
+
+  const totales = await construirItemsYTotales(supabase, ventaId);
+  if (!totales) {
+    redirect(
+      `/ventas/${ventaId}?error=${encodeURIComponent("La venta no tiene productos entregados.")}`,
+    );
+  }
+
+  const { data: serieConfig } = await supabase
+    .from("series_nota_venta")
+    .select("serie")
+    .eq("almacen_id", venta.almacen_id)
+    .maybeSingle();
+
+  const serie = serieConfig?.serie ?? "NV01";
+
+  const { data: ultimo } = await supabase
+    .from("comprobantes")
+    .select("numero")
+    .eq("empresa_id", empresaId)
+    .eq("tipo_comprobante", TIPO_NOTA_VENTA)
+    .eq("almacen_id", venta.almacen_id)
+    .eq("serie", serie)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const numero = (ultimo?.numero ?? 0) + 1;
+
+  const { error } = await supabase.from("comprobantes").insert({
+    empresa_id: empresaId,
+    venta_id: ventaId,
+    almacen_id: venta.almacen_id,
+    tipo_comprobante: TIPO_NOTA_VENTA,
+    serie,
+    numero,
+    estado: "emitido",
+    usuario_id: userId,
+  });
+
+  if (error) {
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/ventas/${ventaId}`);
+  revalidatePath("/comprobantes");
+  redirect(`/ventas/${ventaId}`);
+}
+
+// Anular una nota de venta es solo un cambio de estado local — al no ser
+// un documento SUNAT no hace falta ninguna nota de crédito ni llamada
+// externa para revertirla.
+export async function anularNotaVenta(comprobanteId: string, ventaId: string) {
+  const supabase = await createClient();
+  await getEmpresaSession(supabase);
+
+  const { error } = await supabase
+    .from("comprobantes")
+    .update({ estado: "anulado" })
+    .eq("id", comprobanteId)
+    .eq("tipo_comprobante", TIPO_NOTA_VENTA);
+
+  if (error) {
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error.message)}`);
+  }
 
   revalidatePath(`/ventas/${ventaId}`);
   revalidatePath("/comprobantes");
