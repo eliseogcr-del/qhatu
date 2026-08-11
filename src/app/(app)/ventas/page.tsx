@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileDown, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
+import { hoyLima } from "@/lib/fecha";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
 
 function buildExportHref(
@@ -42,11 +43,19 @@ export default async function VentasPage({
     await searchParams;
   const supabase = await createClient();
 
+  // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
+  // defecto, para no traer todo el historial cada vez. Si el usuario borra
+  // los campos de fecha y filtra, quedan como string vacío (presentes pero
+  // sin valor) y ahí sí se ve todo.
+  const hoy = hoyLima();
+  const desdeEfectivo = desde === undefined ? hoy : desde;
+  const hastaEfectivo = hasta === undefined ? hoy : hasta;
+
   const [{ ventas, error }, { data: almacenes }, { data: vendedores }] = await Promise.all([
     fetchVentasConSaldo(supabase, {
       clienteNombre: q,
-      fechaDesde: desde,
-      fechaHasta: hasta,
+      fechaDesde: desdeEfectivo,
+      fechaHasta: hastaEfectivo,
       soloPendientes: pendientes === "1",
       almacenId,
       vendedorId,
@@ -60,7 +69,14 @@ export default async function VentasPage({
       .order("nombre"),
   ]);
 
-  const hayFiltros = !!(q || desde || hasta || pendientes || almacenId || vendedorId);
+  const hayFiltros = !!(
+    q ||
+    desde !== undefined ||
+    hasta !== undefined ||
+    pendientes ||
+    almacenId ||
+    vendedorId
+  );
 
   return (
     <div className="p-8">
@@ -71,8 +87,8 @@ export default async function VentasPage({
             <a
               href={buildExportHref("/ventas/export", {
                 q,
-                desde,
-                hasta,
+                desde: desdeEfectivo,
+                hasta: hastaEfectivo,
                 pendientes,
                 almacen_id: almacenId,
                 vendedor_id: vendedorId,
@@ -85,8 +101,8 @@ export default async function VentasPage({
             <a
               href={buildExportHref("/ventas/export-detalle", {
                 q,
-                desde,
-                hasta,
+                desde: desdeEfectivo,
+                hasta: hastaEfectivo,
                 pendientes,
                 almacen_id: almacenId,
                 vendedor_id: vendedorId,
@@ -135,7 +151,7 @@ export default async function VentasPage({
             <input
               type="date"
               name="desde"
-              defaultValue={desde ?? ""}
+              defaultValue={desdeEfectivo}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -146,7 +162,7 @@ export default async function VentasPage({
             <input
               type="date"
               name="hasta"
-              defaultValue={hasta ?? ""}
+              defaultValue={hastaEfectivo}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -202,7 +218,7 @@ export default async function VentasPage({
           </button>
           {hayFiltros && (
             <Link
-              href="/ventas"
+              href="/ventas?desde=&hasta="
               className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
             >
               <X size={14} />
