@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { hoyLima } from "@/lib/fecha";
 import { buildGoogleMapsLink, buildGoogleMapsMultiStopLink } from "@/lib/maps";
 import {
+  ESTADOS_REPARTO,
   ESTADO_REPARTO_BADGE,
   ESTADO_REPARTO_LABEL,
   TIPO_TRANSPORTE_LABEL,
@@ -20,14 +21,16 @@ type ClienteDestino = {
 export default async function RepartosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fecha?: string }>;
+  searchParams: Promise<{ fecha?: string; estado?: string }>;
 }) {
-  const { fecha } = await searchParams;
+  const { fecha, estado } = await searchParams;
   const supabase = await createClient();
 
-  // Sin parámetro en la URL (primera carga) se muestra el día de hoy por
-  // defecto. Si el usuario borra el campo y filtra, queda como string
-  // vacío (presente pero sin valor) y ahí sí se ve todo el historial.
+  // Primera carga (sin ningún parámetro en la URL): se ven los repartos de
+  // hoy MÁS cualquier pendiente de otros días (para que uno atrasado no se
+  // pierda de vista). En cuanto el usuario toca fecha o estado, el filtro
+  // pasa a ser estricto (AND) sobre lo que haya elegido explícitamente.
+  const esCargaInicial = fecha === undefined && estado === undefined;
   const fechaEfectiva = fecha === undefined ? hoyLima() : fecha;
 
   let query = supabase
@@ -37,12 +40,20 @@ export default async function RepartosPage({
     )
     .order("fecha_reparto", { ascending: false });
 
-  if (fechaEfectiva) query = query.eq("fecha_reparto", fechaEfectiva);
+  if (esCargaInicial) {
+    query = query.or(`fecha_reparto.eq.${fechaEfectiva},estado.eq.pendiente`);
+  } else {
+    if (fechaEfectiva) query = query.eq("fecha_reparto", fechaEfectiva);
+    if (estado) query = query.eq("estado", estado);
+  }
 
   const { data: repartos, error } = await query;
 
+  // "Ruta combinada del día" siempre se arma solo con lo de fechaEfectiva,
+  // incluso en la carga inicial donde `repartos` también trae pendientes
+  // de otros días (esos no deben mezclarse en esta ruta).
   const destinos = (repartos ?? [])
-    .filter((r) => r.estado !== "cancelado")
+    .filter((r) => r.estado !== "cancelado" && r.fecha_reparto === fechaEfectiva)
     .map((r) => (r.pedidos as unknown as { clientes: ClienteDestino } | null)?.clientes)
     .filter((c): c is ClienteDestino => !!c);
 
@@ -61,10 +72,17 @@ export default async function RepartosPage({
           </Link>
         </div>
 
+        {esCargaInicial && (
+          <p className="mb-4 text-sm text-gray-500">
+            Mostrando los repartos de hoy y cualquier pendiente de días
+            anteriores.
+          </p>
+        )}
+
         <form className="mb-4 flex items-end gap-3" method="get">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Filtrar por fecha de reparto
+              Fecha de reparto
             </label>
             <input
               type="date"
@@ -73,15 +91,32 @@ export default async function RepartosPage({
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Estado
+            </label>
+            <select
+              name="estado"
+              defaultValue={estado ?? ""}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Todos</option>
+              {ESTADOS_REPARTO.map((e) => (
+                <option key={e} value={e}>
+                  {ESTADO_REPARTO_LABEL[e]}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="submit"
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
             Filtrar
           </button>
-          {fecha !== undefined && (
+          {!esCargaInicial && (
             <Link
-              href="/repartos?fecha="
+              href="/repartos?fecha=&estado="
               className="text-sm font-medium text-gray-500 hover:underline"
             >
               Limpiar
