@@ -1,39 +1,56 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { hoyLima } from "@/lib/fecha";
 
 type Fila = {
   productoId: string;
   productoNombre: string;
   totalPedido: number;
+  stockOrigen: number;
   porAlmacen: Record<string, number>;
 };
 
 export default async function PlanificacionTrasladosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fecha?: string }>;
+  searchParams: Promise<{ fecha?: string; almacen_origen_id?: string }>;
 }) {
-  const { fecha } = await searchParams;
+  const { fecha, almacen_origen_id: almacenOrigenIdParam } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
 
   const fechaEfectiva = fecha || hoyLima();
+  // El "almacén de origen" es de dónde se despacha la mercadería: si quien
+  // ve el reporte es vendedor, siempre es el suyo (fijo, sin elegir); si es
+  // admin/logística (sin almacén propio), lo elige con el selector.
+  const origenId = session.almacenId ?? almacenOrigenIdParam ?? null;
 
-  const [{ data: pedidoLineas }, { data: trasladoLineas }] = await Promise.all([
-    supabase
-      .from("pedido_detalle")
-      .select("cantidad, producto_id, productos(nombre), pedidos!inner(fecha_entrega_requerida, estado)")
-      .eq("pedidos.fecha_entrega_requerida", fechaEfectiva)
-      .neq("pedidos.estado", "cancelado"),
-    supabase
-      .from("traslado_detalle")
-      .select(
-        "cantidad, producto_id, productos(nombre), traslados!inner(fecha, almacen_destino:almacen_destino_id(id, nombre))",
-      )
-      .gte("traslados.fecha", fechaEfectiva)
-      .lte("traslados.fecha", `${fechaEfectiva}T23:59:59`),
-  ]);
+  const [{ data: pedidoLineas }, { data: trasladoLineas }, { data: almacenes }, { data: stockOrigenRows }] =
+    await Promise.all([
+      supabase
+        .from("pedido_detalle")
+        .select("cantidad, producto_id, productos(nombre), pedidos!inner(fecha_entrega_requerida, estado)")
+        .eq("pedidos.fecha_entrega_requerida", fechaEfectiva)
+        .neq("pedidos.estado", "cancelado"),
+      supabase
+        .from("traslado_detalle")
+        .select(
+          "cantidad, producto_id, productos(nombre), traslados!inner(fecha, almacen_destino:almacen_destino_id(id, nombre))",
+        )
+        .gte("traslados.fecha", fechaEfectiva)
+        .lte("traslados.fecha", `${fechaEfectiva}T23:59:59`),
+      supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+      origenId
+        ? supabase.from("inventario").select("producto_id, stock_actual").eq("almacen_id", origenId)
+        : Promise.resolve({ data: null as { producto_id: string; stock_actual: number }[] | null }),
+    ]);
+
+  const nombreAlmacenOrigen = almacenes?.find((a) => a.id === origenId)?.nombre ?? null;
+  const stockOrigenMap = new Map(
+    (stockOrigenRows ?? []).map((r) => [r.producto_id, r.stock_actual]),
+  );
 
   const filasMap = new Map<string, Fila>();
   const almacenesMap = new Map<string, string>();
@@ -44,6 +61,7 @@ export default async function PlanificacionTrasladosPage({
       productoId: l.producto_id,
       productoNombre: producto?.nombre ?? "—",
       totalPedido: 0,
+      stockOrigen: stockOrigenMap.get(l.producto_id) ?? 0,
       porAlmacen: {},
     };
     fila.totalPedido += l.cantidad;
@@ -62,6 +80,7 @@ export default async function PlanificacionTrasladosPage({
       productoId: l.producto_id,
       productoNombre: producto?.nombre ?? "—",
       totalPedido: 0,
+      stockOrigen: stockOrigenMap.get(l.producto_id) ?? 0,
       porAlmacen: {},
     };
     fila.porAlmacen[almacen.id] = (fila.porAlmacen[almacen.id] ?? 0) + l.cantidad;
@@ -110,6 +129,28 @@ export default async function PlanificacionTrasladosPage({
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
+          {session.almacenId ? (
+            // Vendedor: su almacén es fijo, no hay nada que elegir.
+            <input type="hidden" name="almacen_origen_id" value={session.almacenId} />
+          ) : (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Almacén de origen
+              </label>
+              <select
+                name="almacen_origen_id"
+                defaultValue={origenId ?? ""}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Selecciona un almacén</option>
+                {almacenes?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <button
             type="submit"
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -123,6 +164,9 @@ export default async function PlanificacionTrasladosPage({
             <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Producto</th>
+                <th className="px-4 py-3 font-medium">
+                  Stock en {nombreAlmacenOrigen ?? "almacén de origen"}
+                </th>
                 <th className="px-4 py-3 font-medium">Cantidad pedida</th>
                 {almacenesDestino.map((a) => (
                   <th key={a.id} className="px-4 py-3 font-medium">
@@ -144,6 +188,11 @@ export default async function PlanificacionTrasladosPage({
                   <tr key={f.productoId} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {f.productoNombre}
+                    </td>
+                    <td
+                      className={`px-4 py-3 ${origenId && f.stockOrigen <= 0 ? "font-semibold text-red-600" : "text-gray-600"}`}
+                    >
+                      {origenId ? f.stockOrigen : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {f.totalPedido > 0 ? f.totalPedido : "—"}
@@ -167,7 +216,7 @@ export default async function PlanificacionTrasladosPage({
               {filas.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4 + almacenesDestino.length}
+                    colSpan={5 + almacenesDestino.length}
                     className="px-4 py-10 text-center text-gray-400"
                   >
                     No hay pedidos ni traslados para esa fecha.
