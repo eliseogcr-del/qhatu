@@ -7,9 +7,11 @@ import {
   RefreshCw,
   ArrowLeft,
   FileText,
+  Warehouse,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import {
   ESTADOS_PEDIDO,
   ESTADO_BADGE,
@@ -17,23 +19,27 @@ import {
   canalLabel,
   type EstadoPedido,
 } from "@/lib/pedido-estados";
-import { updateEstadoPedido } from "../actions";
+import { updateEstadoPedido, reasignarAlmacenPedido } from "../actions";
 import SubmitButton from "@/components/SubmitButton";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 
 export default async function PedidoDetallePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
+  const { error } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
 
-  const [{ data: pedido }, { data: detalle }, { data: adjuntos }] =
+  const [{ data: pedido }, { data: detalle }, { data: adjuntos }, { data: almacenes }] =
     await Promise.all([
       supabase
         .from("pedidos")
-        .select("*, clientes(nombre, telefono, direccion)")
+        .select("*, clientes(nombre, telefono, direccion), almacenes(nombre)")
         .eq("id", id)
         .single(),
       supabase
@@ -44,6 +50,13 @@ export default async function PedidoDetallePage({
         .from("pedido_adjuntos")
         .select("id, tipo_archivo, url_archivo, fecha")
         .eq("pedido_id", id),
+      session.rol === "admin"
+        ? supabase
+            .from("almacenes")
+            .select("id, nombre")
+            .eq("activo", true)
+            .order("nombre")
+        : Promise.resolve({ data: null }),
     ]);
 
   if (!pedido) notFound();
@@ -81,6 +94,7 @@ export default async function PedidoDetallePage({
     telefono: string | null;
     direccion: string | null;
   } | null;
+  const almacenPedido = pedido.almacenes as unknown as { nombre: string } | null;
   const estado = pedido.estado as EstadoPedido;
 
   return (
@@ -115,6 +129,12 @@ export default async function PedidoDetallePage({
           </div>
         </div>
 
+        {error && (
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+
         <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
           <div>
             <p className="text-sm text-gray-500">Cliente</p>
@@ -132,11 +152,53 @@ export default async function PedidoDetallePage({
               {formatFechaHora(pedido.fecha)}
             </p>
             <p className="text-sm text-gray-500">Entrega requerida</p>
-            <p className="font-medium text-gray-900">
+            <p className="mb-2 font-medium text-gray-900">
               {pedido.fecha_entrega_requerida ?? "—"}
+            </p>
+            <p className="text-sm text-gray-500">Almacén / Local</p>
+            <p className="font-medium text-gray-900">
+              {almacenPedido?.nombre ?? "—"}
             </p>
           </div>
         </div>
+
+        {session.rol === "admin" && almacenes && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              Reasignar almacén
+            </h2>
+            {venta ? (
+              <p className="text-sm text-gray-400">
+                Este pedido ya tiene una venta registrada, así que no se
+                puede reasignar de almacén.
+              </p>
+            ) : (
+              <form
+                action={async (formData: FormData) => {
+                  "use server";
+                  await reasignarAlmacenPedido(id, formData);
+                }}
+                className="flex items-end gap-3"
+              >
+                <select
+                  key={pedido.almacen_id}
+                  name="almacen_id"
+                  defaultValue={pedido.almacen_id}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                >
+                  {almacenes.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
+                    </option>
+                  ))}
+                </select>
+                <SubmitButton icon={<Warehouse size={16} />} pendingLabel="Reasignando...">
+                  Reasignar
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+        )}
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
