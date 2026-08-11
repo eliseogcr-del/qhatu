@@ -12,3 +12,10 @@ export function formatFecha(fecha: string | Date): string {
 export function formatFechaHora(fecha: string | Date): string {
   return new Date(fecha).toLocaleString("es-PE", { timeZone: ZONA_HORARIA });
 }
+
+// Fecha de hoy en Perú como "AAAA-MM-DD", para prellenar filtros de fecha
+// (un `new Date().toISOString()` sin esto daría la fecha UTC, que en la
+// noche peruana ya es el día siguiente).
+export function hoyLima(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: ZONA_HORARIA });
+}

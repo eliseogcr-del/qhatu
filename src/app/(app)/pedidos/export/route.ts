@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
     return new NextResponse("No autorizado", { status: 401 });
   }
 
-  const q = request.nextUrl.searchParams.get("q");
+  const params = request.nextUrl.searchParams;
+  const q = params.get("q");
+  const desde = params.get("desde");
+  const hasta = params.get("hasta");
+  const estado = params.get("estado");
 
   let query = supabase
     .from("pedidos")
@@ -35,6 +39,9 @@ export async function GET(request: NextRequest) {
     )
     .order("fecha", { ascending: false });
   if (q) query = query.ilike("clientes.nombre", `%${q}%`);
+  if (desde) query = query.gte("fecha", desde);
+  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (estado) query = query.eq("estado", estado);
 
   const { data: pedidos } = await query;
 
