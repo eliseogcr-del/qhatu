@@ -1,0 +1,183 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import { hoyLima } from "@/lib/fecha";
+
+type Fila = {
+  productoId: string;
+  productoNombre: string;
+  totalPedido: number;
+  porAlmacen: Record<string, number>;
+};
+
+export default async function PlanificacionTrasladosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ fecha?: string }>;
+}) {
+  const { fecha } = await searchParams;
+  const supabase = await createClient();
+
+  const fechaEfectiva = fecha || hoyLima();
+
+  const [{ data: pedidoLineas }, { data: trasladoLineas }] = await Promise.all([
+    supabase
+      .from("pedido_detalle")
+      .select("cantidad, producto_id, productos(nombre), pedidos!inner(fecha_entrega_requerida, estado)")
+      .eq("pedidos.fecha_entrega_requerida", fechaEfectiva)
+      .neq("pedidos.estado", "cancelado"),
+    supabase
+      .from("traslado_detalle")
+      .select(
+        "cantidad, producto_id, productos(nombre), traslados!inner(fecha, almacen_destino:almacen_destino_id(id, nombre))",
+      )
+      .gte("traslados.fecha", fechaEfectiva)
+      .lte("traslados.fecha", `${fechaEfectiva}T23:59:59`),
+  ]);
+
+  const filasMap = new Map<string, Fila>();
+  const almacenesMap = new Map<string, string>();
+
+  for (const l of pedidoLineas ?? []) {
+    const producto = l.productos as unknown as { nombre: string } | null;
+    const fila: Fila = filasMap.get(l.producto_id) ?? {
+      productoId: l.producto_id,
+      productoNombre: producto?.nombre ?? "—",
+      totalPedido: 0,
+      porAlmacen: {},
+    };
+    fila.totalPedido += l.cantidad;
+    filasMap.set(l.producto_id, fila);
+  }
+
+  for (const l of trasladoLineas ?? []) {
+    const producto = l.productos as unknown as { nombre: string } | null;
+    const almacen = (l.traslados as unknown as { almacen_destino: { id: string; nombre: string } | null })
+      .almacen_destino;
+    if (!almacen) continue;
+
+    almacenesMap.set(almacen.id, almacen.nombre);
+
+    const fila: Fila = filasMap.get(l.producto_id) ?? {
+      productoId: l.producto_id,
+      productoNombre: producto?.nombre ?? "—",
+      totalPedido: 0,
+      porAlmacen: {},
+    };
+    fila.porAlmacen[almacen.id] = (fila.porAlmacen[almacen.id] ?? 0) + l.cantidad;
+    filasMap.set(l.producto_id, fila);
+  }
+
+  const almacenesDestino = [...almacenesMap.entries()]
+    .map(([id, nombre]) => ({ id, nombre }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const filas = [...filasMap.values()].sort((a, b) =>
+    a.productoNombre.localeCompare(b.productoNombre),
+  );
+
+  return (
+    <div className="p-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Planificación de traslados
+          </h1>
+          <Link
+            href="/traslados"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
+          >
+            <ArrowLeft size={16} />
+            Volver a traslados
+          </Link>
+        </div>
+        <p className="mb-6 text-sm text-gray-500">
+          Por cada producto, la cantidad total pedida para la fecha de
+          entrega elegida (sumando todos los pedidos de ese día) y cuánto ya
+          se ha trasladado a cada almacén en tránsito. Ayuda a decidir qué
+          falta enviarle a cada vendedor.
+        </p>
+
+        <form className="mb-4 flex items-end gap-3" method="get">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Fecha de entrega
+            </label>
+            <input
+              type="date"
+              name="fecha"
+              defaultValue={fechaEfectiva}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Filtrar
+          </button>
+        </form>
+
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Producto</th>
+                <th className="px-4 py-3 font-medium">Cantidad pedida</th>
+                {almacenesDestino.map((a) => (
+                  <th key={a.id} className="px-4 py-3 font-medium">
+                    {a.nombre}
+                  </th>
+                ))}
+                <th className="px-4 py-3 font-medium">Total trasladado</th>
+                <th className="px-4 py-3 font-medium">Pendiente</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => {
+                const totalTrasladado = Object.values(f.porAlmacen).reduce(
+                  (acc, n) => acc + n,
+                  0,
+                );
+                const pendiente = Math.round((f.totalPedido - totalTrasladado) * 100) / 100;
+                return (
+                  <tr key={f.productoId} className="border-b border-gray-100 last:border-0">
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {f.productoNombre}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {f.totalPedido > 0 ? f.totalPedido : "—"}
+                    </td>
+                    {almacenesDestino.map((a) => (
+                      <td key={a.id} className="px-4 py-3 text-gray-600">
+                        {f.porAlmacen[a.id] ?? ""}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-gray-600">
+                      {totalTrasladado > 0 ? totalTrasladado : "—"}
+                    </td>
+                    <td
+                      className={`px-4 py-3 font-medium ${pendiente > 0 ? "text-amber-600" : "text-green-600"}`}
+                    >
+                      {pendiente}
+                    </td>
+                  </tr>
+                );
+              })}
+              {filas.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4 + almacenesDestino.length}
+                    className="px-4 py-10 text-center text-gray-400"
+                  >
+                    No hay pedidos ni traslados para esa fecha.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
