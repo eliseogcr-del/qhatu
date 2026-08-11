@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { hoyLima } from "@/lib/fecha";
 import { buildGoogleMapsLink, buildGoogleMapsMultiStopLink } from "@/lib/maps";
 import {
   ESTADO_REPARTO_BADGE,
@@ -24,6 +25,11 @@ export default async function RepartosPage({
   const { fecha } = await searchParams;
   const supabase = await createClient();
 
+  // Sin parámetro en la URL (primera carga) se muestra el día de hoy por
+  // defecto. Si el usuario borra el campo y filtra, queda como string
+  // vacío (presente pero sin valor) y ahí sí se ve todo el historial.
+  const fechaEfectiva = fecha === undefined ? hoyLima() : fecha;
+
   let query = supabase
     .from("repartos")
     .select(
@@ -31,7 +37,7 @@ export default async function RepartosPage({
     )
     .order("fecha_reparto", { ascending: false });
 
-  if (fecha) query = query.eq("fecha_reparto", fecha);
+  if (fechaEfectiva) query = query.eq("fecha_reparto", fechaEfectiva);
 
   const { data: repartos, error } = await query;
 
@@ -40,7 +46,7 @@ export default async function RepartosPage({
     .map((r) => (r.pedidos as unknown as { clientes: ClienteDestino } | null)?.clientes)
     .filter((c): c is ClienteDestino => !!c);
 
-  const rutaCombinada = fecha ? buildGoogleMapsMultiStopLink(destinos) : null;
+  const rutaCombinada = fechaEfectiva ? buildGoogleMapsMultiStopLink(destinos) : null;
 
   return (
     <div className="p-8">
@@ -63,7 +69,7 @@ export default async function RepartosPage({
             <input
               type="date"
               name="fecha"
-              defaultValue={fecha ?? ""}
+              defaultValue={fechaEfectiva}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -73,9 +79,9 @@ export default async function RepartosPage({
           >
             Filtrar
           </button>
-          {fecha && (
+          {fecha !== undefined && (
             <Link
-              href="/repartos"
+              href="/repartos?fecha="
               className="text-sm font-medium text-gray-500 hover:underline"
             >
               Limpiar
