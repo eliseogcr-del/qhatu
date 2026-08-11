@@ -6,7 +6,7 @@ export default async function InventarioPage() {
   const { data: inventario, error } = await supabase
     .from("inventario")
     .select(
-      "id, stock_actual, productos(nombre, stock_minimo), almacenes(nombre)",
+      "id, stock_actual, productos(nombre, stock_minimo, stock_maximo), almacenes(nombre)",
     )
     .order("id");
 
@@ -45,6 +45,7 @@ export default async function InventarioPage() {
                 <th className="px-4 py-3 font-medium">Almacén</th>
                 <th className="px-4 py-3 font-medium">Stock actual</th>
                 <th className="px-4 py-3 font-medium">Stock mínimo</th>
+                <th className="px-4 py-3 font-medium">Stock máximo</th>
               </tr>
             </thead>
             <tbody>
@@ -52,11 +53,15 @@ export default async function InventarioPage() {
                 const producto = item.productos as unknown as {
                   nombre: string;
                   stock_minimo: number | null;
+                  stock_maximo: number | null;
                 } | null;
                 const almacen = item.almacenes as unknown as { nombre: string } | null;
                 const bajoMinimo =
                   producto?.stock_minimo != null &&
                   item.stock_actual <= producto.stock_minimo;
+                const sobreMaximo =
+                  producto?.stock_maximo != null &&
+                  item.stock_actual >= producto.stock_maximo;
                 return (
                   <tr key={item.id} className="border-b border-gray-100 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
@@ -68,7 +73,9 @@ export default async function InventarioPage() {
                         className={
                           bajoMinimo
                             ? "font-semibold text-red-600"
-                            : "text-gray-900"
+                            : sobreMaximo
+                              ? "font-semibold text-blue-900"
+                              : "text-gray-900"
                         }
                       >
                         {item.stock_actual}
@@ -78,16 +85,24 @@ export default async function InventarioPage() {
                           Bajo mínimo
                         </span>
                       )}
+                      {sobreMaximo && (
+                        <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900">
+                          Sobre máximo
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {producto?.stock_minimo ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {producto?.stock_maximo ?? "—"}
                     </td>
                   </tr>
                 );
               })}
               {inventario?.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay movimientos de inventario.
                   </td>
                 </tr>

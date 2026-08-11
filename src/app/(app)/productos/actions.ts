@@ -28,6 +28,7 @@ function productoFromForm(formData: FormData) {
     modelo: text("modelo"),
     proveedor_id: text("proveedor_id"),
     stock_minimo: num("stock_minimo"),
+    stock_maximo: num("stock_maximo"),
     afectacion_impuesto: text("afectacion_impuesto"),
     tipo_impuesto: text("tipo_impuesto"),
     cualidad: text("cualidad"),

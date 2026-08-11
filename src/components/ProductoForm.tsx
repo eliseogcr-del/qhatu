@@ -12,6 +12,7 @@ export type ProductoInitialValues = {
   modelo: string | null;
   proveedor_id: string | null;
   stock_minimo: number | null;
+  stock_maximo: number | null;
   afectacion_impuesto: string | null;
   tipo_impuesto: string | null;
   cualidad: string | null;
@@ -35,6 +36,7 @@ const emptyValues: ProductoInitialValues = {
   modelo: null,
   proveedor_id: null,
   stock_minimo: null,
+  stock_maximo: null,
   afectacion_impuesto: "Gravado",
   tipo_impuesto: "IGV 18%",
   cualidad: null,
@@ -271,6 +273,15 @@ export default function ProductoForm({
               step="0.01"
               name="stock_minimo"
               defaultValue={values.stock_minimo ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Stock máximo">
+            <input
+              type="number"
+              step="0.01"
+              name="stock_maximo"
+              defaultValue={values.stock_maximo ?? ""}
               className={inputClass}
             />
           </Field>
