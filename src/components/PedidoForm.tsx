@@ -165,6 +165,9 @@ export default function PedidoForm({
               <option value="telefono">Teléfono</option>
               <option value="whatsapp_texto">WhatsApp (texto)</option>
               <option value="whatsapp_imagen">WhatsApp (imagen)</option>
+              <option value="tiktok">TikTok</option>
+              <option value="instagram">Instagram</option>
+              <option value="telegram">Telegram</option>
               <option value="otro">Otro</option>
             </select>
           </Field>

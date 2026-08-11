@@ -34,6 +34,9 @@ const CANAL_LABEL: Record<string, string> = {
   telefono: "Teléfono",
   whatsapp_texto: "WhatsApp (texto)",
   whatsapp_imagen: "WhatsApp (imagen)",
+  tiktok: "TikTok",
+  instagram: "Instagram",
+  telegram: "Telegram",
   directo: "Venta directa",
   otro: "Otro",
 };
