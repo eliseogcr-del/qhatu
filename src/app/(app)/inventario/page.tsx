@@ -20,42 +20,68 @@ export default async function InventarioPage({
   } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase
-    .from("inventario")
-    .select(
-      "id, stock_actual, producto_id, productos(nombre, stock_minimo, stock_maximo), almacenes(nombre)",
-    )
-    .order("id");
+  // Se arma la matriz completa producto (con control de inventario) x
+  // almacén, no solo lo que ya tenga fila en `inventario` — así un
+  // producto que nunca tuvo movimiento en un almacén igual aparece con 0,
+  // en vez de desaparecer del listado.
+  let productosQuery = supabase
+    .from("productos")
+    .select("id, nombre, stock_minimo, stock_maximo")
+    .eq("activo", true)
+    .eq("control_inventario", true)
+    .order("nombre");
+  if (productoId) productosQuery = productosQuery.eq("id", productoId);
 
-  if (productoId) query = query.eq("producto_id", productoId);
-  if (almacenId) query = query.eq("almacen_id", almacenId);
+  let almacenesQuery = supabase
+    .from("almacenes")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
+  if (almacenId) almacenesQuery = almacenesQuery.eq("id", almacenId);
 
-  const [{ data: inventarioCrudo, error }, { data: productos }, { data: almacenes }] =
+  const [{ data: productosFiltrados, error }, { data: almacenesFiltrados }, { data: inventarioCrudo }, { data: productos }, { data: almacenes }] =
     await Promise.all([
-      query,
-      supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
+      productosQuery,
+      almacenesQuery,
+      supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
+      supabase
+        .from("productos")
+        .select("id, nombre")
+        .eq("activo", true)
+        .eq("control_inventario", true)
+        .order("nombre"),
       supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
     ]);
 
-  const filasCalculadas = (inventarioCrudo ?? []).map((item) => {
-    const producto = item.productos as unknown as {
-      nombre: string;
-      stock_minimo: number | null;
-      stock_maximo: number | null;
-    } | null;
-    const almacen = item.almacenes as unknown as { nombre: string } | null;
-    const bajoMinimo =
-      producto?.stock_minimo != null && item.stock_actual <= producto.stock_minimo;
-    const sobreMaximo =
-      producto?.stock_maximo != null && item.stock_actual >= producto.stock_maximo;
-    return { ...item, producto, almacen, bajoMinimo, sobreMaximo };
-  });
+  const stockPorClave = new Map(
+    (inventarioCrudo ?? []).map((i) => [`${i.producto_id}::${i.almacen_id}`, i.stock_actual]),
+  );
 
-  const inventario = filasCalculadas.filter((f) => {
-    if (bajoMinimoFiltro === "1" && !f.bajoMinimo) return false;
-    if (sobreMaximoFiltro === "1" && !f.sobreMaximo) return false;
-    return true;
-  });
+  const filasCalculadas = (productosFiltrados ?? []).flatMap((producto) =>
+    (almacenesFiltrados ?? []).map((almacen) => {
+      const stockActual = stockPorClave.get(`${producto.id}::${almacen.id}`) ?? 0;
+      const bajoMinimo =
+        producto.stock_minimo != null && stockActual <= producto.stock_minimo;
+      const sobreMaximo =
+        producto.stock_maximo != null && stockActual >= producto.stock_maximo;
+      return {
+        id: `${producto.id}::${almacen.id}`,
+        stock_actual: stockActual,
+        producto,
+        almacen,
+        bajoMinimo,
+        sobreMaximo,
+      };
+    }),
+  );
+
+  const inventario = filasCalculadas
+    .filter((f) => {
+      if (bajoMinimoFiltro === "1" && !f.bajoMinimo) return false;
+      if (sobreMaximoFiltro === "1" && !f.sobreMaximo) return false;
+      return true;
+    })
+    .sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre));
 
   const hayFiltros = !!(
     productoId ||
@@ -220,7 +246,7 @@ export default async function InventarioPage({
                   <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ningún registro coincide con los filtros."
-                      : "Aún no hay movimientos de inventario."}
+                      : "No hay productos con control de inventario, o no hay almacenes activos."}
                   </td>
                 </tr>
               )}
