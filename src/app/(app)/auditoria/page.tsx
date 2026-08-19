@@ -132,24 +132,24 @@ export default async function AuditoriaPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Fecha y hora</th>
-                <th className="px-4 py-3 font-medium">Usuario</th>
-                <th className="px-4 py-3 font-medium">Entidad</th>
-                <th className="px-4 py-3 font-medium">Movimiento</th>
-                <th className="px-4 py-3 font-medium">Producto</th>
-                <th className="px-4 py-3 font-medium">Cantidad</th>
-                <th className="px-4 py-3 font-medium">Precio unit.</th>
-                <th className="px-4 py-3 font-medium">Monto</th>
-                <th className="px-4 py-3 font-medium">Detalle</th>
+                <th className="px-4 py-3 font-bold">Fecha y hora</th>
+                <th className="px-4 py-3 font-bold">Usuario</th>
+                <th className="px-4 py-3 font-bold">Entidad</th>
+                <th className="px-4 py-3 font-bold">Movimiento</th>
+                <th className="px-4 py-3 font-bold">Producto</th>
+                <th className="px-4 py-3 font-bold">Cantidad</th>
+                <th className="px-4 py-3 font-bold">Precio unit.</th>
+                <th className="px-4 py-3 font-bold">Monto</th>
+                <th className="px-4 py-3 font-bold">Detalle</th>
               </tr>
             </thead>
             <tbody>
               {registros?.map((r) => {
                 const usuario = r.usuarios as unknown as { nombre: string | null } | null;
                 return (
-                  <tr key={r.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={r.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                       {formatFechaHora(r.fecha)}
                     </td>

@@ -199,21 +199,21 @@ export default async function ReporteTrasladosPage({
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-gray-100 text-gray-500">
+                    <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
                       <tr>
-                        <th className="px-4 py-2 font-medium">Producto</th>
-                        <th className="px-4 py-2 font-medium">Cargado</th>
-                        <th className="px-4 py-2 font-medium">Recogido en campo</th>
-                        <th className="px-4 py-2 font-medium">Comprado en ruta</th>
-                        <th className="px-4 py-2 font-medium">Vendido</th>
-                        <th className="px-4 py-2 font-medium">Merma</th>
-                        <th className="px-4 py-2 font-medium">Trasladado (salida)</th>
-                        <th className="px-4 py-2 font-medium">Stock actual</th>
+                        <th className="px-4 py-2 font-bold">Producto</th>
+                        <th className="px-4 py-2 font-bold">Cargado</th>
+                        <th className="px-4 py-2 font-bold">Recogido en campo</th>
+                        <th className="px-4 py-2 font-bold">Comprado en ruta</th>
+                        <th className="px-4 py-2 font-bold">Vendido</th>
+                        <th className="px-4 py-2 font-bold">Merma</th>
+                        <th className="px-4 py-2 font-bold">Trasladado (salida)</th>
+                        <th className="px-4 py-2 font-bold">Stock actual</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filasAlmacen.map((f) => (
-                        <tr key={f.productoId} className="border-b border-gray-50 last:border-0">
+                        <tr key={f.productoId} className="border-b-2 border-gray-200 last:border-0">
                           <td className="px-4 py-2 font-medium text-gray-900">
                             {f.productoNombre}
                           </td>

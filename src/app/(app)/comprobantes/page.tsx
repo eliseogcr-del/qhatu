@@ -122,14 +122,14 @@ export default async function ComprobantesPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Comprobante</th>
-                <th className="px-4 py-3 font-medium">Cliente</th>
-                <th className="px-4 py-3 font-medium">Almacén</th>
-                <th className="px-4 py-3 font-medium">Fecha</th>
-                <th className="px-4 py-3 font-medium">Total</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3 font-bold">Comprobante</th>
+                <th className="px-4 py-3 font-bold">Cliente</th>
+                <th className="px-4 py-3 font-bold">Almacén</th>
+                <th className="px-4 py-3 font-bold">Fecha</th>
+                <th className="px-4 py-3 font-bold">Total</th>
+                <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -143,7 +143,7 @@ export default async function ComprobantesPage({
                 const almacen = c.almacenes as unknown as { nombre: string } | null;
                 const enlacePdf = enlacePdfComprobante(c);
                 return (
-                  <tr key={c.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={c.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {TIPO_COMPROBANTE_LABEL[c.tipo_comprobante] ?? "Comprobante"} {c.serie}-
                       {c.numero}

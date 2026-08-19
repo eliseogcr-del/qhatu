@@ -138,16 +138,16 @@ export default async function KardexPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Fecha</th>
-                <th className="px-4 py-3 font-medium">Producto</th>
-                <th className="px-4 py-3 font-medium">Almacén</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
-                <th className="px-4 py-3 font-medium">Cantidad</th>
-                <th className="px-4 py-3 font-medium">Saldo resultante</th>
-                <th className="px-4 py-3 font-medium">Usuario</th>
-                <th className="px-4 py-3 font-medium">Detalle</th>
+                <th className="px-4 py-3 font-bold">Fecha</th>
+                <th className="px-4 py-3 font-bold">Producto</th>
+                <th className="px-4 py-3 font-bold">Almacén</th>
+                <th className="px-4 py-3 font-bold">Tipo</th>
+                <th className="px-4 py-3 font-bold">Cantidad</th>
+                <th className="px-4 py-3 font-bold">Saldo resultante</th>
+                <th className="px-4 py-3 font-bold">Usuario</th>
+                <th className="px-4 py-3 font-bold">Detalle</th>
               </tr>
             </thead>
             <tbody>
@@ -156,7 +156,7 @@ export default async function KardexPage({
                 const almacen = m.almacenes as unknown as { nombre: string } | null;
                 const usuario = m.usuarios as unknown as { nombre: string | null } | null;
                 return (
-                  <tr key={m.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={m.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 text-gray-600">
                       {formatFechaHora(m.fecha)}
                     </td>

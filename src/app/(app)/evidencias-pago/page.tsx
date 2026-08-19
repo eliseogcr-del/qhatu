@@ -201,13 +201,13 @@ export default async function EvidenciasPagoPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Cliente</th>
-                <th className="px-4 py-3 font-medium">Fecha de pago</th>
-                <th className="px-4 py-3 font-medium">Archivo</th>
-                <th className="px-4 py-3 font-medium">Tamaño</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3 font-bold">Cliente</th>
+                <th className="px-4 py-3 font-bold">Fecha de pago</th>
+                <th className="px-4 py-3 font-bold">Archivo</th>
+                <th className="px-4 py-3 font-bold">Tamaño</th>
+                <th className="px-4 py-3 font-bold">Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -220,7 +220,7 @@ export default async function EvidenciasPagoPage({
                 const signedUrl = signedUrls.get(a.id);
 
                 return (
-                  <tr key={a.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={a.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">{cliente}</td>
                     <td className="px-4 py-3 text-gray-600">
                       {cobranza ? formatFecha(cobranza.fecha) : "—"}

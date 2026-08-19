@@ -71,15 +71,15 @@ export default async function AbastecimientoCampoPage() {
                   </div>
                 </div>
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-gray-100 text-gray-500">
+                  <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
                     <tr>
-                      <th className="px-4 py-2 font-medium">Producto</th>
-                      <th className="px-4 py-2 font-medium">Cantidad</th>
+                      <th className="px-4 py-2 font-bold">Producto</th>
+                      <th className="px-4 py-2 font-bold">Cantidad</th>
                     </tr>
                   </thead>
                   <tbody>
                     {lineas.map((l) => (
-                      <tr key={l.id} className="border-b border-gray-50 last:border-0">
+                      <tr key={l.id} className="border-b-2 border-gray-200 last:border-0">
                         <td className="px-4 py-2 text-gray-900">
                           {l.productos?.nombre ?? "—"}
                         </td>

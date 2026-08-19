@@ -194,18 +194,18 @@ export default async function InventarioPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Producto</th>
-                <th className="px-4 py-3 font-medium">Almacén</th>
-                <th className="px-4 py-3 font-medium">Stock actual</th>
-                <th className="px-4 py-3 font-medium">Stock mínimo</th>
-                <th className="px-4 py-3 font-medium">Stock máximo</th>
+                <th className="px-4 py-3 font-bold">Producto</th>
+                <th className="px-4 py-3 font-bold">Almacén</th>
+                <th className="px-4 py-3 font-bold">Stock actual</th>
+                <th className="px-4 py-3 font-bold">Stock mínimo</th>
+                <th className="px-4 py-3 font-bold">Stock máximo</th>
               </tr>
             </thead>
             <tbody>
               {inventario.map((item) => (
-                <tr key={item.id} className="border-b border-gray-100 last:border-0">
+                <tr key={item.id} className="border-b-2 border-gray-200 last:border-0">
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {item.producto?.nombre ?? "—"}
                   </td>

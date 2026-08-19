@@ -150,21 +150,21 @@ export default async function ReporteVendedoresPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Vendedor</th>
-                <th className="px-4 py-3 font-medium">Almacén</th>
-                <th className="px-4 py-3 font-medium"># Ventas</th>
-                <th className="px-4 py-3 font-medium">Total vendido</th>
-                <th className="px-4 py-3 font-medium">Total cobrado</th>
-                <th className="px-4 py-3 font-medium">Saldo pendiente</th>
+                <th className="px-4 py-3 font-bold">Vendedor</th>
+                <th className="px-4 py-3 font-bold">Almacén</th>
+                <th className="px-4 py-3 font-bold"># Ventas</th>
+                <th className="px-4 py-3 font-bold">Total vendido</th>
+                <th className="px-4 py-3 font-bold">Total cobrado</th>
+                <th className="px-4 py-3 font-bold">Saldo pendiente</th>
               </tr>
             </thead>
             <tbody>
               {filas.map((f) => {
                 const saldo = Math.round((f.totalVendido - f.totalCobrado) * 100) / 100;
                 return (
-                  <tr key={f.almacenId} className="border-b border-gray-100 last:border-0">
+                  <tr key={f.almacenId} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">{f.vendedorNombre}</td>
                     <td className="px-4 py-3 text-gray-600">{f.almacenNombre}</td>
                     <td className="px-4 py-3 text-gray-600">{f.numVentas}</td>

@@ -142,13 +142,13 @@ export default async function RepartosPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Cliente</th>
-                <th className="px-4 py-3 font-medium">Fecha reparto</th>
-                <th className="px-4 py-3 font-medium">Transporte</th>
-                <th className="px-4 py-3 font-medium">Repartidor</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3 font-bold">Cliente</th>
+                <th className="px-4 py-3 font-bold">Fecha reparto</th>
+                <th className="px-4 py-3 font-bold">Transporte</th>
+                <th className="px-4 py-3 font-bold">Repartidor</th>
+                <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -164,7 +164,7 @@ export default async function RepartosPage({
                 const link = cliente ? buildGoogleMapsLink(cliente) : null;
 
                 return (
-                  <tr key={reparto.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={reparto.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {cliente?.nombre ?? "—"}
                     </td>

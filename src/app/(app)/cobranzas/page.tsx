@@ -184,15 +184,15 @@ export default async function CobranzasPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="px-4 py-3 font-medium">Cliente</th>
-                <th className="px-4 py-3 font-medium">Fecha</th>
-                <th className="px-4 py-3 font-medium">Monto</th>
-                <th className="px-4 py-3 font-medium">Método</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
-                <th className="px-4 py-3 font-medium">Referencia</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3 font-bold">Cliente</th>
+                <th className="px-4 py-3 font-bold">Fecha</th>
+                <th className="px-4 py-3 font-bold">Monto</th>
+                <th className="px-4 py-3 font-bold">Método</th>
+                <th className="px-4 py-3 font-bold">Tipo</th>
+                <th className="px-4 py-3 font-bold">Referencia</th>
+                <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -204,7 +204,7 @@ export default async function CobranzasPage({
                 return (
                   <tr
                     key={cobranza.id}
-                    className={`border-b border-gray-100 last:border-0 ${cobranza.estado === "anulada" ? "opacity-50" : ""}`}
+                    className={`border-b-2 border-gray-200 last:border-0 ${cobranza.estado === "anulada" ? "opacity-50" : ""}`}
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {cliente?.nombre ?? "—"}

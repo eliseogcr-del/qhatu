@@ -111,19 +111,19 @@ export default async function CompraDetallePage({
             Productos comprados
           </h2>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
-                <th className="py-2 font-medium">Producto</th>
-                <th className="py-2 font-medium">Cantidad</th>
-                <th className="py-2 font-medium">Costo unitario</th>
-                <th className="py-2 font-medium">Subtotal</th>
+                <th className="py-2 font-bold">Producto</th>
+                <th className="py-2 font-bold">Cantidad</th>
+                <th className="py-2 font-bold">Costo unitario</th>
+                <th className="py-2 font-bold">Subtotal</th>
               </tr>
             </thead>
             <tbody>
               {detalle?.map((linea) => {
                 const producto = linea.productos as unknown as { nombre: string } | null;
                 return (
-                  <tr key={linea.id} className="border-b border-gray-100 last:border-0">
+                  <tr key={linea.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="py-2 text-gray-900">{producto?.nombre ?? "—"}</td>
                     <td className="py-2 text-gray-600">{linea.cantidad}</td>
                     <td className="py-2 text-gray-600">{linea.costo_unitario}</td>
@@ -157,13 +157,13 @@ export default async function CompraDetallePage({
 
           {pagos && pagos.length > 0 ? (
             <table className="mb-6 w-full text-left text-sm">
-              <thead className="border-b border-gray-200 text-gray-500">
+              <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
                 <tr>
-                  <th className="py-2 font-medium">Fecha</th>
-                  <th className="py-2 font-medium">Monto</th>
-                  <th className="py-2 font-medium">Método</th>
-                  <th className="py-2 font-medium">Referencia</th>
-                  <th className="py-2 font-medium">Estado</th>
+                  <th className="py-2 font-bold">Fecha</th>
+                  <th className="py-2 font-bold">Monto</th>
+                  <th className="py-2 font-bold">Método</th>
+                  <th className="py-2 font-bold">Referencia</th>
+                  <th className="py-2 font-bold">Estado</th>
                   <th className="py-2" />
                 </tr>
               </thead>
@@ -171,7 +171,7 @@ export default async function CompraDetallePage({
                 {pagos.map((p) => (
                   <tr
                     key={p.id}
-                    className={`border-b border-gray-100 last:border-0 ${p.estado === "anulada" ? "opacity-50" : ""}`}
+                    className={`border-b-2 border-gray-200 last:border-0 ${p.estado === "anulada" ? "opacity-50" : ""}`}
                   >
                     <td className="py-2 text-gray-600">
                       {formatFecha(p.fecha)}

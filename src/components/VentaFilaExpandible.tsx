@@ -13,7 +13,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
 
   return (
     <>
-      <tr className="border-b border-gray-100 last:border-0">
+      <tr className="border-b-2 border-gray-200 last:border-0">
         <td className="px-2 py-3">
           <button
             type="button"

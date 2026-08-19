@@ -181,12 +181,12 @@ export default async function DiferenciasPedidoVentaPage({
                 </Link>
               </div>
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-gray-100 text-gray-500">
+                <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
                   <tr>
-                    <th className="px-4 py-2 font-medium">Producto</th>
-                    <th className="px-4 py-2 font-medium">Pedido</th>
-                    <th className="px-4 py-2 font-medium">Vendido</th>
-                    <th className="px-4 py-2 font-medium">Diferencia</th>
+                    <th className="px-4 py-2 font-bold">Producto</th>
+                    <th className="px-4 py-2 font-bold">Pedido</th>
+                    <th className="px-4 py-2 font-bold">Vendido</th>
+                    <th className="px-4 py-2 font-bold">Diferencia</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -194,7 +194,7 @@ export default async function DiferenciasPedidoVentaPage({
                     const diferencia = prod.vendida - prod.pedida;
                     const esNuevo = prod.pedida === 0;
                     return (
-                      <tr key={prod.productoId} className="border-b border-gray-50 last:border-0">
+                      <tr key={prod.productoId} className="border-b-2 border-gray-200 last:border-0">
                         <td className="px-4 py-2 text-gray-900">
                           {prod.nombre}
                           {esNuevo && (

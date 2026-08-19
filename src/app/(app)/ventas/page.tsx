@@ -235,17 +235,17 @@ export default async function VentasPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
               <tr>
                 <th className="px-2 py-3" />
-                <th className="px-4 py-3 font-medium">Código</th>
-                <th className="px-4 py-3 font-medium">Cliente</th>
-                <th className="px-4 py-3 font-medium">Local</th>
-                <th className="px-4 py-3 font-medium">Fecha</th>
-                <th className="px-4 py-3 font-medium">Total</th>
-                <th className="px-4 py-3 font-medium">Pagado</th>
-                <th className="px-4 py-3 font-medium">Saldo pendiente</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3 font-bold">Código</th>
+                <th className="px-4 py-3 font-bold">Cliente</th>
+                <th className="px-4 py-3 font-bold">Local</th>
+                <th className="px-4 py-3 font-bold">Fecha</th>
+                <th className="px-4 py-3 font-bold">Total</th>
+                <th className="px-4 py-3 font-bold">Pagado</th>
+                <th className="px-4 py-3 font-bold">Saldo pendiente</th>
+                <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
