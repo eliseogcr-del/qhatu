@@ -7,13 +7,27 @@ import { createClient } from "@/utils/supabase/server";
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
+  const username = String(formData.get("username") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  // El username nunca se le manda a Supabase Auth directamente — se
+  // traduce primero al email real detrás de esa cuenta. Si no existe,
+  // se sigue intentando el sign-in igual (con un email vacío) para que
+  // el mensaje de error sea el mismo genérico, y no delate si el usuario
+  // existe o no.
+  const { data: email } = await supabase.rpc("email_por_username", {
+    p_username: username,
+  });
+
   const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    email: email ?? "",
+    password,
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(
+      `/login?error=${encodeURIComponent("Usuario o contraseña incorrectos.")}`,
+    );
   }
 
   revalidatePath("/", "layout");

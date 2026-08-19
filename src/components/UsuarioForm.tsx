@@ -26,6 +26,7 @@ function Field({
 }
 
 export type UsuarioInitialValues = {
+  username: string;
   nombre: string;
   rol: string;
   activo: boolean;
@@ -33,6 +34,7 @@ export type UsuarioInitialValues = {
 };
 
 const emptyValues: UsuarioInitialValues = {
+  username: "",
   nombre: "",
   rol: "vendedor",
   activo: true,
@@ -68,35 +70,59 @@ export default function UsuarioForm({
       )}
 
       {modo === "nuevo" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Correo electrónico">
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Usuario">
+              <input
+                type="text"
+                name="username"
+                required
+                autoComplete="off"
+                placeholder="Con lo que va a ingresar al sistema"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Contraseña">
+              <input
+                type="password"
+                name="password"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                className={inputClass}
+              />
+            </Field>
+          </div>
+          <Field label="Correo electrónico (opcional)">
             <input
               type="email"
               name="email"
+              autoComplete="off"
+              placeholder="Solo como referencia — no hace falta para ingresar"
+              className={inputClass}
+            />
+          </Field>
+        </>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Usuario">
+            <input
+              type="text"
+              name="username"
               required
+              defaultValue={values.username}
               autoComplete="off"
               className={inputClass}
             />
           </Field>
-          <Field label="Contraseña">
+          <Field label="Correo electrónico">
             <input
-              type="password"
-              name="password"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className={inputClass}
+              disabled
+              value={correoActual ?? ""}
+              className={`${inputClass} bg-gray-50 text-gray-500`}
             />
           </Field>
         </div>
-      ) : (
-        <Field label="Correo electrónico">
-          <input
-            disabled
-            value={correoActual ?? ""}
-            className={`${inputClass} bg-gray-50 text-gray-500`}
-          />
-        </Field>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

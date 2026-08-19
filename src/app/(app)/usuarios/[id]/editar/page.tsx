@@ -21,7 +21,11 @@ export default async function EditarUsuarioPage({
   const { empresaId } = await requireAdmin(supabase);
 
   const [{ data: usuario }, { data: almacenes }] = await Promise.all([
-    supabase.from("usuarios").select("id, nombre, rol, activo, almacen_id").eq("id", id).single(),
+    supabase
+      .from("usuarios")
+      .select("id, username, nombre, rol, activo, almacen_id")
+      .eq("id", id)
+      .single(),
     supabase
       .from("almacenes")
       .select("id, nombre")
@@ -55,6 +59,7 @@ export default async function EditarUsuarioPage({
             error={error}
             modo="editar"
             initialValues={{
+              username: usuario.username ?? "",
               nombre: usuario.nombre ?? "",
               rol: usuario.rol,
               activo: usuario.activo,

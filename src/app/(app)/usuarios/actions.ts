@@ -7,11 +7,29 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { requireAdmin } from "@/utils/supabase/session";
 import { ROLES, requiereAlmacen } from "@/lib/roles";
 
+// El username es lo único que la persona escribe para entrar — nunca un
+// correo. Supabase Auth igual necesita un email por dentro, así que si el
+// admin no carga uno real se genera uno sintético a partir del username
+// (nunca se muestra ni se usa para nada más que satisfacer a Auth).
+const DIACRITICOS = new RegExp("[̀-ͯ]", "g");
+
+function emailSinteticoDesde(username: string): string {
+  const local =
+    username
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(DIACRITICOS, "")
+      .replace(/[^a-z0-9]+/g, ".")
+      .replace(/^\.+|\.+$/g, "") || "usuario";
+  return `${local}@qhatu.local`;
+}
+
 export async function createUsuario(formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
 
-  const email = String(formData.get("email") ?? "").trim();
+  const username = String(formData.get("username") ?? "").trim();
+  const emailIngresado = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rolRaw = String(formData.get("rol") ?? "vendedor");
@@ -20,9 +38,9 @@ export async function createUsuario(formData: FormData) {
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
   const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
 
-  if (!email || !nombre || password.length < 6) {
+  if (!username || !nombre || password.length < 6) {
     redirect(
-      `/usuarios/nuevo?error=${encodeURIComponent("Completa correo y nombre, con una contraseña de al menos 6 caracteres.")}`,
+      `/usuarios/nuevo?error=${encodeURIComponent("Completa usuario y nombre, con una contraseña de al menos 6 caracteres.")}`,
     );
   }
 
@@ -33,6 +51,24 @@ export async function createUsuario(formData: FormData) {
   }
 
   const admin = createAdminClient();
+
+  // El username debe ser único en todo el sistema (no solo en la empresa),
+  // porque termina mapeado 1:1 a un email de Supabase Auth, que es global
+  // — por eso se verifica con el cliente admin (sin restricción de RLS por
+  // empresa) en vez del cliente normal.
+  const { data: existente } = await admin
+    .from("usuarios")
+    .select("id")
+    .ilike("username", username)
+    .maybeSingle();
+
+  if (existente) {
+    redirect(
+      `/usuarios/nuevo?error=${encodeURIComponent("Ese nombre de usuario ya está en uso.")}`,
+    );
+  }
+
+  const email = emailIngresado || emailSinteticoDesde(username);
 
   const { data: creado, error: authError } = await admin.auth.admin.createUser({
     email,
@@ -49,6 +85,7 @@ export async function createUsuario(formData: FormData) {
   const { error: perfilError } = await admin.from("usuarios").insert({
     id: creado.user.id,
     empresa_id: empresaId,
+    username,
     nombre,
     rol,
     activo,
@@ -69,6 +106,7 @@ export async function updateUsuario(id: string, formData: FormData) {
   const supabase = await createClient();
   await requireAdmin(supabase);
 
+  const username = String(formData.get("username") ?? "").trim();
   const nombre = String(formData.get("nombre") ?? "").trim();
   const rolRaw = String(formData.get("rol") ?? "vendedor");
   const rol = ROLES.includes(rolRaw as (typeof ROLES)[number]) ? rolRaw : "vendedor";
@@ -76,8 +114,10 @@ export async function updateUsuario(id: string, formData: FormData) {
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
   const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
 
-  if (!nombre) {
-    redirect(`/usuarios/${id}/editar?error=${encodeURIComponent("El nombre es obligatorio.")}`);
+  if (!username || !nombre) {
+    redirect(
+      `/usuarios/${id}/editar?error=${encodeURIComponent("Usuario y nombre son obligatorios.")}`,
+    );
   }
 
   if (requiereAlmacen(rol) && !almacenId) {
@@ -87,9 +127,23 @@ export async function updateUsuario(id: string, formData: FormData) {
   }
 
   const admin = createAdminClient();
+
+  const { data: existente } = await admin
+    .from("usuarios")
+    .select("id")
+    .ilike("username", username)
+    .neq("id", id)
+    .maybeSingle();
+
+  if (existente) {
+    redirect(
+      `/usuarios/${id}/editar?error=${encodeURIComponent("Ese nombre de usuario ya está en uso.")}`,
+    );
+  }
+
   const { error } = await admin
     .from("usuarios")
-    .update({ nombre, rol, activo, almacen_id: almacenId })
+    .update({ username, nombre, rol, activo, almacen_id: almacenId })
     .eq("id", id);
 
   if (error) {

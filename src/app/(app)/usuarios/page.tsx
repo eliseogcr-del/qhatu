@@ -13,7 +13,7 @@ export default async function UsuariosPage() {
 
   const { data: usuarios, error } = await supabase
     .from("usuarios")
-    .select("id, nombre, rol, activo, almacenes(nombre)")
+    .select("id, username, nombre, rol, activo, almacenes(nombre)")
     .eq("empresa_id", empresaId)
     .order("nombre");
 
@@ -51,6 +51,7 @@ export default async function UsuariosPage() {
             <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Nombre</th>
+                <th className="px-4 py-3 font-medium">Usuario</th>
                 <th className="px-4 py-3 font-medium">Correo</th>
                 <th className="px-4 py-3 font-medium">Perfil</th>
                 <th className="px-4 py-3 font-medium">Almacén</th>
@@ -66,7 +67,8 @@ export default async function UsuariosPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {u.nombre ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-gray-600">{u.username ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-500">
                     {correoPorId.get(u.id) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
@@ -120,7 +122,7 @@ export default async function UsuariosPage() {
 
               {usuarios?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay usuarios registrados.
                   </td>
                 </tr>
