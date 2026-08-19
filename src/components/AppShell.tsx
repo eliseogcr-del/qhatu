@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Menu, X, LogOut } from "lucide-react";
 import Logo from "./Logo";
 import SidebarNav from "./SidebarNav";
+import { ROL_LABEL, type Rol } from "@/lib/roles";
 
 // Los <input type="number"> cambian de valor un "paso" (step) si el mouse
 // hace scroll sobre ellos estando enfocados — un gesto pensado para
@@ -35,6 +36,32 @@ function BrandRow({ className = "" }: { className?: string }) {
   );
 }
 
+function UserInfo({
+  nombre,
+  rol,
+  almacenNombre,
+}: {
+  nombre: string;
+  rol: string;
+  almacenNombre: string | null;
+}) {
+  return (
+    <div className="border-b border-white/10 px-5 py-4">
+      <p className="truncate text-sm font-semibold text-white">
+        {nombre || "Sin nombre"}
+      </p>
+      <p className="mt-0.5 truncate text-xs text-emerald-100/80">
+        {ROL_LABEL[rol as Rol] ?? rol}
+      </p>
+      {almacenNombre && (
+        <p className="mt-0.5 truncate text-xs text-emerald-100/70">
+          {almacenNombre}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SignOutForm({
   signOutAction,
   userEmail,
@@ -59,12 +86,16 @@ function SignOutForm({
 }
 
 export default function AppShell({
+  nombre,
   rol,
+  almacenNombre,
   userEmail,
   signOutAction,
   children,
 }: {
+  nombre: string;
   rol: string;
+  almacenNombre: string | null;
   userEmail: string;
   signOutAction: (formData: FormData) => void;
   children: React.ReactNode;
@@ -107,6 +138,7 @@ export default function AppShell({
                 <X size={20} />
               </button>
             </div>
+            <UserInfo nombre={nombre} rol={rol} almacenNombre={almacenNombre} />
             <SidebarNav rol={rol} onNavigate={() => setOpen(false)} />
             <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
           </aside>
@@ -118,6 +150,7 @@ export default function AppShell({
         <div className="border-b border-white/10 px-5 py-5">
           <BrandRow />
         </div>
+        <UserInfo nombre={nombre} rol={rol} almacenNombre={almacenNombre} />
         <SidebarNav rol={rol} />
         <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
       </aside>
