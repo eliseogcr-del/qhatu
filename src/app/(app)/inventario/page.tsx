@@ -10,6 +10,7 @@ export default async function InventarioPage({
     almacen_id?: string;
     bajo_minimo?: string;
     sobre_maximo?: string;
+    con_stock?: string;
   }>;
 }) {
   const {
@@ -17,6 +18,7 @@ export default async function InventarioPage({
     almacen_id: almacenId,
     bajo_minimo: bajoMinimoFiltro,
     sobre_maximo: sobreMaximoFiltro,
+    con_stock: conStockFiltro,
   } = await searchParams;
   const supabase = await createClient();
 
@@ -79,6 +81,7 @@ export default async function InventarioPage({
     .filter((f) => {
       if (bajoMinimoFiltro === "1" && !f.bajoMinimo) return false;
       if (sobreMaximoFiltro === "1" && !f.sobreMaximo) return false;
+      if (conStockFiltro === "1" && !(f.stock_actual > 0)) return false;
       return true;
     })
     .sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre));
@@ -87,7 +90,8 @@ export default async function InventarioPage({
     productoId ||
     almacenId ||
     bajoMinimoFiltro === "1" ||
-    sobreMaximoFiltro === "1"
+    sobreMaximoFiltro === "1" ||
+    conStockFiltro === "1"
   );
 
   return (
@@ -168,6 +172,16 @@ export default async function InventarioPage({
               className="h-4 w-4 rounded border-gray-300"
             />
             Sobre máximo
+          </label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="con_stock"
+              value="1"
+              defaultChecked={conStockFiltro === "1"}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            Con stock (mayor a 0)
           </label>
           <button
             type="submit"
