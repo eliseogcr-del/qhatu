@@ -89,6 +89,7 @@ export default function CobranzaForm({
             type="number"
             step="0.0001"
             name="tipo_cambio_aplicado"
+            required
             defaultValue={1}
             className={inputClass}
           />

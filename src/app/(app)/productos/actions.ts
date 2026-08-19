@@ -47,6 +47,12 @@ export async function createProducto(formData: FormData) {
   const { empresaId: empresa_id } = await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
 
+  if (!(producto.precio_venta > 0)) {
+    redirect(
+      `/productos/nuevo?error=${encodeURIComponent("El precio de venta debe ser mayor a 0.")}`,
+    );
+  }
+
   const { error } = await supabase
     .from("productos")
     .insert({ ...producto, empresa_id });
@@ -63,6 +69,12 @@ export async function updateProducto(id: string, formData: FormData) {
   const supabase = await createClient();
   await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
+
+  if (!(producto.precio_venta > 0)) {
+    redirect(
+      `/productos/${id}/editar?error=${encodeURIComponent("El precio de venta debe ser mayor a 0.")}`,
+    );
+  }
 
   const { error } = await supabase
     .from("productos")

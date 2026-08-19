@@ -226,7 +226,7 @@ export default function EditarVentaForm({
                 step="0.01"
                 min="0"
                 name="cantidad[]"
-                value={linea.cantidad}
+                value={linea.cantidad || ""}
                 onChange={(e) =>
                   actualizarLinea(linea.key, { cantidad: Number(e.target.value) })
                 }
@@ -243,7 +243,7 @@ export default function EditarVentaForm({
                 step="0.01"
                 min="0"
                 name="precio_unitario[]"
-                value={linea.precio_unitario}
+                value={linea.precio_unitario || ""}
                 onChange={(e) =>
                   actualizarLinea(linea.key, {
                     precio_unitario: Number(e.target.value),

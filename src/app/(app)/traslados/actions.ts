@@ -25,7 +25,7 @@ export async function createTraslado(formData: FormData) {
 
   const lineas = productoIds
     .map((producto_id, i) => ({ producto_id, cantidad: cantidades[i] }))
-    .filter((l) => l.producto_id && l.cantidad > 0);
+    .filter((l) => l.producto_id);
 
   if (!almacenOrigenId || !almacenDestinoId) {
     redirect(
@@ -39,6 +39,11 @@ export async function createTraslado(formData: FormData) {
   }
   if (lineas.length === 0) {
     redirect(`/traslados/nuevo?error=${encodeURIComponent("Agrega al menos un producto.")}`);
+  }
+  if (lineas.some((l) => !(l.cantidad > 0))) {
+    redirect(
+      `/traslados/nuevo?error=${encodeURIComponent("Cada producto debe tener una cantidad mayor a 0.")}`,
+    );
   }
 
   const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));

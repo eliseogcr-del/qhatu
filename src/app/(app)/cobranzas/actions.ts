@@ -14,13 +14,18 @@ export async function createCobranza(formData: FormData) {
   const pedidoId = String(formData.get("pedido_id") ?? "");
   const monto = Number(formData.get("monto") ?? 0);
   const moneda = String(formData.get("moneda") ?? "PEN");
-  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") ?? 1);
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
   const metodoPago = String(formData.get("metodo_pago") ?? "efectivo");
   const referencia = String(formData.get("referencia") ?? "") || null;
 
   if (!pedidoId || monto <= 0) {
     redirect(
       `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("Ingresa un monto válido.")}`,
+    );
+  }
+  if (!(tipoCambio > 0)) {
+    redirect(
+      `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
     );
   }
 

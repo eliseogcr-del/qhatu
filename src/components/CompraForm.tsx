@@ -150,6 +150,7 @@ export default function CompraForm({
               type="number"
               step="0.0001"
               name="tipo_cambio_aplicado"
+              required
               defaultValue={1}
               className={inputClass}
             />
@@ -201,9 +202,9 @@ export default function CompraForm({
                 <input
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   name="cantidad[]"
-                  value={linea.cantidad}
+                  value={linea.cantidad || ""}
                   onChange={(e) =>
                     updateLinea(linea.key, {
                       cantidad: Number(e.target.value),
@@ -216,9 +217,9 @@ export default function CompraForm({
                 <input
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   name="costo_unitario[]"
-                  value={linea.costo_unitario}
+                  value={linea.costo_unitario || ""}
                   onChange={(e) =>
                     updateLinea(linea.key, {
                       costo_unitario: Number(e.target.value),

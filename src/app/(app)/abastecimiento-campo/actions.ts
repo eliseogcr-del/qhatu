@@ -31,11 +31,16 @@ export async function createAbastecimientoCampo(formData: FormData) {
 
   const lineas = productoIds
     .map((producto_id, i) => ({ producto_id, cantidad: cantidades[i] }))
-    .filter((l) => l.producto_id && l.cantidad > 0);
+    .filter((l) => l.producto_id);
 
   if (lineas.length === 0) {
     redirect(
       `/abastecimiento-campo/nuevo?error=${encodeURIComponent("Agrega al menos un producto.")}`,
+    );
+  }
+  if (lineas.some((l) => !(l.cantidad > 0))) {
+    redirect(
+      `/abastecimiento-campo/nuevo?error=${encodeURIComponent("Cada producto debe tener una cantidad mayor a 0.")}`,
     );
   }
 

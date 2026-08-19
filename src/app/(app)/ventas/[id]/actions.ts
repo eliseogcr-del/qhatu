@@ -66,6 +66,12 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     );
   }
 
+  if (enviadas.some((l) => l.producto_id && l.cantidad > 0 && !(l.precio_unitario > 0))) {
+    redirect(
+      `/ventas/${ventaId}/editar?error=${encodeURIComponent("Todo producto con cantidad debe tener un precio unitario mayor a 0.")}`,
+    );
+  }
+
   const idsEnviados = new Set(enviadas.filter((l) => l.id).map((l) => l.id));
   const lineasQuitadas = (detalleOriginal ?? []).filter((d) => !idsEnviados.has(d.id));
   const lineasNuevas = enviadas.filter((l) => !l.id && l.producto_id && l.cantidad > 0);

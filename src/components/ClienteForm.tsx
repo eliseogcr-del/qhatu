@@ -397,7 +397,7 @@ export default function ClienteForm({
               type="number"
               step="0.01"
               name="linea_credito"
-              defaultValue={values.linea_credito ?? 0}
+              defaultValue={values.linea_credito || ""}
               className={inputClass}
             />
           </Field>

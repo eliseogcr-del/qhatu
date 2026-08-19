@@ -27,20 +27,30 @@ export async function createPedido(formData: FormData) {
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
 
-  const lineas = productoIds
+  const lineasConProducto = productoIds
     .map((producto_id, i) => ({
       producto_id,
       cantidad: cantidades[i],
       precio_unitario: precios[i],
-      subtotal: Math.round(cantidades[i] * precios[i] * 100) / 100,
     }))
-    .filter((l) => l.producto_id && l.cantidad > 0);
+    .filter((l) => l.producto_id);
 
-  if (lineas.length === 0) {
+  if (lineasConProducto.length === 0) {
     redirect(
       `/pedidos/nuevo?error=${encodeURIComponent("Agrega al menos un producto al pedido.")}`,
     );
   }
+
+  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
+    redirect(
+      `/pedidos/nuevo?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+    );
+  }
+
+  const lineas = lineasConProducto.map((l) => ({
+    ...l,
+    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
+  }));
 
   const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
   if (productoIdsUnicos.size !== lineas.length) {

@@ -12,7 +12,13 @@ export async function createVenta(formData: FormData) {
 
   const pedidoId = String(formData.get("pedido_id") ?? "");
   const moneda = String(formData.get("moneda") ?? "PEN");
-  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") ?? 1);
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
+
+  if (!(tipoCambio > 0)) {
+    redirect(
+      `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
+    );
+  }
 
   const detalleIds = formData.getAll("pedido_detalle_id[]").map(String);
   const cantidadesEntregadas = formData.getAll("cantidad_entregada[]").map(Number);
@@ -62,6 +68,12 @@ export async function createVenta(formData: FormData) {
   if (lineas.length === 0) {
     redirect(
       `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("No hay líneas válidas para registrar la venta.")}`,
+    );
+  }
+
+  if (lineas.some((l) => l.cantidad_entregada > 0 && !(l.precio_unitario > 0))) {
+    redirect(
+      `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("Todo producto con cantidad entregada debe tener un precio unitario mayor a 0.")}`,
     );
   }
 
@@ -217,26 +229,40 @@ export async function createVentaDirecta(formData: FormData) {
 
   const clienteId = String(formData.get("cliente_id") ?? "");
   const moneda = String(formData.get("moneda") ?? "PEN");
-  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") ?? 1);
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
+
+  if (!(tipoCambio > 0)) {
+    redirect(`/ventas/directa?error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`);
+  }
 
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
 
-  const lineas = productoIds
+  const lineasConProducto = productoIds
     .map((producto_id, i) => ({
       producto_id,
       cantidad: cantidades[i],
       precio_unitario: precios[i],
-      subtotal: Math.round(cantidades[i] * precios[i] * 100) / 100,
     }))
-    .filter((l) => l.producto_id && l.cantidad > 0);
+    .filter((l) => l.producto_id);
 
-  if (!clienteId || lineas.length === 0) {
+  if (!clienteId || lineasConProducto.length === 0) {
     redirect(
       `/ventas/directa?error=${encodeURIComponent("Selecciona un cliente y agrega al menos un producto.")}`,
     );
   }
+
+  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+    );
+  }
+
+  const lineas = lineasConProducto.map((l) => ({
+    ...l,
+    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
+  }));
 
   const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
   if (productoIdsUnicos.size !== lineas.length) {

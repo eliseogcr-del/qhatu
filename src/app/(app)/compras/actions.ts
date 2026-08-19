@@ -24,26 +24,40 @@ export async function createCompra(formData: FormData) {
 
   const proveedorId = String(formData.get("proveedor_id") ?? "");
   const moneda = String(formData.get("moneda") ?? "PEN");
-  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") ?? 1);
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
+
+  if (!(tipoCambio > 0)) {
+    redirect(`/compras/nueva?error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`);
+  }
 
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const costos = formData.getAll("costo_unitario[]").map(Number);
 
-  const lineas = productoIds
+  const lineasConProducto = productoIds
     .map((producto_id, i) => ({
       producto_id,
       cantidad: cantidades[i],
       costo_unitario: costos[i],
-      subtotal: Math.round(cantidades[i] * costos[i] * 100) / 100,
     }))
-    .filter((l) => l.producto_id && l.cantidad > 0);
+    .filter((l) => l.producto_id);
 
-  if (!proveedorId || lineas.length === 0) {
+  if (!proveedorId || lineasConProducto.length === 0) {
     redirect(
       `/compras/nueva?error=${encodeURIComponent("Selecciona un proveedor y agrega al menos un producto.")}`,
     );
   }
+
+  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.costo_unitario > 0))) {
+    redirect(
+      `/compras/nueva?error=${encodeURIComponent("Cada producto debe tener una cantidad y un costo unitario mayores a 0.")}`,
+    );
+  }
+
+  const lineas = lineasConProducto.map((l) => ({
+    ...l,
+    subtotal: Math.round(l.cantidad * l.costo_unitario * 100) / 100,
+  }));
 
   const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
   if (productoIdsUnicos.size !== lineas.length) {

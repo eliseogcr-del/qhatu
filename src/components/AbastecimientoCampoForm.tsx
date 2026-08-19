@@ -183,7 +183,7 @@ export default function AbastecimientoCampoForm({
                   step="0.01"
                   min="0"
                   name="cantidad[]"
-                  value={linea.cantidad}
+                  value={linea.cantidad || ""}
                   onChange={(e) =>
                     updateLinea(linea.key, { cantidad: Number(e.target.value) })
                   }

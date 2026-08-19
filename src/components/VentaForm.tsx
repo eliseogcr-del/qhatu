@@ -101,6 +101,7 @@ export default function VentaForm({
               type="number"
               step="0.0001"
               name="tipo_cambio_aplicado"
+              required
               defaultValue={1}
               className={inputClass}
             />
@@ -140,7 +141,7 @@ export default function VentaForm({
                       min="0"
                       max={linea.cantidad_pedida}
                       name="cantidad_entregada[]"
-                      value={linea.cantidad_entregada}
+                      value={linea.cantidad_entregada || ""}
                       onChange={(e) =>
                         updateLinea(linea.pedido_detalle_id, {
                           cantidad_entregada: Number(e.target.value),
@@ -155,7 +156,7 @@ export default function VentaForm({
                       step="0.01"
                       min="0"
                       name="precio_unitario[]"
-                      value={linea.precio_unitario}
+                      value={linea.precio_unitario || ""}
                       onChange={(e) =>
                         updateLinea(linea.pedido_detalle_id, {
                           precio_unitario: Number(e.target.value),

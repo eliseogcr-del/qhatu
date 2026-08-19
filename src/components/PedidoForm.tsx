@@ -280,10 +280,10 @@ export default function PedidoForm({
                 <input
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   max={stockDisponible ?? undefined}
                   name="cantidad[]"
-                  value={linea.cantidad}
+                  value={linea.cantidad || ""}
                   onChange={(e) =>
                     updateLinea(linea.key, {
                       cantidad: Number(e.target.value),
@@ -303,9 +303,9 @@ export default function PedidoForm({
                 <input
                   type="number"
                   step="0.01"
-                  min="0"
+                  min="0.01"
                   name="precio_unitario[]"
-                  value={linea.precio_unitario}
+                  value={linea.precio_unitario || ""}
                   onChange={(e) =>
                     updateLinea(linea.key, {
                       precio_unitario: Number(e.target.value),

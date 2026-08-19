@@ -189,8 +189,10 @@ export default function ProductoForm({
             <input
               type="number"
               step="0.01"
+              min="0.01"
               name="precio_venta"
-              defaultValue={values.precio_venta}
+              required
+              defaultValue={values.precio_venta || ""}
               className={inputClass}
             />
           </Field>
