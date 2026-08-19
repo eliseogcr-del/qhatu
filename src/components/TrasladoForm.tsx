@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2, Send } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+import ProductoCombobox from "./ProductoCombobox";
 
 type Almacen = { id: string; nombre: string };
 type Producto = { id: string; nombre: string };
@@ -43,6 +44,7 @@ export default function TrasladoForm({
   almacenes,
   productos,
   almacenSesion,
+  stockPorAlmacen,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -54,6 +56,9 @@ export default function TrasladoForm({
   // controla admin/logística). Si es null/undefined (admin/logística),
   // ambos campos quedan libres.
   almacenSesion?: string | null;
+  // Stock por producto+almacén, clave `${productoId}::${almacenId}`, para
+  // mostrar cuánto hay disponible en el almacén de origen elegido.
+  stockPorAlmacen: Record<string, number>;
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
@@ -65,6 +70,7 @@ export default function TrasladoForm({
   const almacenesDestino = almacenSesion
     ? almacenes.filter((a) => a.id !== almacenSesion)
     : almacenes;
+  const origenIdEfectivo = almacenSesion ?? origenId;
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -196,31 +202,31 @@ export default function TrasladoForm({
         </h2>
 
         <div className="space-y-3">
-          {lineas.map((linea) => (
+          {lineas.map((linea) => {
+            const stockDisponible =
+              origenIdEfectivo && linea.producto_id
+                ? stockPorAlmacen[`${linea.producto_id}::${origenIdEfectivo}`] ?? 0
+                : null;
+
+            return (
             <div
               key={linea.key}
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_140px_auto]"
             >
               <Field label="Producto">
-                <select
-                  name="producto_id[]"
+                <ProductoCombobox
+                  productos={productos}
                   value={linea.producto_id}
-                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
+                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
               <Field label="Cantidad">
                 <input
                   type="number"
                   step="0.01"
                   min="0.01"
+                  max={stockDisponible ?? undefined}
                   name="cantidad[]"
                   value={linea.cantidad || ""}
                   onChange={(e) =>
@@ -228,6 +234,13 @@ export default function TrasladoForm({
                   }
                   className={inputClass}
                 />
+                {stockDisponible !== null && (
+                  <p
+                    className={`mt-1 text-xs ${linea.cantidad > stockDisponible ? "text-red-600" : "text-gray-400"}`}
+                  >
+                    Disponible: {stockDisponible}
+                  </p>
+                )}
               </Field>
               <button
                 type="button"
@@ -240,7 +253,8 @@ export default function TrasladoForm({
                 Quitar
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <button

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+import ProductoCombobox from "./ProductoCombobox";
 import { TIPOS_AJUSTE_VENTA, TIPO_AJUSTE_VENTA_LABEL } from "@/lib/ajuste-venta-tipos";
 
 type Producto = { id: string; nombre: string; precio_venta: number };
@@ -192,19 +193,12 @@ export default function EditarVentaForm({
                 Producto
               </label>
               {linea.esNueva ? (
-                <select
-                  name="producto_id[]"
+                <ProductoCombobox
+                  productos={productos}
                   value={linea.producto_id}
-                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
+                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               ) : (
                 <>
                   <input type="hidden" name="producto_id[]" value={linea.producto_id} />

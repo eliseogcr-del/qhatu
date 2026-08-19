@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, Save, Paperclip } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+import ProductoCombobox from "./ProductoCombobox";
 
 // Un admin/logística no tiene un almacén fijo propio (puede operar en
 // cualquiera), pero en la práctica suele trabajar seguido desde el mismo
@@ -262,19 +263,12 @@ export default function PedidoForm({
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
             >
               <Field label="Producto">
-                <select
-                  name="producto_id[]"
+                <ProductoCombobox
+                  productos={productosDisponibles}
                   value={linea.producto_id}
-                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
+                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productosDisponibles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
               <Field label="Cantidad">
                 <input

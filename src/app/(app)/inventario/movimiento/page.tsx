@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { registrarMovimientoManual } from "../actions";
 import { TIPOS_MOVIMIENTO_MANUAL, TIPO_MOVIMIENTO_LABEL } from "@/lib/kardex-tipos";
+import ProductoCombobox from "@/components/ProductoCombobox";
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
@@ -61,14 +62,11 @@ export default async function MovimientoInventarioPage({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Producto
               </label>
-              <select name="producto_id" required className={inputClass}>
-                <option value="">Selecciona un producto</option>
-                {productos?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
+              <ProductoCombobox
+                productos={productos ?? []}
+                name="producto_id"
+                className={inputClass}
+              />
               {productos?.length === 0 && (
                 <p className="mt-1 text-xs text-gray-400">
                   Ningún producto activo lleva control de inventario.

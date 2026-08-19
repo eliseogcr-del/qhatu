@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2, Send } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+import ProductoCombobox from "./ProductoCombobox";
 
 type Almacen = { id: string; nombre: string };
 type Proveedor = { id: string; nombre: string };
@@ -163,19 +164,12 @@ export default function AbastecimientoCampoForm({
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_140px_auto]"
             >
               <Field label="Producto">
-                <select
-                  name="producto_id[]"
+                <ProductoCombobox
+                  productos={productos}
                   value={linea.producto_id}
-                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
+                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
               <Field label="Cantidad">
                 <input

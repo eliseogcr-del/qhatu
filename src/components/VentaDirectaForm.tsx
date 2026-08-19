@@ -3,6 +3,7 @@
 import { useState } from "react";
 import SubmitButton from "./SubmitButton";
 import ClienteCombobox from "./ClienteCombobox";
+import ProductoCombobox from "./ProductoCombobox";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -221,19 +222,12 @@ export default function VentaDirectaForm({
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
             >
               <Field label="Producto">
-                <select
-                  name="producto_id[]"
+                <ProductoCombobox
+                  productos={productosDisponibles}
                   value={linea.producto_id}
-                  onChange={(e) => seleccionarProducto(linea.key, e.target.value)}
+                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productosDisponibles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
               <Field label="Cantidad">
                 <input

@@ -14,7 +14,7 @@ export default async function NuevoTrasladoPage({
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
 
-  const [{ data: almacenes }, { data: productos }] = await Promise.all([
+  const [{ data: almacenes }, { data: productos }, { data: inventario }] = await Promise.all([
     supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
     supabase
       .from("productos")
@@ -22,7 +22,12 @@ export default async function NuevoTrasladoPage({
       .eq("activo", true)
       .eq("control_inventario", true)
       .order("nombre"),
+    supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
   ]);
+
+  const stockPorAlmacen = Object.fromEntries(
+    (inventario ?? []).map((i) => [`${i.producto_id}::${i.almacen_id}`, i.stock_actual]),
+  );
 
   return (
     <div className="p-8">
@@ -50,6 +55,7 @@ export default async function NuevoTrasladoPage({
             almacenes={almacenes ?? []}
             productos={productos ?? []}
             almacenSesion={session.rol === "admin" ? null : session.almacenId}
+            stockPorAlmacen={stockPorAlmacen}
           />
         </div>
       </div>
