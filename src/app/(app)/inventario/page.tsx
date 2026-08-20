@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 
 export default async function InventarioPage({
   searchParams,
@@ -15,12 +16,18 @@ export default async function InventarioPage({
 }) {
   const {
     producto_id: productoId,
-    almacen_id: almacenId,
+    almacen_id: almacenIdParam,
     bajo_minimo: bajoMinimoFiltro,
     sobre_maximo: sobreMaximoFiltro,
     con_stock: conStockFiltro,
   } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
+
+  // Un vendedor tiene almacén fijo: siempre ve solo el suyo, sin importar
+  // qué venga en la URL. Admin/logística (almacenId null) sí eligen
+  // libremente desde el filtro.
+  const almacenId = session.almacenId ?? almacenIdParam;
 
   // Se arma la matriz completa producto (con control de inventario) x
   // almacén, no solo lo que ya tenga fila en `inventario` — así un
@@ -41,6 +48,15 @@ export default async function InventarioPage({
     .order("nombre");
   if (almacenId) almacenesQuery = almacenesQuery.eq("id", almacenId);
 
+  let almacenesParaFiltro = supabase
+    .from("almacenes")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
+  // Al vendedor no le hace falta ver el resto de almacenes en el select —
+  // solo puede filtrar dentro del suyo.
+  if (session.almacenId) almacenesParaFiltro = almacenesParaFiltro.eq("id", session.almacenId);
+
   const [{ data: productosFiltrados, error }, { data: almacenesFiltrados }, { data: inventarioCrudo }, { data: productos }, { data: almacenes }] =
     await Promise.all([
       productosQuery,
@@ -52,7 +68,7 @@ export default async function InventarioPage({
         .eq("activo", true)
         .eq("control_inventario", true)
         .order("nombre"),
-      supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+      almacenesParaFiltro,
     ]);
 
   const stockPorClave = new Map(
@@ -88,7 +104,7 @@ export default async function InventarioPage({
 
   const hayFiltros = !!(
     productoId ||
-    almacenId ||
+    (!session.almacenId && almacenId) ||
     bajoMinimoFiltro === "1" ||
     sobreMaximoFiltro === "1" ||
     conStockFiltro === "1"
@@ -140,18 +156,24 @@ export default async function InventarioPage({
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Almacén
             </label>
-            <select
-              name="almacen_id"
-              defaultValue={almacenId ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {almacenes?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
+            {session.almacenId ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {almacenes?.[0]?.nombre ?? "Tu almacén"}
+              </p>
+            ) : (
+              <select
+                name="almacen_id"
+                defaultValue={almacenId ?? ""}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {almacenes?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
             <input

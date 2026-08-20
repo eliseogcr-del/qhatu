@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatFechaHora, hoyLima } from "@/lib/fecha";
 import { Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
 
 export default async function KardexPage({
@@ -14,8 +15,13 @@ export default async function KardexPage({
     almacen_id?: string;
   }>;
 }) {
-  const { desde, hasta, producto_id, almacen_id: almacenId } = await searchParams;
+  const { desde, hasta, producto_id, almacen_id: almacenIdParam } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
+
+  // Un vendedor tiene almacén fijo: siempre ve solo el suyo, sin importar
+  // qué venga en la URL. Admin/logística (almacenId null) eligen libremente.
+  const almacenId = session.almacenId ?? almacenIdParam;
 
   // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
   // defecto, para no traer siempre los últimos 200 movimientos de
@@ -25,9 +31,16 @@ export default async function KardexPage({
   const desdeEfectivo = desde === undefined ? hoy : desde;
   const hastaEfectivo = hasta === undefined ? hoy : hasta;
 
+  let almacenesQuery = supabase
+    .from("almacenes")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
+  if (session.almacenId) almacenesQuery = almacenesQuery.eq("id", session.almacenId);
+
   const [{ data: productos }, { data: almacenes }] = await Promise.all([
     supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+    almacenesQuery,
   ]);
 
   let query = supabase
@@ -49,7 +62,7 @@ export default async function KardexPage({
     desde !== undefined ||
     hasta !== undefined ||
     producto_id ||
-    almacenId
+    (!session.almacenId && almacenId)
   );
 
   return (
@@ -99,18 +112,24 @@ export default async function KardexPage({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
-            <select
-              name="almacen_id"
-              defaultValue={almacenId ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {almacenes?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
+            {session.almacenId ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {almacenes?.[0]?.nombre ?? "Tu almacén"}
+              </p>
+            ) : (
+              <select
+                name="almacen_id"
+                defaultValue={almacenId ?? ""}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {almacenes?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <button
             type="submit"

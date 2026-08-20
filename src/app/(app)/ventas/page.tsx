@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileDown, Plus, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
 import { hoyLima } from "@/lib/fecha";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
@@ -39,9 +40,15 @@ export default async function VentasPage({
     vendedor_id?: string;
   }>;
 }) {
-  const { q, desde, hasta, pendientes, almacen_id: almacenId, vendedor_id: vendedorId } =
+  const { q, desde, hasta, pendientes, almacen_id: almacenIdParam, vendedor_id: vendedorId } =
     await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
+
+  // Un vendedor tiene almacén fijo: siempre ve solo sus propias ventas, sin
+  // importar qué venga en la URL. Admin/logística (almacenId null) eligen
+  // libremente desde el filtro.
+  const almacenId = session.almacenId ?? almacenIdParam;
 
   // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
   // defecto, para no traer todo el historial cada vez. Si el usuario borra
@@ -50,6 +57,13 @@ export default async function VentasPage({
   const hoy = hoyLima();
   const desdeEfectivo = desde === undefined ? hoy : desde;
   const hastaEfectivo = hasta === undefined ? hoy : hasta;
+
+  let almacenesQuery = supabase
+    .from("almacenes")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
+  if (session.almacenId) almacenesQuery = almacenesQuery.eq("id", session.almacenId);
 
   const [{ ventas, error }, { data: almacenes }, { data: vendedores }] = await Promise.all([
     fetchVentasConSaldo(supabase, {
@@ -60,7 +74,7 @@ export default async function VentasPage({
       almacenId,
       vendedorId,
     }),
-    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
+    almacenesQuery,
     supabase
       .from("usuarios")
       .select("id, nombre")
@@ -74,7 +88,7 @@ export default async function VentasPage({
     desde !== undefined ||
     hasta !== undefined ||
     pendientes ||
-    almacenId ||
+    (!session.almacenId && almacenId) ||
     vendedorId
   );
 
@@ -170,18 +184,24 @@ export default async function VentasPage({
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Almacén
             </label>
-            <select
-              name="almacen_id"
-              defaultValue={almacenId ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {almacenes?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
+            {session.almacenId ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {almacenes?.[0]?.nombre ?? "Tu almacén"}
+              </p>
+            ) : (
+              <select
+                name="almacen_id"
+                defaultValue={almacenId ?? ""}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {almacenes?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

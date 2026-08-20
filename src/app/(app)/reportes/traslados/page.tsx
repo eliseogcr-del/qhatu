@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 
 type Fila = {
   almacenId: string;
@@ -21,14 +22,21 @@ export default async function ReporteTrasladosPage({
 }: {
   searchParams: Promise<{ desde?: string; hasta?: string; almacen_id?: string }>;
 }) {
-  const { desde, hasta, almacen_id } = await searchParams;
+  const { desde, hasta, almacen_id: almacenIdParam } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
 
-  const { data: almacenes } = await supabase
+  // Un vendedor tiene almacén fijo: siempre ve solo el suyo, sin importar
+  // qué venga en la URL. Admin/logística (almacenId null) eligen libremente.
+  const almacen_id = session.almacenId ?? almacenIdParam;
+
+  let almacenesQuery = supabase
     .from("almacenes")
     .select("id, nombre")
     .eq("activo", true)
     .order("nombre");
+  if (session.almacenId) almacenesQuery = almacenesQuery.eq("id", session.almacenId);
+  const { data: almacenes } = await almacenesQuery;
 
   let query = supabase
     .from("kardex_movimientos")
@@ -103,7 +111,7 @@ export default async function ReporteTrasladosPage({
     nombre: filas.find((f) => f.almacenId === id)!.almacenNombre,
   }));
 
-  const hayFiltros = !!(desde || hasta || almacen_id);
+  const hayFiltros = !!(desde || hasta || (!session.almacenId && almacen_id));
 
   return (
     <div className="p-8">
@@ -132,18 +140,24 @@ export default async function ReporteTrasladosPage({
         <form className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm" method="get">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
-            <select
-              name="almacen_id"
-              defaultValue={almacen_id ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {almacenes?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
+            {session.almacenId ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {almacenes?.[0]?.nombre ?? "Tu almacén"}
+              </p>
+            ) : (
+              <select
+                name="almacen_id"
+                defaultValue={almacen_id ?? ""}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {almacenes?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
