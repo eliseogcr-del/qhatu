@@ -10,17 +10,9 @@ export default async function TrasladosPage({
     desde?: string;
     hasta?: string;
     producto_id?: string;
-    almacen_origen_id?: string;
-    almacen_destino_id?: string;
   }>;
 }) {
-  const {
-    desde,
-    hasta,
-    producto_id: productoId,
-    almacen_origen_id: almacenOrigenId,
-    almacen_destino_id: almacenDestinoId,
-  } = await searchParams;
+  const { desde, hasta, producto_id: productoId } = await searchParams;
   const supabase = await createClient();
 
   // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
@@ -30,10 +22,11 @@ export default async function TrasladosPage({
   const desdeEfectivo = desde === undefined ? hoy : desde;
   const hastaEfectivo = hasta === undefined ? hoy : hasta;
 
-  const [{ data: productos }, { data: almacenes }] = await Promise.all([
-    supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
-  ]);
+  const { data: productos } = await supabase
+    .from("productos")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
 
   let query = supabase
     .from("traslados")
@@ -45,18 +38,10 @@ export default async function TrasladosPage({
 
   if (desdeEfectivo) query = query.gte("fecha", desdeEfectivo);
   if (hastaEfectivo) query = query.lte("fecha", `${hastaEfectivo}T23:59:59`);
-  if (almacenOrigenId) query = query.eq("almacen_origen_id", almacenOrigenId);
-  if (almacenDestinoId) query = query.eq("almacen_destino_id", almacenDestinoId);
 
   const { data: traslados, error } = await query;
 
-  const hayFiltros = !!(
-    desde !== undefined ||
-    hasta !== undefined ||
-    productoId ||
-    almacenOrigenId ||
-    almacenDestinoId
-  );
+  const hayFiltros = !!(desde !== undefined || hasta !== undefined || productoId);
 
   const filas = (traslados ?? []).flatMap((t) => {
     const origen = t.almacen_origen as unknown as { nombre: string } | null;
@@ -128,36 +113,6 @@ export default async function TrasladosPage({
               ))}
             </select>
           </div>
-          <div className="min-w-[160px]">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Almacén origen</label>
-            <select
-              name="almacen_origen_id"
-              defaultValue={almacenOrigenId ?? ""}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {almacenes?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="min-w-[160px]">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Almacén destino</label>
-            <select
-              name="almacen_destino_id"
-              defaultValue={almacenDestinoId ?? ""}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {almacenes?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
             <input
@@ -185,7 +140,7 @@ export default async function TrasladosPage({
           </button>
           {hayFiltros && (
             <Link
-              href="/traslados?desde=&hasta=&producto_id=&almacen_origen_id=&almacen_destino_id="
+              href="/traslados?desde=&hasta=&producto_id="
               className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
             >
               <X size={14} />
