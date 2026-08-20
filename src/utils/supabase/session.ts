@@ -58,3 +58,17 @@ export async function requireAdmin(
   }
   return session;
 }
+
+// Bloquea el acceso a secciones de logística (ej. Producción) a quien no
+// sea administrador ni logística.
+export async function requireLogisticaOAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (session.rol !== "admin" && session.rol !== "logistica") {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para acceder a esta sección.")}`,
+    );
+  }
+  return session;
+}

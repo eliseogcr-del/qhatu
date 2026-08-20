@@ -88,6 +88,7 @@ export default async function AuditoriaPage({
               <option value="">Todas</option>
               <option value="venta">Venta</option>
               <option value="cobranza">Cobranza</option>
+              <option value="produccion">Producción</option>
             </select>
           </div>
           <div>

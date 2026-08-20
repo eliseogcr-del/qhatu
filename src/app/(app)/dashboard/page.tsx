@@ -11,6 +11,7 @@ import {
   BarChart3,
   ArrowLeftRight,
   PackagePlus,
+  Factory,
   ScrollText,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
@@ -31,6 +32,7 @@ const QUICK_LINKS_LOGISTICA = [
   { href: "/repartos", label: "Reparto", icon: Route },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
+  { href: "/produccion", label: "Producción", icon: Factory },
   { href: "/inventario", label: "Inventario", icon: Boxes },
   { href: "/kardex", label: "Kardex", icon: ScrollText },
 ];

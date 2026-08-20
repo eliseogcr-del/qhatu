@@ -6,6 +6,9 @@ export const TIPO_AUDITORIA = {
   ventaModificarProducto: "venta_modificar_producto",
   ventaAnular: "venta_anular",
   cobranzaAnular: "cobranza_anular",
+  produccionAgregarProducto: "produccion_agregar_producto",
+  produccionQuitarProducto: "produccion_quitar_producto",
+  produccionModificarProducto: "produccion_modificar_producto",
 } as const;
 
 export type TipoAuditoria = (typeof TIPO_AUDITORIA)[keyof typeof TIPO_AUDITORIA];
@@ -17,7 +20,7 @@ export async function registrarAuditoria(
   params: {
     empresaId: string;
     usuarioId: string;
-    entidad: "venta" | "cobranza";
+    entidad: "venta" | "cobranza" | "produccion";
     entidadId: string;
     tipoMovimiento: TipoAuditoria;
     productoId?: string | null;
