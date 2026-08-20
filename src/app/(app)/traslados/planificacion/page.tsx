@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { hoyLima } from "@/lib/fecha";
+import { hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
 type Fila = {
   productoId: string;
@@ -39,8 +39,8 @@ export default async function PlanificacionTrasladosPage({
         .select(
           "cantidad, producto_id, productos(nombre), traslados!inner(fecha, almacen_destino:almacen_destino_id(id, nombre))",
         )
-        .gte("traslados.fecha", fechaEfectiva)
-        .lte("traslados.fecha", `${fechaEfectiva}T23:59:59`),
+        .gte("traslados.fecha", inicioDiaLima(fechaEfectiva))
+        .lte("traslados.fecha", finDiaLima(fechaEfectiva)),
       supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
       origenId
         ? supabase.from("inventario").select("producto_id, stock_actual").eq("almacen_id", origenId)

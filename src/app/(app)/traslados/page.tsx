@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFechaHora, hoyLima } from "@/lib/fecha";
+import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { Plus, Search, X, ClipboardList } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 
@@ -36,8 +36,8 @@ export default async function TrasladosPage({
     .order("fecha", { ascending: false })
     .limit(100);
 
-  if (desdeEfectivo) query = query.gte("fecha", desdeEfectivo);
-  if (hastaEfectivo) query = query.lte("fecha", `${hastaEfectivo}T23:59:59`);
+  if (desdeEfectivo) query = query.gte("fecha", inicioDiaLima(desdeEfectivo));
+  if (hastaEfectivo) query = query.lte("fecha", finDiaLima(hastaEfectivo));
 
   const { data: traslados, error } = await query;
 
@@ -101,6 +101,7 @@ export default async function TrasladosPage({
           <div className="min-w-[200px] flex-1">
             <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
             <select
+              key={productoId ?? ""}
               name="producto_id"
               defaultValue={productoId ?? ""}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"

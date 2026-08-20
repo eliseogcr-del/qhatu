@@ -1,4 +1,5 @@
 import { createClient } from "./server";
+import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
 export type PagoDetalle = {
   fecha: string;
@@ -49,8 +50,8 @@ export async function fetchVentasConSaldo(
     .order("fecha", { ascending: false });
 
   if (clienteNombre) query = query.ilike("clientes.nombre", `%${clienteNombre}%`);
-  if (fechaDesde) query = query.gte("fecha", fechaDesde);
-  if (fechaHasta) query = query.lte("fecha", `${fechaHasta}T23:59:59`);
+  if (fechaDesde) query = query.gte("fecha", inicioDiaLima(fechaDesde));
+  if (fechaHasta) query = query.lte("fecha", finDiaLima(fechaHasta));
   if (almacenId) query = query.eq("almacen_id", almacenId);
   if (vendedorId) {
     const { data: vendedor } = await supabase

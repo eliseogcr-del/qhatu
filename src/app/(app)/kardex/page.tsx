@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFechaHora, hoyLima } from "@/lib/fecha";
+import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
@@ -51,8 +51,8 @@ export default async function KardexPage({
     .order("fecha", { ascending: false })
     .limit(200);
 
-  if (desdeEfectivo) query = query.gte("fecha", desdeEfectivo);
-  if (hastaEfectivo) query = query.lte("fecha", `${hastaEfectivo}T23:59:59`);
+  if (desdeEfectivo) query = query.gte("fecha", inicioDiaLima(desdeEfectivo));
+  if (hastaEfectivo) query = query.lte("fecha", finDiaLima(hastaEfectivo));
   if (producto_id) query = query.eq("producto_id", producto_id);
   if (almacenId) query = query.eq("almacen_id", almacenId);
 

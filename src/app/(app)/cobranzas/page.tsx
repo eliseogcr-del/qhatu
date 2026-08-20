@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { XCircle, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
@@ -43,8 +43,8 @@ export default async function CobranzasPage({
     .order("fecha", { ascending: false });
 
   if (q) query = query.ilike("pedidos.clientes.nombre", `%${q}%`);
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("fecha", inicioDiaLima(desde));
+  if (hasta) query = query.lte("fecha", finDiaLima(hasta));
   if (metodoPago) query = query.eq("metodo_pago", metodoPago);
   if (tipoPago) query = query.eq("tipo_pago", tipoPago);
   if (estado) query = query.eq("estado", estado);

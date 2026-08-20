@@ -1,4 +1,5 @@
 import { createClient } from "./server";
+import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
 export type PagoDetalle = {
   fecha: string;
@@ -43,8 +44,8 @@ export async function fetchComprasConSaldo(
     .order("fecha", { ascending: false });
 
   if (proveedorNombre) query = query.ilike("proveedores.nombre", `%${proveedorNombre}%`);
-  if (fechaDesde) query = query.gte("fecha", fechaDesde);
-  if (fechaHasta) query = query.lte("fecha", `${fechaHasta}T23:59:59`);
+  if (fechaDesde) query = query.gte("fecha", inicioDiaLima(fechaDesde));
+  if (fechaHasta) query = query.lte("fecha", finDiaLima(fechaHasta));
 
   const { data: compras, error } = await query;
   if (error || !compras) {

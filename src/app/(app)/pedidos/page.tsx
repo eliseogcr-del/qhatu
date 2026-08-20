@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha, hoyLima } from "@/lib/fecha";
+import { formatFecha, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { Plus, FileDown, Search, Eye, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import {
@@ -35,8 +35,8 @@ export default async function PedidosPage({
     .order("fecha", { ascending: false });
 
   if (q) query = query.ilike("clientes.nombre", `%${q}%`);
-  if (desdeEfectivo) query = query.gte("fecha", desdeEfectivo);
-  if (hastaEfectivo) query = query.lte("fecha", `${hastaEfectivo}T23:59:59`);
+  if (desdeEfectivo) query = query.gte("fecha", inicioDiaLima(desdeEfectivo));
+  if (hastaEfectivo) query = query.lte("fecha", finDiaLima(hastaEfectivo));
   if (estado) query = query.eq("estado", estado);
 
   const { data: pedidos, error } = await query;

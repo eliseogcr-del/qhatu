@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
 type Fila = {
   almacenId: string;
@@ -52,8 +53,8 @@ export default async function ReporteTrasladosPage({
       "merma",
     ]);
 
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("fecha", inicioDiaLima(desde));
+  if (hasta) query = query.lte("fecha", finDiaLima(hasta));
   if (almacen_id) query = query.eq("almacen_id", almacen_id);
 
   const { data: movimientos, error } = await query;

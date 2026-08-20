@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
 type Fila = {
   almacenId: string;
@@ -28,8 +29,8 @@ export default async function ReporteVendedoresPage({
     .from("ventas")
     .select("id, total, fecha, almacen_id, almacenes(nombre)")
     .neq("estado", "anulada");
-  if (desde) ventasQuery = ventasQuery.gte("fecha", desde);
-  if (hasta) ventasQuery = ventasQuery.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(desde));
+  if (hasta) ventasQuery = ventasQuery.lte("fecha", finDiaLima(hasta));
   const { data: ventas, error } = await ventasQuery;
 
   const ventaIds = (ventas ?? []).map((v) => v.id);

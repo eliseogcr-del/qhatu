@@ -19,3 +19,22 @@ export function formatFechaHora(fecha: string | Date): string {
 export function hoyLima(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: ZONA_HORARIA });
 }
+
+// Perú no tiene horario de verano, así que su offset es siempre fijo.
+const OFFSET_LIMA = "-05:00";
+
+// Los filtros de fecha (<input type="date">) entregan un día calendario
+// "ingenuo", sin hora ni zona horaria. Al compararlo contra una columna
+// timestamptz sin anclarlo a Lima explícitamente, Postgres usa la zona de
+// sesión (UTC) — un registro de la noche peruana (después de las 7pm) cae
+// en el día calendario UTC siguiente y desaparece de un filtro "hoy" o de
+// un rango que debería incluirlo. Estas dos funciones fijan el límite
+// inferior/superior del día calendario de Lima en UTC explícito para que
+// la comparación sea correcta sin importar la zona de la sesión de la BD.
+export function inicioDiaLima(fecha: string): string {
+  return `${fecha}T00:00:00${OFFSET_LIMA}`;
+}
+
+export function finDiaLima(fecha: string): string {
+  return `${fecha}T23:59:59.999${OFFSET_LIMA}`;
+}

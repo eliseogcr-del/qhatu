@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { FileText, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_COMPROBANTE_LABEL, enlacePdfComprobante } from "@/lib/comprobante-links";
@@ -29,8 +29,8 @@ export default async function ComprobantesPage({
     .order("fecha_emision", { ascending: false });
 
   if (q) query = query.ilike("ventas.clientes.nombre", `%${q}%`);
-  if (desde) query = query.gte("fecha_emision", desde);
-  if (hasta) query = query.lte("fecha_emision", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("fecha_emision", inicioDiaLima(desde));
+  if (hasta) query = query.lte("fecha_emision", finDiaLima(hasta));
   if (estado) query = query.eq("estado", estado);
 
   const { data: comprobantes, error } = await query;

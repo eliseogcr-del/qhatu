@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
 export default async function ReportesPage({
   searchParams,
@@ -10,20 +11,20 @@ export default async function ReportesPage({
   const supabase = await createClient();
 
   let ventasQuery = supabase.from("ventas").select("id, total, fecha");
-  if (desde) ventasQuery = ventasQuery.gte("fecha", desde);
-  if (hasta) ventasQuery = ventasQuery.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(desde));
+  if (hasta) ventasQuery = ventasQuery.lte("fecha", finDiaLima(hasta));
   const { data: ventas } = await ventasQuery;
 
   let cobranzasQuery = supabase.from("cobranzas").select("id, monto, fecha");
-  if (desde) cobranzasQuery = cobranzasQuery.gte("fecha", desde);
-  if (hasta) cobranzasQuery = cobranzasQuery.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) cobranzasQuery = cobranzasQuery.gte("fecha", inicioDiaLima(desde));
+  if (hasta) cobranzasQuery = cobranzasQuery.lte("fecha", finDiaLima(hasta));
   const { data: cobranzas } = await cobranzasQuery;
 
   let devolucionesQuery = supabase
     .from("devoluciones")
     .select("cantidad, fecha, venta_detalle:venta_detalle_id(precio_unitario)");
-  if (desde) devolucionesQuery = devolucionesQuery.gte("fecha", desde);
-  if (hasta) devolucionesQuery = devolucionesQuery.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) devolucionesQuery = devolucionesQuery.gte("fecha", inicioDiaLima(desde));
+  if (hasta) devolucionesQuery = devolucionesQuery.lte("fecha", finDiaLima(hasta));
   const { data: devoluciones } = await devolucionesQuery;
 
   const totalVendido = (ventas ?? []).reduce((acc, v) => acc + v.total, 0);

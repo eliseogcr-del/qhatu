@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 
@@ -35,8 +35,8 @@ export default async function DiferenciasPedidoVentaPage({
     .order("fecha", { ascending: false })
     .limit(300);
 
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("fecha", inicioDiaLima(desde));
+  if (hasta) query = query.lte("fecha", finDiaLima(hasta));
 
   const { data: ventas, error } = await query;
 

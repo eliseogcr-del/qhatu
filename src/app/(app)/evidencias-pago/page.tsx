@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { FolderDown, ShieldCheck, Trash2, ImageOff, Search, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
@@ -33,8 +33,8 @@ export default async function EvidenciasPagoPage({
     .order("created_at", { ascending: false });
 
   if (q) query = query.ilike("cobranzas.pedidos.clientes.nombre", `%${q}%`);
-  if (desde) query = query.gte("cobranzas.fecha", desde);
-  if (hasta) query = query.lte("cobranzas.fecha", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("cobranzas.fecha", inicioDiaLima(desde));
+  if (hasta) query = query.lte("cobranzas.fecha", finDiaLima(hasta));
 
   const hayFiltros = !!(q || desde || hasta);
 

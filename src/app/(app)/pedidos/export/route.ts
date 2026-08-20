@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { ESTADO_LABEL, canalLabel, type EstadoPedido } from "@/lib/pedido-estados";
 import { buildExcelText } from "@/lib/csv";
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
     )
     .order("fecha", { ascending: false });
   if (q) query = query.ilike("clientes.nombre", `%${q}%`);
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("fecha", inicioDiaLima(desde));
+  if (hasta) query = query.lte("fecha", finDiaLima(hasta));
   if (estado) query = query.eq("estado", estado);
 
   const { data: pedidos } = await query;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFechaHora } from "@/lib/fecha";
+import { formatFechaHora, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { ShieldCheck, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
@@ -28,8 +28,8 @@ export default async function AuditoriaPage({
     .order("fecha", { ascending: false })
     .limit(300);
 
-  if (desde) query = query.gte("fecha", desde);
-  if (hasta) query = query.lte("fecha", `${hasta}T23:59:59`);
+  if (desde) query = query.gte("fecha", inicioDiaLima(desde));
+  if (hasta) query = query.lte("fecha", finDiaLima(hasta));
   if (entidad) query = query.eq("entidad", entidad);
   if (tipo) query = query.eq("tipo_movimiento", tipo);
 
