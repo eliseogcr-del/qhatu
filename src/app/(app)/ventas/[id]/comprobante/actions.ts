@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { construirItemsYTotales, fechaDeHoy } from "@/utils/supabase/comprobantes";
+import {
+  construirItemsYTotales,
+  fechaDeHoy,
+  crearNotaVentaAutomatica,
+} from "@/utils/supabase/comprobantes";
 import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 import {
   llamarNubefact,
@@ -370,40 +374,15 @@ export async function emitirNotaVenta(ventaId: string) {
     );
   }
 
-  const { data: serieConfig } = await supabase
-    .from("series_nota_venta")
-    .select("serie")
-    .eq("almacen_id", venta.almacen_id)
-    .maybeSingle();
-
-  const serie = serieConfig?.serie ?? "NV01";
-
-  const { data: ultimo } = await supabase
-    .from("comprobantes")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("tipo_comprobante", TIPO_NOTA_VENTA)
-    .eq("almacen_id", venta.almacen_id)
-    .eq("serie", serie)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const numero = (ultimo?.numero ?? 0) + 1;
-
-  const { error } = await supabase.from("comprobantes").insert({
-    empresa_id: empresaId,
-    venta_id: ventaId,
-    almacen_id: venta.almacen_id,
-    tipo_comprobante: TIPO_NOTA_VENTA,
-    serie,
-    numero,
-    estado: "emitido",
-    usuario_id: userId,
+  const { error } = await crearNotaVentaAutomatica(supabase, {
+    empresaId,
+    userId,
+    ventaId,
+    almacenId: venta.almacen_id,
   });
 
   if (error) {
-    redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error)}`);
   }
 
   revalidatePath(`/ventas/${ventaId}`);

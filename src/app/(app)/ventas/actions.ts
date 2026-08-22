@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
+import { crearNotaVentaAutomatica } from "@/utils/supabase/comprobantes";
 
 export async function createVenta(formData: FormData) {
   const supabase = await createClient();
@@ -118,6 +119,16 @@ export async function createVenta(formData: FormData) {
       `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent(ventaError?.message ?? "No se pudo registrar la venta.")}`,
     );
   }
+
+  // Toda venta nace con su nota de venta (documento interno, numerado por
+  // almacén) — nunca depende de que alguien la pida a mano. Si esto
+  // fallara por algún motivo, la venta ya quedó guardada de todas formas.
+  await crearNotaVentaAutomatica(supabase, {
+    empresaId,
+    userId,
+    ventaId: venta.id,
+    almacenId: pedido.almacen_id,
+  });
 
   // Un solo insert masivo en vez de uno por línea.
   const { data: ventaDetalleRows } = await supabase
@@ -338,6 +349,15 @@ export async function createVentaDirecta(formData: FormData) {
       `/ventas/directa?error=${encodeURIComponent(ventaError?.message ?? "No se pudo registrar la venta.")}`,
     );
   }
+
+  // Toda venta nace con su nota de venta (documento interno, numerado por
+  // almacén) — nunca depende de que alguien la pida a mano.
+  await crearNotaVentaAutomatica(supabase, {
+    empresaId,
+    userId,
+    ventaId: venta.id,
+    almacenId,
+  });
 
   const { data: ventaDetalleRows } = await supabase
     .from("venta_detalle")

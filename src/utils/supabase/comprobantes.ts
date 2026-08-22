@@ -1,5 +1,6 @@
 import { createClient } from "./server";
 import type { NubefactItem } from "../nubefact";
+import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 
 const PORCENTAJE_IGV = 0.18;
 
@@ -41,6 +42,53 @@ export async function construirItemsYTotales(
   const total = Math.round((totalGravada + totalIgv) * 100) / 100;
 
   return { items, totalGravada, totalIgv, total };
+}
+
+// La nota de venta ya no depende de que alguien la pida a mano — toda
+// venta debería tener la suya desde el momento en que se registra,
+// numerada correlativamente por almacén (series_nota_venta), igual que
+// antes hacía el botón "Emitir nota de venta". No llama a Nubefact (es
+// un documento interno) y nunca bloquea la creación de la venta: si algo
+// sale mal acá, la venta ya quedó guardada de todas formas.
+export async function crearNotaVentaAutomatica(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: { empresaId: string; userId: string; ventaId: string; almacenId: string },
+): Promise<{ error: string | null }> {
+  const { empresaId, userId, ventaId, almacenId } = params;
+
+  const { data: serieConfig } = await supabase
+    .from("series_nota_venta")
+    .select("serie")
+    .eq("almacen_id", almacenId)
+    .maybeSingle();
+
+  const serie = serieConfig?.serie ?? "NV01";
+
+  const { data: ultimo } = await supabase
+    .from("comprobantes")
+    .select("numero")
+    .eq("empresa_id", empresaId)
+    .eq("tipo_comprobante", TIPO_NOTA_VENTA)
+    .eq("almacen_id", almacenId)
+    .eq("serie", serie)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const numero = (ultimo?.numero ?? 0) + 1;
+
+  const { error } = await supabase.from("comprobantes").insert({
+    empresa_id: empresaId,
+    venta_id: ventaId,
+    almacen_id: almacenId,
+    tipo_comprobante: TIPO_NOTA_VENTA,
+    serie,
+    numero,
+    estado: "emitido",
+    usuario_id: userId,
+  });
+
+  return { error: error?.message ?? null };
 }
 
 export function fechaDeHoy() {
