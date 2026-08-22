@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { Search, X } from "lucide-react";
+import { Search, X, PackageMinus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
@@ -68,7 +68,16 @@ export default async function KardexPage({
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
-        <h1 className="mb-6 text-2xl font-semibold text-gray-900">Kardex</h1>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-gray-900">Kardex</h1>
+          <Link
+            href="/kardex/merma"
+            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          >
+            <PackageMinus size={16} />
+            Registrar merma
+          </Link>
+        </div>
         <p className="mb-4 text-sm text-gray-500">
           Registro inmutable de movimientos de stock (últimos 200).
         </p>
