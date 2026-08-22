@@ -19,7 +19,7 @@ export default async function EditarVentaPage({
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, moneda, estado, clientes(nombre)")
+    .select("id, total, moneda, estado, almacen_id, clientes(nombre)")
     .eq("id", id)
     .single();
 
@@ -40,7 +40,7 @@ export default async function EditarVentaPage({
 
   const cobrado = Math.round((venta.total - saldo) * 100) / 100;
 
-  const [{ data: detalle }, { data: productos }] = await Promise.all([
+  const [{ data: detalle }, { data: productos }, { data: inventario }] = await Promise.all([
     supabase
       .from("venta_detalle")
       .select("id, producto_id, cantidad, cantidad_entregada, precio_unitario, productos(nombre)")
@@ -50,7 +50,15 @@ export default async function EditarVentaPage({
       .select("id, nombre, precio_venta")
       .eq("activo", true)
       .order("nombre"),
+    supabase
+      .from("inventario")
+      .select("producto_id, stock_actual")
+      .eq("almacen_id", venta.almacen_id),
   ]);
+
+  const stockPorProducto = Object.fromEntries(
+    (inventario ?? []).map((i) => [i.producto_id, i.stock_actual]),
+  );
 
   const lineasIniciales = (detalle ?? []).map((d) => ({
     id: d.id,
@@ -92,6 +100,7 @@ export default async function EditarVentaPage({
             ventaId={id}
             lineasIniciales={lineasIniciales}
             productos={productos ?? []}
+            stockPorProducto={stockPorProducto}
             cobrado={cobrado}
             moneda={venta.moneda}
           />

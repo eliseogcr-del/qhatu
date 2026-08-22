@@ -9,8 +9,9 @@ import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA, enlacePdfComprobante } from "@/lib/comprobante-links";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
+import ReemplazarEvidenciaCobranza from "@/components/ReemplazarEvidenciaCobranza";
 import { anularVenta } from "./actions";
-import { anularCobranza } from "../../cobranzas/actions";
+import { anularCobranza, actualizarEvidenciaCobranza } from "../../cobranzas/actions";
 import {
   emitirComprobante,
   anularComprobante,
@@ -54,6 +55,25 @@ export default async function VentaDetallePage({
       .eq("venta_id", id)
       .order("created_at", { ascending: false }),
   ]);
+
+  const cobranzaIds = (cobranzas ?? []).map((c) => c.id);
+  const { data: adjuntos } =
+    cobranzaIds.length > 0
+      ? await supabase
+          .from("cobranza_adjuntos")
+          .select("cobranza_id, storage_path")
+          .in("cobranza_id", cobranzaIds)
+      : { data: [] as { cobranza_id: string; storage_path: string | null }[] };
+
+  const signedUrlPorCobranza = new Map<string, string>();
+  for (const a of adjuntos ?? []) {
+    if (!a.storage_path) continue;
+    const { data } = await supabase.storage
+      .from("cobranza-adjuntos")
+      .createSignedUrl(a.storage_path, 60 * 60);
+    if (data?.signedUrl) signedUrlPorCobranza.set(a.cobranza_id, data.signedUrl);
+  }
+  const tieneEvidenciaPorCobranza = new Set((adjuntos ?? []).map((a) => a.cobranza_id));
 
   const detalleIds = (detalle ?? []).map((d) => d.id);
   const { data: devoluciones } =
@@ -492,6 +512,7 @@ export default async function VentaDetallePage({
                   <th className="py-2 font-bold">Método</th>
                   <th className="py-2 font-bold">Referencia</th>
                   <th className="py-2 font-bold">Estado</th>
+                  <th className="py-2 font-bold">Evidencia</th>
                   <th className="py-2" />
                 </tr>
               </thead>
@@ -521,6 +542,20 @@ export default async function VentaDetallePage({
                       >
                         {c.estado === "anulada" ? "Anulada" : "Activa"}
                       </span>
+                    </td>
+                    <td className="py-2">
+                      {c.estado === "activa" && (
+                        <ReemplazarEvidenciaCobranza
+                          action={actualizarEvidenciaCobranza.bind(
+                            null,
+                            c.id,
+                            id,
+                            cliente?.nombre ?? "Cliente",
+                          )}
+                          tieneEvidencia={tieneEvidenciaPorCobranza.has(c.id)}
+                          urlVerEvidencia={signedUrlPorCobranza.get(c.id)}
+                        />
+                      )}
                     </td>
                     <td className="py-2 text-right">
                       {c.estado === "activa" && (

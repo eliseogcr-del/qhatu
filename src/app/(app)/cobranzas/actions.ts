@@ -134,6 +134,88 @@ export async function createCobranza(formData: FormData) {
   redirect(`/pedidos/${pedidoId}`);
 }
 
+// Sube o reemplaza la evidencia de pago de un cobro ya registrado. A
+// diferencia de crear el cobro (que acepta varias fotos), acá se trata
+// como una sola evidencia vigente por cobro: si ya había una, se borra
+// (archivo + fila) antes de subir la nueva, en vez de acumular.
+export async function actualizarEvidenciaCobranza(
+  cobranzaId: string,
+  ventaId: string,
+  clienteNombre: string,
+  formData: FormData,
+) {
+  const supabase = await createClient();
+  const { empresaId } = await getEmpresaSession(supabase);
+
+  const archivo = formData.get("evidencia");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent("Selecciona una imagen para subir.")}`);
+  }
+
+  const { data: cobranza } = await supabase
+    .from("cobranzas")
+    .select("id, fecha")
+    .eq("id", cobranzaId)
+    .single();
+
+  if (!cobranza) redirect(`/ventas/${ventaId}`);
+
+  const { data: anteriores } = await supabase
+    .from("cobranza_adjuntos")
+    .select("id, storage_path")
+    .eq("cobranza_id", cobranzaId);
+
+  if (anteriores && anteriores.length > 0) {
+    const paths = anteriores
+      .map((a) => a.storage_path)
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      await supabase.storage.from("cobranza-adjuntos").remove(paths);
+    }
+    await supabase.from("cobranza_adjuntos").delete().eq("cobranza_id", cobranzaId);
+  }
+
+  const { data: bytesUsados } = await supabase.rpc("total_storage_usado_bytes");
+  if ((bytesUsados ?? 0) >= UMBRAL_BLOQUEO_BYTES) {
+    redirect(
+      `/ventas/${ventaId}?error=${encodeURIComponent("Se alcanzó el límite de almacenamiento de imágenes. Un administrador debe liberar espacio antes de poder subir otra.")}`,
+    );
+  }
+
+  const codigoCobranza = cobranzaId.slice(0, 8).toUpperCase();
+  const fecha = cobranza.fecha.slice(0, 10);
+  const extension = archivo.name.split(".").pop() ?? "jpg";
+  const nombreArchivo = buildNombreArchivoCobranza({
+    codigoCobranza,
+    clienteNombre,
+    fecha,
+    correlativo: 1,
+    extension,
+  });
+  const path = `${empresaId}/${cobranzaId}/${nombreArchivo}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("cobranza-adjuntos")
+    .upload(path, archivo);
+
+  if (uploadError) {
+    redirect(
+      `/ventas/${ventaId}?error=${encodeURIComponent(`No se pudo subir la imagen: ${uploadError.message}`)}`,
+    );
+  }
+
+  await supabase.from("cobranza_adjuntos").insert({
+    empresa_id: empresaId,
+    cobranza_id: cobranzaId,
+    nombre_archivo: nombreArchivo,
+    storage_path: path,
+    tamano_bytes: archivo.size,
+  });
+
+  revalidatePath(`/ventas/${ventaId}`);
+  revalidatePath("/evidencias-pago");
+}
+
 // Un cobro nunca se borra — anularlo lo excluye del saldo cobrado pero
 // conserva el registro, y queda auditado quién lo anuló y cuándo.
 export async function anularCobranza(cobranzaId: string, redirectTo: string) {
