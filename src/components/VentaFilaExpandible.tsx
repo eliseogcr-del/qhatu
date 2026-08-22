@@ -5,6 +5,7 @@ import { formatFecha } from "@/lib/fecha";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
+import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
 import type { VentaConSaldo } from "@/utils/supabase/ventas";
 
 export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo }) {
@@ -25,8 +26,13 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
             {abierta ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
         </td>
-        <td className="px-4 py-3 font-mono text-xs text-gray-500">
-          {venta.id.slice(0, 8).toUpperCase()}
+        <td className="px-4 py-3 text-gray-600">
+          {venta.comprobante_tipo != null
+            ? (TIPO_COMPROBANTE_LABEL[venta.comprobante_tipo] ?? "—")
+            : "—"}
+        </td>
+        <td className="px-4 py-3 font-medium text-gray-900">
+          {venta.comprobante_numero ?? "—"}
         </td>
         <td className="px-4 py-3 font-medium text-gray-900">
           {venta.cliente_nombre ?? "—"}
@@ -75,7 +81,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
       {abierta && tienePagos && (
         <tr className="border-b border-gray-100 bg-gray-50">
           <td />
-          <td colSpan={9} className="px-4 py-3">
+          <td colSpan={10} className="px-4 py-3">
             <table className="w-full text-left text-xs">
               <thead className="text-gray-400">
                 <tr>

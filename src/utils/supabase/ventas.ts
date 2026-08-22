@@ -1,5 +1,6 @@
 import { createClient } from "./server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 
 export type PagoDetalle = {
   fecha: string;
@@ -19,6 +20,11 @@ export type VentaConSaldo = {
   cobrado: number;
   saldo: number;
   pagos: PagoDetalle[];
+  // El comprobante "real" emitido para esta venta — factura/boleta si hay
+  // una, si no la nota de venta (documento interno). null si aún no se
+  // emitió ninguno.
+  comprobante_tipo: number | null;
+  comprobante_numero: string | null;
 };
 
 export type VentasFiltro = {
@@ -100,8 +106,33 @@ export async function fetchVentasConSaldo(
     pagosPorVenta.set(c.venta_id, lista);
   }
 
+  const { data: comprobantes } =
+    ventaIds.length > 0
+      ? await supabase
+          .from("comprobantes")
+          .select("venta_id, tipo_comprobante, serie, numero")
+          .in("venta_id", ventaIds)
+          .eq("estado", "emitido")
+      : { data: [] as { venta_id: string; tipo_comprobante: number; serie: string; numero: number }[] };
+
+  // Si hay varios comprobantes emitidos para la misma venta (ej. nota de
+  // venta + boleta), la factura/boleta manda sobre la nota de venta — es
+  // el documento "real" ante SUNAT.
+  const comprobantePorVenta = new Map<string, { tipo: number; serie: string; numero: number }>();
+  for (const c of comprobantes ?? []) {
+    const actual = comprobantePorVenta.get(c.venta_id);
+    if (!actual || (actual.tipo === TIPO_NOTA_VENTA && c.tipo_comprobante !== TIPO_NOTA_VENTA)) {
+      comprobantePorVenta.set(c.venta_id, {
+        tipo: c.tipo_comprobante,
+        serie: c.serie,
+        numero: c.numero,
+      });
+    }
+  }
+
   const resultado = ventas.map((v) => {
     const cobrado = cobradoPorVenta.get(v.id) ?? 0;
+    const comprobante = comprobantePorVenta.get(v.id);
     return {
       id: v.id,
       fecha: v.fecha,
@@ -115,6 +146,8 @@ export async function fetchVentasConSaldo(
       cobrado,
       saldo: Math.round((v.total - cobrado) * 100) / 100,
       pagos: pagosPorVenta.get(v.id) ?? [],
+      comprobante_tipo: comprobante?.tipo ?? null,
+      comprobante_numero: comprobante ? `${comprobante.serie}-${comprobante.numero}` : null,
     };
   });
 
