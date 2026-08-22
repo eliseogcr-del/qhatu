@@ -3,6 +3,7 @@ import { formatFecha, formatFechaHora } from "@/lib/fecha";
 import { Pencil, Ban, XCircle, FileText, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_DEVOLUCION_LABEL, type TipoDevolucion } from "@/lib/devolucion-tipos";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA, enlacePdfComprobante } from "@/lib/comprobante-links";
@@ -27,6 +28,7 @@ export default async function VentaDetallePage({
   const { id } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
+  const { rol } = await getEmpresaSession(supabase);
 
   const { data: venta } = await supabase
     .from("ventas")
@@ -114,7 +116,7 @@ export default async function VentaDetallePage({
                 Editar venta
               </Link>
             )}
-            {!anulada && (
+            {!anulada && rol === "admin" && (
               <ConfirmFormButton
                 action={anularVenta.bind(null, id)}
                 confirmMessage="¿Seguro que quieres anular esta venta? Quedará registrado en el log de auditoría."

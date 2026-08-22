@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession } from "@/utils/supabase/session";
+import { getEmpresaSession, requireAdmin } from "@/utils/supabase/session";
 import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
@@ -339,7 +339,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 // sobre una venta que deja de existir.
 export async function anularVenta(ventaId: string) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const { userId, empresaId } = await requireAdmin(supabase);
 
   const { data: venta } = await supabase
     .from("ventas")
