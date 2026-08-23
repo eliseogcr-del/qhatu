@@ -38,13 +38,16 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   const { data: detalleOriginal } = await supabase
     .from("venta_detalle")
-    .select("id, producto_id, cantidad, cantidad_entregada, precio_unitario, productos(nombre)")
+    .select(
+      "id, producto_id, cantidad, cantidad_entregada, precio_unitario, unidad_medida_id, productos(nombre)",
+    )
     .eq("venta_id", ventaId);
 
   const lineaIds = formData.getAll("linea_id[]").map(String);
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
+  const unidadesMedidaIds = formData.getAll("unidad_medida_id[]").map(String);
   const tiposAjuste = formData.getAll("tipo_ajuste[]").map(String);
   const detallesAjuste = formData.getAll("detalle_ajuste[]").map(String);
 
@@ -53,9 +56,28 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     producto_id: productoIds[i],
     cantidad: cantidades[i],
     precio_unitario: precios[i],
+    unidad_medida_id: unidadesMedidaIds[i] || null,
     tipoAjuste: tiposAjuste[i] || "",
     detalleAjuste: detallesAjuste[i] || "",
   }));
+
+  const unidadMedidaIdsInvolucradas = [
+    ...new Set(
+      [
+        ...enviadas.map((l) => l.unidad_medida_id),
+        ...(detalleOriginal ?? []).map((d) => d.unidad_medida_id),
+      ].filter((v): v is string => Boolean(v)),
+    ),
+  ];
+  const { data: unidadesInfo } =
+    unidadMedidaIdsInvolucradas.length > 0
+      ? await supabase.from("unidades_medida").select("id, cantidad").in("id", unidadMedidaIdsInvolucradas)
+      : { data: [] as { id: string; cantidad: number }[] };
+  const factorPorUnidad = new Map(
+    (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
+  );
+  const factorDe = (unidadMedidaId: string | null) =>
+    unidadMedidaId ? (factorPorUnidad.get(unidadMedidaId) ?? 1) : 1;
 
   const productoIdsActivos = enviadas
     .filter((l) => l.producto_id && l.cantidad > 0)
@@ -81,7 +103,8 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     if (!original) return false;
     return (
       original.cantidad_entregada !== l.cantidad ||
-      original.precio_unitario !== l.precio_unitario
+      original.precio_unitario !== l.precio_unitario ||
+      original.unidad_medida_id !== l.unidad_medida_id
     );
   });
 
@@ -144,13 +167,15 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       lineasQueDescuentan.push({
         productoId: linea.producto_id,
         productoNombre: producto.nombre,
-        cantidad: linea.cantidad,
+        cantidad: linea.cantidad * factorDe(linea.unidad_medida_id),
       });
     }
   }
   for (const linea of lineasModificadas) {
     const original = detalleOriginal!.find((d) => d.id === linea.id)!;
-    const delta = Math.round((linea.cantidad - original.cantidad_entregada) * 100) / 100;
+    const baseOriginal = original.cantidad_entregada * factorDe(original.unidad_medida_id);
+    const baseNueva = linea.cantidad * factorDe(linea.unidad_medida_id);
+    const delta = Math.round((baseNueva - baseOriginal) * 100) / 100;
     if (delta > 0) {
       const producto = productosInfo?.find((p) => p.id === linea.producto_id);
       if (producto?.control_inventario) {
@@ -196,7 +221,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         productoId: linea.producto_id,
         almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
-        cantidad: linea.cantidad_entregada,
+        cantidad: linea.cantidad_entregada * factorDe(linea.unidad_medida_id),
         referenciaId: linea.id,
       });
     }
@@ -227,6 +252,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         cantidad: linea.cantidad,
         cantidad_entregada: linea.cantidad,
         precio_unitario: linea.precio_unitario,
+        unidad_medida_id: linea.unidad_medida_id,
         subtotal,
       })
       .select("id")
@@ -239,7 +265,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         productoId: linea.producto_id,
         almacenId: venta.almacen_id,
         tipoMovimiento: "venta",
-        cantidad: -linea.cantidad,
+        cantidad: -(linea.cantidad * factorDe(linea.unidad_medida_id)),
         referenciaId: nuevaLinea?.id ?? null,
       });
     }
@@ -269,6 +295,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       .update({
         cantidad_entregada: linea.cantidad,
         precio_unitario: linea.precio_unitario,
+        unidad_medida_id: linea.unidad_medida_id,
         subtotal,
       })
       .eq("id", linea.id);
@@ -282,7 +309,9 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     const producto = productosInfo?.find((p) => p.id === linea.producto_id);
     const productoNombre =
       (original.productos as unknown as { nombre: string } | null)?.nombre ?? null;
-    const deltaCantidad = linea.cantidad - original.cantidad_entregada;
+    const baseOriginal = original.cantidad_entregada * factorDe(original.unidad_medida_id);
+    const baseNueva = linea.cantidad * factorDe(linea.unidad_medida_id);
+    const deltaBase = Math.round((baseNueva - baseOriginal) * 100) / 100;
 
     // Si la nueva cantidad quedó por debajo de lo pedido, el motivo ya se
     // validó arriba — acá solo se arma el texto para dejarlo en el
@@ -294,12 +323,12 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         }`
       : null;
 
-    if (producto?.control_inventario && deltaCantidad !== 0) {
+    if (producto?.control_inventario && deltaBase !== 0) {
       movimientosKardex.push({
         productoId: linea.producto_id,
         almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
-        cantidad: -deltaCantidad,
+        cantidad: -deltaBase,
         referenciaId: linea.id,
         detalle: motivoTexto,
       });
@@ -317,6 +346,8 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       precioUnitario: linea.precio_unitario,
       monto: subtotal,
       detalle: `Cantidad: ${original.cantidad_entregada} → ${linea.cantidad}. Precio unitario: ${original.precio_unitario} → ${linea.precio_unitario}.${
+        original.unidad_medida_id !== linea.unidad_medida_id ? " Unidad de medida modificada." : ""
+      }${
         motivoTexto ? ` Motivo: ${motivoTexto}.` : ""
       }`,
     });
@@ -369,8 +400,21 @@ export async function anularVenta(ventaId: string) {
 
   const { data: detalle } = await supabase
     .from("venta_detalle")
-    .select("id, producto_id, cantidad_entregada, productos(control_inventario)")
+    .select(
+      "id, producto_id, cantidad_entregada, unidad_medida_id, productos(control_inventario)",
+    )
     .eq("venta_id", ventaId);
+
+  const unidadMedidaIds = [
+    ...new Set((detalle ?? []).map((d) => d.unidad_medida_id).filter(Boolean)),
+  ];
+  const { data: unidadesInfo } =
+    unidadMedidaIds.length > 0
+      ? await supabase.from("unidades_medida").select("id, cantidad").in("id", unidadMedidaIds as string[])
+      : { data: [] as { id: string; cantidad: number }[] };
+  const factorPorUnidad = new Map(
+    (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
+  );
 
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
   for (const linea of detalle ?? []) {
@@ -379,11 +423,14 @@ export async function anularVenta(ventaId: string) {
     )?.control_inventario;
 
     if (llevaInventario && linea.cantidad_entregada > 0) {
+      const factor = linea.unidad_medida_id
+        ? (factorPorUnidad.get(linea.unidad_medida_id) ?? 1)
+        : 1;
       movimientosKardex.push({
         productoId: linea.producto_id,
         almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
-        cantidad: linea.cantidad_entregada,
+        cantidad: linea.cantidad_entregada * factor,
         referenciaId: linea.id,
       });
     }

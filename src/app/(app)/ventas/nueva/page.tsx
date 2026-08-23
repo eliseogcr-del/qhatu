@@ -104,20 +104,30 @@ export default async function NuevaVentaPage({
       .single(),
     supabase
       .from("pedido_detalle")
-      .select("id, cantidad, precio_unitario, productos(nombre)")
+      .select(
+        "id, cantidad, precio_unitario, productos(nombre), unidades_medida(descripcion, cantidad)",
+      )
       .eq("pedido_id", pedidoId),
   ]);
 
   if (!pedido) redirect("/ventas/nueva");
 
   const cliente = pedido.clientes as unknown as { nombre: string } | null;
-  const lineasPedido = (detalle ?? []).map((d) => ({
-    pedido_detalle_id: d.id,
-    producto_nombre:
-      (d.productos as unknown as { nombre: string } | null)?.nombre ?? "—",
-    cantidad_pedida: d.cantidad,
-    precio_unitario: d.precio_unitario,
-  }));
+  const lineasPedido = (detalle ?? []).map((d) => {
+    const unidad = d.unidades_medida as unknown as {
+      descripcion: string;
+      cantidad: number;
+    } | null;
+    return {
+      pedido_detalle_id: d.id,
+      producto_nombre:
+        (d.productos as unknown as { nombre: string } | null)?.nombre ?? "—",
+      cantidad_pedida: d.cantidad,
+      precio_unitario: d.precio_unitario,
+      unidad_medida_descripcion: unidad?.descripcion ?? null,
+      factor: unidad?.cantidad ?? 1,
+    };
+  });
 
   return (
     <div className="p-8">

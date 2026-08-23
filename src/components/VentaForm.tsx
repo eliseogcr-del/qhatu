@@ -9,6 +9,8 @@ type LineaPedido = {
   producto_nombre: string;
   cantidad_pedida: number;
   precio_unitario: number;
+  unidad_medida_descripcion: string | null;
+  factor: number;
 };
 
 type LineaVenta = LineaPedido & {
@@ -130,7 +132,11 @@ export default function VentaForm({
                 <p className="mb-3 font-medium text-gray-900">
                   {linea.producto_nombre}{" "}
                   <span className="font-normal text-gray-500">
-                    (pedido: {linea.cantidad_pedida})
+                    (pedido: {linea.cantidad_pedida}
+                    {linea.unidad_medida_descripcion
+                      ? ` ${linea.unidad_medida_descripcion}`
+                      : ""}
+                    )
                   </span>
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -149,6 +155,11 @@ export default function VentaForm({
                       }
                       className={inputClass}
                     />
+                    {linea.factor !== 1 && (
+                      <p className="mt-1 text-xs text-gray-400">
+                        = {linea.cantidad_entregada * linea.factor} unidades
+                      </p>
+                    )}
                   </Field>
                   <Field label="Precio unitario">
                     <input

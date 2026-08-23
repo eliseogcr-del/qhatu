@@ -12,11 +12,14 @@ export default async function NuevoProductoPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const { data: proveedores } = await supabase
-    .from("proveedores")
-    .select("id, nombre")
-    .eq("activo", true)
-    .order("nombre");
+  const [{ data: proveedores }, { data: unidadesMedida }] = await Promise.all([
+    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase
+      .from("unidades_medida")
+      .select("id, descripcion")
+      .eq("activo", true)
+      .order("descripcion"),
+  ]);
 
   return (
     <div className="p-8">
@@ -40,6 +43,7 @@ export default async function NuevoProductoPage({
             error={error}
             submitLabel="Crear producto"
             proveedores={proveedores ?? []}
+            unidadesMedida={unidadesMedida ?? []}
           />
         </div>
       </div>

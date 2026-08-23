@@ -13,8 +13,13 @@ export default async function VentaDirectaPage({
 
   const supabase = await createClient();
   const { empresaId, almacenId } = await getEmpresaSession(supabase);
-  const [{ data: clientes }, { data: productos }, { data: almacenes }, { data: inventario }] =
-    await Promise.all([
+  const [
+    { data: clientes },
+    { data: productos },
+    { data: almacenes },
+    { data: inventario },
+    { data: unidadesMedida },
+  ] = await Promise.all([
       supabase
         .from("clientes")
         .select("id, nombre")
@@ -22,7 +27,9 @@ export default async function VentaDirectaPage({
         .order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, precio_venta, precio_venta_moneda, control_inventario")
+        .select(
+          "id, nombre, precio_venta, precio_venta_moneda, control_inventario, unidad_medida_id",
+        )
         .eq("activo", true)
         .order("nombre"),
       almacenId
@@ -34,6 +41,11 @@ export default async function VentaDirectaPage({
             .eq("activo", true)
             .order("nombre"),
       supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
+      supabase
+        .from("unidades_medida")
+        .select("id, descripcion, cantidad")
+        .eq("activo", true)
+        .order("descripcion"),
     ]);
 
   const stockPorAlmacen = Object.fromEntries(
@@ -65,6 +77,7 @@ export default async function VentaDirectaPage({
             error={error}
             clientes={clientes ?? []}
             productos={productos ?? []}
+            unidadesMedida={unidadesMedida ?? []}
             almacenes={almacenes ?? undefined}
             stockPorAlmacen={stockPorAlmacen}
             almacenSesion={almacenId}

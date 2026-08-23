@@ -36,7 +36,7 @@ export async function createVenta(formData: FormData) {
         .single(),
       supabase
         .from("pedido_detalle")
-        .select("id, producto_id, cantidad")
+        .select("id, producto_id, cantidad, unidad_medida_id")
         .in("id", detalleIds),
     ]);
 
@@ -46,6 +46,17 @@ export async function createVenta(formData: FormData) {
     );
   }
 
+  const unidadMedidaIdsPedido = [
+    ...new Set((pedidoDetalle ?? []).map((d) => d.unidad_medida_id).filter(Boolean)),
+  ];
+  const { data: unidadesInfo } = await supabase
+    .from("unidades_medida")
+    .select("id, cantidad")
+    .in("id", unidadMedidaIdsPedido as string[]);
+  const factorPorUnidad = new Map(
+    (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
+  );
+
   const lineas = detalleIds
     .map((detalleId, i) => {
       const original = pedidoDetalle?.find((d) => d.id === detalleId);
@@ -53,15 +64,19 @@ export async function createVenta(formData: FormData) {
 
       const cantidadEntregada = cantidadesEntregadas[i] ?? 0;
       const precioUnitario = precios[i] ?? 0;
+      const factor = factorPorUnidad.get(original.unidad_medida_id as string) ?? 1;
 
       return {
         producto_id: original.producto_id as string,
         cantidad: original.cantidad as number,
         cantidad_entregada: cantidadEntregada,
+        cantidad_entregada_base: Math.round(cantidadEntregada * factor * 100) / 100,
         precio_unitario: precioUnitario,
         subtotal: Math.round(cantidadEntregada * precioUnitario * 100) / 100,
         motivo: motivos[i] || null,
         tipo_devolucion: tiposDevolucion[i] || "otro",
+        unidad_medida_id: original.unidad_medida_id as string | null,
+        factor,
       };
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
@@ -90,7 +105,7 @@ export async function createVenta(formData: FormData) {
     .map((l) => ({
       productoId: l.producto_id,
       productoNombre: productosInfo!.find((p) => p.id === l.producto_id)!.nombre,
-      cantidad: l.cantidad_entregada,
+      cantidad: l.cantidad_entregada_base,
     }));
 
   const errorStock = await validarStockDisponible(supabase, pedido.almacen_id, lineasControladas);
@@ -141,6 +156,7 @@ export async function createVenta(formData: FormData) {
         cantidad_entregada: l.cantidad_entregada,
         precio_unitario: l.precio_unitario,
         subtotal: l.subtotal,
+        unidad_medida_id: l.unidad_medida_id,
       })),
     )
     .select("id");
@@ -181,7 +197,7 @@ export async function createVenta(formData: FormData) {
           productoId: linea.producto_id,
           almacenId: pedido.almacen_id,
           tipoMovimiento: "venta",
-          cantidad: -linea.cantidad_entregada,
+          cantidad: -linea.cantidad_entregada_base,
           referenciaId: ventaDetalleId,
         });
       }
@@ -190,7 +206,7 @@ export async function createVenta(formData: FormData) {
           productoId: linea.producto_id,
           almacenId: pedido.almacen_id,
           tipoMovimiento: "merma",
-          cantidad: -diferencia,
+          cantidad: -Math.round(diferencia * linea.factor * 100) / 100,
           referenciaId: ventaDetalleId,
         });
       }
@@ -249,12 +265,14 @@ export async function createVentaDirecta(formData: FormData) {
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
+  const unidadesMedidaIds = formData.getAll("unidad_medida_id[]").map(String);
 
   const lineasConProducto = productoIds
     .map((producto_id, i) => ({
       producto_id,
       cantidad: cantidades[i],
       precio_unitario: precios[i],
+      unidad_medida_id: unidadesMedidaIds[i] || null,
     }))
     .filter((l) => l.producto_id);
 
@@ -270,9 +288,25 @@ export async function createVentaDirecta(formData: FormData) {
     );
   }
 
+  if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
+    );
+  }
+
+  const { data: unidadesInfo } = await supabase
+    .from("unidades_medida")
+    .select("id, cantidad")
+    .in("id", [...new Set(lineasConProducto.map((l) => l.unidad_medida_id!))]);
+  const factorPorUnidad = new Map(
+    (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
+  );
+
   const lineas = lineasConProducto.map((l) => ({
     ...l,
     subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
+    cantidad_base:
+      Math.round(l.cantidad * (factorPorUnidad.get(l.unidad_medida_id!) ?? 1) * 100) / 100,
   }));
 
   const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
@@ -295,7 +329,7 @@ export async function createVentaDirecta(formData: FormData) {
     .map((l) => ({
       productoId: l.producto_id,
       productoNombre: productosInfo!.find((p) => p.id === l.producto_id)!.nombre,
-      cantidad: l.cantidad,
+      cantidad: l.cantidad_base,
     }));
 
   const errorStock = await validarStockDisponible(supabase, almacenId, lineasControladas);
@@ -327,7 +361,14 @@ export async function createVentaDirecta(formData: FormData) {
 
   const [, { data: venta, error: ventaError }] = await Promise.all([
     supabase.from("pedido_detalle").insert(
-      lineas.map((l) => ({ ...l, pedido_id: pedido.id })),
+      lineas.map((l) => ({
+        producto_id: l.producto_id,
+        cantidad: l.cantidad,
+        precio_unitario: l.precio_unitario,
+        subtotal: l.subtotal,
+        unidad_medida_id: l.unidad_medida_id,
+        pedido_id: pedido.id,
+      })),
     ),
     supabase
       .from("ventas")
@@ -369,6 +410,7 @@ export async function createVentaDirecta(formData: FormData) {
         cantidad_entregada: l.cantidad,
         precio_unitario: l.precio_unitario,
         subtotal: l.subtotal,
+        unidad_medida_id: l.unidad_medida_id,
       })),
     )
     .select("id");
@@ -387,7 +429,7 @@ export async function createVentaDirecta(formData: FormData) {
         productoId: linea.producto_id,
         almacenId,
         tipoMovimiento: "venta",
-        cantidad: -linea.cantidad,
+        cantidad: -linea.cantidad_base,
         referenciaId: ventaDetalleId,
       });
     }

@@ -12,13 +12,16 @@ type Producto = {
   precio_venta: number;
   precio_venta_moneda: string;
   control_inventario: boolean;
+  unidad_medida_id: string | null;
 };
+type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
 type Linea = {
   key: string;
   producto_id: string;
   cantidad: number;
   precio_unitario: number;
+  unidad_medida_id: string;
 };
 
 const inputClass =
@@ -44,7 +47,13 @@ function Field({
 let nextKey = 0;
 function newLinea(): Linea {
   nextKey += 1;
-  return { key: `l${nextKey}`, producto_id: "", cantidad: 1, precio_unitario: 0 };
+  return {
+    key: `l${nextKey}`,
+    producto_id: "",
+    cantidad: 1,
+    precio_unitario: 0,
+    unidad_medida_id: "",
+  };
 }
 
 export default function VentaDirectaForm({
@@ -52,6 +61,7 @@ export default function VentaDirectaForm({
   error,
   clientes,
   productos,
+  unidadesMedida,
   almacenes,
   stockPorAlmacen,
   almacenSesion,
@@ -60,6 +70,7 @@ export default function VentaDirectaForm({
   error?: string;
   clientes: Cliente[];
   productos: Producto[];
+  unidadesMedida: UnidadMedida[];
   // Solo se pasa (con al menos un local) cuando quien registra es admin
   // — un vendedor tiene su almacén fijo y el servidor lo asigna solo.
   almacenes?: { id: string; nombre: string }[];
@@ -104,6 +115,7 @@ export default function VentaDirectaForm({
     updateLinea(key, {
       producto_id: productoId,
       precio_unitario: producto?.precio_venta ?? 0,
+      unidad_medida_id: producto?.unidad_medida_id ?? "",
     });
   };
 
@@ -215,11 +227,16 @@ export default function VentaDirectaForm({
               productoElegido?.control_inventario && almacenSeleccionado
                 ? stockPorAlmacen[`${linea.producto_id}::${almacenSeleccionado}`] ?? 0
                 : null;
+            const unidadSeleccionada = unidadesMedida.find(
+              (u) => u.id === linea.unidad_medida_id,
+            );
+            const factor = unidadSeleccionada?.cantidad ?? 1;
+            const cantidadBase = linea.cantidad * factor;
 
             return (
             <div
               key={linea.key}
-              className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
+              className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_150px_140px_140px_auto]"
             >
               <Field label="Producto">
                 <ProductoCombobox
@@ -234,7 +251,6 @@ export default function VentaDirectaForm({
                   type="number"
                   step="0.01"
                   min="0.01"
-                  max={stockDisponible ?? undefined}
                   name="cantidad[]"
                   value={linea.cantidad || ""}
                   onChange={(e) =>
@@ -244,13 +260,35 @@ export default function VentaDirectaForm({
                   }
                   className={inputClass}
                 />
+                {factor !== 1 && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    = {cantidadBase} unidades
+                  </p>
+                )}
                 {stockDisponible !== null && (
                   <p
-                    className={`mt-1 text-xs ${linea.cantidad > stockDisponible ? "text-red-600" : "text-gray-400"}`}
+                    className={`mt-1 text-xs ${cantidadBase > stockDisponible ? "text-red-600" : "text-gray-400"}`}
                   >
                     Disponible: {stockDisponible}
                   </p>
                 )}
+              </Field>
+              <Field label="Unidad de medida">
+                <select
+                  name="unidad_medida_id[]"
+                  value={linea.unidad_medida_id}
+                  onChange={(e) =>
+                    updateLinea(linea.key, { unidad_medida_id: e.target.value })
+                  }
+                  className={inputClass}
+                >
+                  <option value="">—</option>
+                  {unidadesMedida.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.descripcion}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Precio unitario">
                 <input

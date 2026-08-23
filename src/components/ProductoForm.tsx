@@ -22,6 +22,7 @@ export type ProductoInitialValues = {
   precio_venta: number;
   precio_venta_moneda: string;
   costo_referencial: number | null;
+  unidad_medida_id: string | null;
   activo: boolean;
 };
 
@@ -46,6 +47,7 @@ const emptyValues: ProductoInitialValues = {
   precio_venta: 0,
   precio_venta_moneda: "PEN",
   costo_referencial: null,
+  unidad_medida_id: null,
   activo: true,
 };
 
@@ -75,12 +77,14 @@ export default function ProductoForm({
   error,
   submitLabel,
   proveedores,
+  unidadesMedida,
 }: {
   action: (formData: FormData) => void;
   initialValues?: ProductoInitialValues;
   error?: string;
   submitLabel: string;
   proveedores: { id: string; nombre: string }[];
+  unidadesMedida: { id: string; descripcion: string }[];
 }) {
   const values = initialValues ?? emptyValues;
 
@@ -261,6 +265,22 @@ export default function ProductoForm({
               placeholder="Ej: almacén propio, local del cliente"
               className={inputClass}
             />
+          </Field>
+          <Field label="Unidad de medida">
+            <select
+              name="unidad_medida_id"
+              defaultValue={values.unidad_medida_id ?? ""}
+              className={inputClass}
+            >
+              {unidadesMedida.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.descripcion}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-400">
+              La que se preselecciona al pedir/vender este producto.
+            </p>
           </Field>
           <Field label="Cualidad">
             <input

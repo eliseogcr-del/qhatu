@@ -38,6 +38,7 @@ function productoFromForm(formData: FormData) {
     precio_venta: num("precio_venta") ?? 0,
     precio_venta_moneda: String(formData.get("precio_venta_moneda") ?? "PEN"),
     costo_referencial: num("costo_referencial"),
+    unidad_medida_id: text("unidad_medida_id"),
     activo: formData.get("activo") === "on",
   };
 }
@@ -51,6 +52,9 @@ export async function createProducto(formData: FormData) {
     redirect(
       `/productos/nuevo?error=${encodeURIComponent("El precio de venta debe ser mayor a 0.")}`,
     );
+  }
+  if (!producto.unidad_medida_id) {
+    redirect(`/productos/nuevo?error=${encodeURIComponent("Selecciona la unidad de medida.")}`);
   }
 
   const { error } = await supabase
@@ -73,6 +77,11 @@ export async function updateProducto(id: string, formData: FormData) {
   if (!(producto.precio_venta > 0)) {
     redirect(
       `/productos/${id}/editar?error=${encodeURIComponent("El precio de venta debe ser mayor a 0.")}`,
+    );
+  }
+  if (!producto.unidad_medida_id) {
+    redirect(
+      `/productos/${id}/editar?error=${encodeURIComponent("Selecciona la unidad de medida.")}`,
     );
   }
 

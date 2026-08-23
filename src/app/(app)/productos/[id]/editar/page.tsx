@@ -16,13 +16,18 @@ export default async function EditarProductoPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const [{ data: producto }, { data: proveedores }] = await Promise.all([
+  const [{ data: producto }, { data: proveedores }, { data: unidadesMedida }] = await Promise.all([
     supabase.from("productos").select("*").eq("id", id).single(),
     supabase
       .from("proveedores")
       .select("id, nombre")
       .eq("activo", true)
       .order("nombre"),
+    supabase
+      .from("unidades_medida")
+      .select("id, descripcion")
+      .eq("activo", true)
+      .order("descripcion"),
   ]);
 
   if (!producto) notFound();
@@ -50,6 +55,7 @@ export default async function EditarProductoPage({
             error={error}
             submitLabel="Guardar cambios"
             proveedores={proveedores ?? []}
+            unidadesMedida={unidadesMedida ?? []}
           />
         </div>
       </div>

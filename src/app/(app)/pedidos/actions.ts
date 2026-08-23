@@ -26,12 +26,14 @@ export async function createPedido(formData: FormData) {
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
+  const unidadesMedidaIds = formData.getAll("unidad_medida_id[]").map(String);
 
   const lineasConProducto = productoIds
     .map((producto_id, i) => ({
       producto_id,
       cantidad: cantidades[i],
       precio_unitario: precios[i],
+      unidad_medida_id: unidadesMedidaIds[i] || null,
     }))
     .filter((l) => l.producto_id);
 
@@ -44,6 +46,12 @@ export async function createPedido(formData: FormData) {
   if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
     redirect(
       `/pedidos/nuevo?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+    );
+  }
+
+  if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
+    redirect(
+      `/pedidos/nuevo?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
     );
   }
 

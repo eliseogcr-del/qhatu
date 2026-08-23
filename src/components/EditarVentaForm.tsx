@@ -6,7 +6,13 @@ import SubmitButton from "./SubmitButton";
 import ProductoCombobox from "./ProductoCombobox";
 import { TIPOS_AJUSTE_VENTA, TIPO_AJUSTE_VENTA_LABEL } from "@/lib/ajuste-venta-tipos";
 
-type Producto = { id: string; nombre: string; precio_venta: number };
+type Producto = {
+  id: string;
+  nombre: string;
+  precio_venta: number;
+  unidad_medida_id: string | null;
+};
+type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
 type Linea = {
   key: string;
@@ -16,6 +22,7 @@ type Linea = {
   cantidadPedido: number;
   cantidad: number;
   precio_unitario: number;
+  unidad_medida_id: string;
   esNueva: boolean;
   tipoAjuste: string;
   detalleAjuste: string;
@@ -33,6 +40,7 @@ export default function EditarVentaForm({
   ventaId,
   lineasIniciales,
   productos,
+  unidadesMedida,
   stockPorProducto,
   cobrado,
   moneda,
@@ -47,8 +55,10 @@ export default function EditarVentaForm({
     cantidad_pedido: number;
     cantidad_entregada: number;
     precio_unitario: number;
+    unidad_medida_id: string | null;
   }[];
   productos: Producto[];
+  unidadesMedida: UnidadMedida[];
   // Stock actual del almacén de la venta, por producto — solo informativo
   // (la validación real de stock ya la hace el servidor al guardar).
   stockPorProducto: Record<string, number>;
@@ -64,6 +74,7 @@ export default function EditarVentaForm({
       cantidadPedido: l.cantidad_pedido,
       cantidad: l.cantidad_entregada,
       precio_unitario: l.precio_unitario,
+      unidad_medida_id: l.unidad_medida_id ?? "",
       esNueva: false,
       tipoAjuste: "",
       detalleAjuste: "",
@@ -98,6 +109,7 @@ export default function EditarVentaForm({
     actualizarLinea(key, {
       producto_id: productoId,
       precio_unitario: producto?.precio_venta ?? 0,
+      unidad_medida_id: producto?.unidad_medida_id ?? "",
     });
   };
 
@@ -112,6 +124,7 @@ export default function EditarVentaForm({
         cantidadPedido: 0,
         cantidad: 1,
         precio_unitario: 0,
+        unidad_medida_id: "",
         esNueva: true,
         tipoAjuste: "",
         detalleAjuste: "",
@@ -183,10 +196,16 @@ export default function EditarVentaForm({
       <input type="hidden" name="venta_id" value={ventaId} />
 
       <div className="space-y-3">
-        {lineas.map((linea) => (
+        {lineas.map((linea) => {
+          const unidadSeleccionada = unidadesMedida.find(
+            (u) => u.id === linea.unidad_medida_id,
+          );
+          const factor = unidadSeleccionada?.cantidad ?? 1;
+          const cantidadBase = linea.cantidad * factor;
+          return (
           <div key={linea.key} className="space-y-2">
           <div
-            className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_140px_140px_auto]"
+            className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_150px_140px_140px_auto]"
           >
             <input type="hidden" name="linea_id[]" value={linea.linea_id ?? ""} />
             <input type="hidden" name="tipo_ajuste[]" value={linea.tipoAjuste} />
@@ -230,11 +249,35 @@ export default function EditarVentaForm({
                 }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
+              {factor !== 1 && (
+                <p className="mt-1 text-xs text-gray-400">= {cantidadBase} unidades</p>
+              )}
               {linea.producto_id in stockPorProducto && (
                 <p className="mt-1 text-xs text-gray-400">
                   Disponible: {stockPorProducto[linea.producto_id]}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Unidad de medida
+              </label>
+              <select
+                name="unidad_medida_id[]"
+                value={linea.unidad_medida_id}
+                onChange={(e) =>
+                  actualizarLinea(linea.key, { unidad_medida_id: e.target.value })
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="">—</option>
+                {unidadesMedida.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.descripcion}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -317,7 +360,8 @@ export default function EditarVentaForm({
             </div>
           )}
           </div>
-        ))}
+          );
+        })}
 
         {lineas.length === 0 && (
           <p className="text-sm text-gray-400">

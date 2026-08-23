@@ -40,21 +40,29 @@ export default async function EditarVentaPage({
 
   const cobrado = Math.round((venta.total - saldo) * 100) / 100;
 
-  const [{ data: detalle }, { data: productos }, { data: inventario }] = await Promise.all([
-    supabase
-      .from("venta_detalle")
-      .select("id, producto_id, cantidad, cantidad_entregada, precio_unitario, productos(nombre)")
-      .eq("venta_id", id),
-    supabase
-      .from("productos")
-      .select("id, nombre, precio_venta")
-      .eq("activo", true)
-      .order("nombre"),
-    supabase
-      .from("inventario")
-      .select("producto_id, stock_actual")
-      .eq("almacen_id", venta.almacen_id),
-  ]);
+  const [{ data: detalle }, { data: productos }, { data: inventario }, { data: unidadesMedida }] =
+    await Promise.all([
+      supabase
+        .from("venta_detalle")
+        .select(
+          "id, producto_id, cantidad, cantidad_entregada, precio_unitario, unidad_medida_id, productos(nombre)",
+        )
+        .eq("venta_id", id),
+      supabase
+        .from("productos")
+        .select("id, nombre, precio_venta, unidad_medida_id")
+        .eq("activo", true)
+        .order("nombre"),
+      supabase
+        .from("inventario")
+        .select("producto_id, stock_actual")
+        .eq("almacen_id", venta.almacen_id),
+      supabase
+        .from("unidades_medida")
+        .select("id, descripcion, cantidad")
+        .eq("activo", true)
+        .order("descripcion"),
+    ]);
 
   const stockPorProducto = Object.fromEntries(
     (inventario ?? []).map((i) => [i.producto_id, i.stock_actual]),
@@ -68,6 +76,7 @@ export default async function EditarVentaPage({
     cantidad_pedido: d.cantidad,
     cantidad_entregada: d.cantidad_entregada,
     precio_unitario: d.precio_unitario,
+    unidad_medida_id: d.unidad_medida_id,
   }));
 
   const cliente = venta.clientes as unknown as { nombre: string } | null;
@@ -100,6 +109,7 @@ export default async function EditarVentaPage({
             ventaId={id}
             lineasIniciales={lineasIniciales}
             productos={productos ?? []}
+            unidadesMedida={unidadesMedida ?? []}
             stockPorProducto={stockPorProducto}
             cobrado={cobrado}
             moneda={venta.moneda}

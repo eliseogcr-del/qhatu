@@ -25,6 +25,8 @@ import {
   DatabaseBackup,
   FileText,
   Settings,
+  Ruler,
+  FileSpreadsheet,
 } from "lucide-react";
 
 const GENERAL = {
@@ -39,7 +41,13 @@ const COMERCIAL = {
     { href: "/productos", label: "Productos", icon: Package },
     { href: "/proveedores", label: "Proveedores", icon: Truck },
     { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+    { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet },
   ],
+};
+
+const COMERCIAL_LOGISTICA = {
+  label: "Comercial",
+  items: [{ href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet }],
 };
 
 const LOGISTICA = {
@@ -69,6 +77,8 @@ const ADMINISTRACION = {
   label: "Administración",
   items: [
     { href: "/almacenes", label: "Almacenes", icon: Warehouse },
+    { href: "/unidades-medida", label: "Unidades de medida", icon: Ruler },
+    { href: "/configuracion-cotizaciones", label: "Config. cotizaciones", icon: FileSpreadsheet },
     { href: "/usuarios", label: "Usuarios", icon: UserCog },
     { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
     { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },
@@ -88,7 +98,10 @@ const MIS_REPARTOS = {
 
 const COMERCIAL_VENDEDOR = {
   label: "Comercial",
-  items: [{ href: "/pedidos", label: "Pedidos", icon: ClipboardList }],
+  items: [
+    { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+    { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet },
+  ],
 };
 
 const LOGISTICA_VENDEDOR = {
@@ -111,7 +124,7 @@ const FINANZAS_VENDEDOR = {
 
 function gruposPorRol(rol: string) {
   if (rol === "admin") return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS, ADMINISTRACION];
-  if (rol === "logistica") return [GENERAL, LOGISTICA];
+  if (rol === "logistica") return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
   // vendedor (y cualquier valor no reconocido): solo Pedidos, Abastecimiento
   // en campo (para registrar lo que recibe en ruta) y Ventas.
