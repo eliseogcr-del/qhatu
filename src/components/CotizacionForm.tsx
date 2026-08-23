@@ -101,9 +101,11 @@ export default function CotizacionForm({
     });
   };
 
-  const subtotal = lineas.reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0);
-  const impuestos = Math.round(subtotal * (porcentajeIgv / 100) * 100) / 100;
-  const total = subtotal + impuestos;
+  // El precio unitario ya incluye el impuesto (igual que en Nota de
+  // venta/Boleta) — el impuesto se extrae del total, no se suma encima.
+  const total = lineas.reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0);
+  const subtotal = Math.round((total / (1 + porcentajeIgv / 100)) * 100) / 100;
+  const impuestos = Math.round((total - subtotal) * 100) / 100;
 
   const tieneDuplicados = (() => {
     const vistos = new Set<string>();

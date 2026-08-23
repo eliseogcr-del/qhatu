@@ -58,13 +58,6 @@ export async function createCotizacion(formData: FormData) {
     );
   }
 
-  const lineas = lineasConProducto.map((l) => ({
-    ...l,
-    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
-  }));
-
-  const subtotal = Math.round(lineas.reduce((acc, l) => acc + l.subtotal, 0) * 100) / 100;
-
   const { data: config } = await supabase
     .from("configuracion_cotizaciones")
     .select("numero_inicial, porcentaje_igv")
@@ -74,8 +67,24 @@ export async function createCotizacion(formData: FormData) {
   const numeroInicial = config?.numero_inicial ?? 1;
   const porcentajeIgv = config?.porcentaje_igv ?? 10.5;
 
-  const igv = Math.round(subtotal * (porcentajeIgv / 100) * 100) / 100;
-  const total = Math.round((subtotal + igv) * 100) / 100;
+  // El precio unitario ya incluye el impuesto (igual que en Nota de
+  // venta/Boleta) — el impuesto se extrae del total de cada línea, no se
+  // suma encima de un precio sin impuesto.
+  const lineas = lineasConProducto.map((l) => {
+    const lineaTotal = Math.round(l.cantidad * l.precio_unitario * 100) / 100;
+    const valorUnitario = l.precio_unitario / (1 + porcentajeIgv / 100);
+    const subtotalSinIgv = Math.round(l.cantidad * valorUnitario * 100) / 100;
+    return {
+      ...l,
+      subtotal: lineaTotal,
+      subtotalSinIgv,
+      igvLinea: Math.round((lineaTotal - subtotalSinIgv) * 100) / 100,
+    };
+  });
+
+  const subtotal = Math.round(lineas.reduce((acc, l) => acc + l.subtotalSinIgv, 0) * 100) / 100;
+  const igv = Math.round(lineas.reduce((acc, l) => acc + l.igvLinea, 0) * 100) / 100;
+  const total = Math.round(lineas.reduce((acc, l) => acc + l.subtotal, 0) * 100) / 100;
 
   const { data: ultima } = await supabase
     .from("cotizaciones")
@@ -117,7 +126,14 @@ export async function createCotizacion(formData: FormData) {
   }
 
   const { error: detalleError } = await supabase.from("cotizacion_detalle").insert(
-    lineas.map((l) => ({ ...l, cotizacion_id: cotizacion.id })),
+    lineas.map((l) => ({
+      producto_id: l.producto_id,
+      cantidad: l.cantidad,
+      precio_unitario: l.precio_unitario,
+      unidad_medida_id: l.unidad_medida_id,
+      subtotal: l.subtotal,
+      cotizacion_id: cotizacion.id,
+    })),
   );
 
   if (detalleError) {
