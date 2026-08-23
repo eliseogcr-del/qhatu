@@ -72,3 +72,17 @@ export async function requireLogisticaOAdmin(
   }
   return session;
 }
+
+// Cotizaciones: visible para admin, logística y vendedor — el repartidor
+// no cotiza ni ve el módulo comercial.
+export async function requireComercial(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (!["admin", "logistica", "vendedor"].includes(session.rol)) {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para acceder a esta sección.")}`,
+    );
+  }
+  return session;
+}
