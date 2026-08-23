@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, formatFechaSolo } from "@/lib/fecha";
 import BotonImprimir from "@/components/BotonImprimir";
 
 export default async function CotizacionPdfPage({
@@ -21,7 +21,7 @@ export default async function CotizacionPdfPage({
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
     .select(
-      "numero, fecha, moneda, subtotal, igv, total, porcentaje_igv, condiciones_comerciales, cliente_id, prospecto_nombre, prospecto_ruc, prospecto_telefono, prospecto_correo, clientes(nombre, numero_documento, telefono, correo_electronico), usuarios(nombre), empresas(nombre)",
+      "numero, fecha, moneda, subtotal, igv, total, porcentaje_igv, oferta_valida_hasta, fecha_entrega, lugar_entrega, cliente_id, prospecto_nombre, prospecto_ruc, prospecto_telefono, prospecto_correo, clientes(nombre, numero_documento, telefono, correo_electronico), usuarios(nombre), empresas(nombre)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -144,16 +144,20 @@ export default async function CotizacionPdfPage({
           </div>
         </div>
 
-        {cotizacion.condiciones_comerciales && (
-          <div className="border-t border-gray-200 pt-3">
-            <p className="text-xs font-semibold uppercase text-gray-500">
-              Condiciones comerciales
-            </p>
-            <p className="whitespace-pre-line text-xs text-gray-700">
-              {cotizacion.condiciones_comerciales}
-            </p>
-          </div>
-        )}
+        <div className="border-t border-gray-200 pt-3 text-xs">
+          <p className="mb-1 font-semibold uppercase text-gray-500">Condiciones comerciales</p>
+          <p className="text-gray-700">
+            <span className="font-medium">Oferta válido hasta:</span>{" "}
+            {cotizacion.oferta_valida_hasta ? formatFechaSolo(cotizacion.oferta_valida_hasta) : "—"}
+          </p>
+          <p className="text-gray-700">
+            <span className="font-medium">Fecha de entrega:</span>{" "}
+            {cotizacion.fecha_entrega ? formatFechaSolo(cotizacion.fecha_entrega) : "—"}
+          </p>
+          <p className="text-gray-700">
+            <span className="font-medium">Lugar de entrega:</span> {cotizacion.lugar_entrega ?? "—"}
+          </p>
+        </div>
 
         <p className="border-t border-gray-200 pt-3 text-center text-[10px] text-gray-400">
           Documento comercial informativo — no es un comprobante de pago

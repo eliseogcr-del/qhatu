@@ -62,6 +62,7 @@ export default function CotizacionForm({
   productos,
   unidadesMedida,
   porcentajeIgv,
+  hoy,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -69,6 +70,7 @@ export default function CotizacionForm({
   productos: Producto[];
   unidadesMedida: UnidadMedida[];
   porcentajeIgv: number;
+  hoy: string;
 }) {
   const [tipoCliente, setTipoCliente] = useState<"registrado" | "prospecto">("registrado");
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
@@ -306,9 +308,29 @@ export default function CotizacionForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Condiciones comerciales
         </h2>
-        <Field label="Condiciones (validez de la cotización, forma de pago, tiempo de entrega, etc.)">
-          <textarea name="condiciones_comerciales" rows={3} className={inputClass} />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Oferta válido hasta">
+            <input
+              type="date"
+              name="oferta_valida_hasta"
+              defaultValue={hoy}
+              required
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Fecha de entrega">
+            <input
+              type="date"
+              name="fecha_entrega"
+              defaultValue={hoy}
+              required
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Lugar de entrega">
+            <input name="lugar_entrega" className={inputClass} />
+          </Field>
+        </div>
       </section>
 
       <div className="ml-auto w-56 space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">

@@ -15,8 +15,9 @@ export async function createCotizacion(formData: FormData) {
   const prospectoTelefono = String(formData.get("prospecto_telefono") ?? "").trim() || null;
   const prospectoCorreo = String(formData.get("prospecto_correo") ?? "").trim() || null;
   const moneda = String(formData.get("moneda") ?? "PEN");
-  const condicionesComerciales =
-    String(formData.get("condiciones_comerciales") ?? "").trim() || null;
+  const ofertaValidaHasta = String(formData.get("oferta_valida_hasta") ?? "") || null;
+  const fechaEntrega = String(formData.get("fecha_entrega") ?? "") || null;
+  const lugarEntrega = String(formData.get("lugar_entrega") ?? "").trim() || null;
 
   if (!clienteId && !prospectoNombre) {
     redirect(
@@ -98,7 +99,9 @@ export async function createCotizacion(formData: FormData) {
       prospecto_telefono: clienteId ? null : prospectoTelefono,
       prospecto_correo: clienteId ? null : prospectoCorreo,
       moneda,
-      condiciones_comerciales: condicionesComerciales,
+      oferta_valida_hasta: ofertaValidaHasta,
+      fecha_entrega: fechaEntrega,
+      lugar_entrega: lugarEntrega,
       porcentaje_igv: porcentajeIgv,
       subtotal,
       igv,

@@ -20,6 +20,16 @@ export function hoyLima(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: ZONA_HORARIA });
 }
 
+// Para columnas `date` puras (sin hora, ej. oferta_valida_hasta) — pasarlas
+// por `new Date(...)` y su timeZone las corre un día hacia atrás (Postgres
+// entrega "2026-08-19", que Date interpreta como medianoche UTC, y al
+// convertir a America/Lima cae en 2026-08-18). Al no llevar hora, no hay
+// ambigüedad de zona horaria que resolver — se reordena el string tal cual.
+export function formatFechaSolo(fecha: string): string {
+  const [anio, mes, dia] = fecha.split("-");
+  return `${dia}/${mes}/${anio}`;
+}
+
 // Perú no tiene horario de verano, así que su offset es siempre fijo.
 const OFFSET_LIMA = "-05:00";
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial } from "@/utils/supabase/session";
+import { hoyLima } from "@/lib/fecha";
 import CotizacionForm from "@/components/CotizacionForm";
 import { createCotizacion } from "../actions";
 
@@ -57,6 +58,7 @@ export default async function NuevaCotizacionPage({
             productos={productos ?? []}
             unidadesMedida={unidadesMedida ?? []}
             porcentajeIgv={config?.porcentaje_igv ?? 10.5}
+            hoy={hoyLima()}
           />
         </div>
       </div>

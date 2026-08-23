@@ -3,7 +3,7 @@ import { ArrowLeft, Printer, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial } from "@/utils/supabase/session";
-import { formatFecha } from "@/lib/fecha";
+import { formatFecha, formatFechaSolo } from "@/lib/fecha";
 
 export default async function CotizacionDetallePage({
   params,
@@ -20,7 +20,7 @@ export default async function CotizacionDetallePage({
   const { data: cotizacion } = await supabase
     .from("cotizaciones")
     .select(
-      "id, numero, fecha, moneda, subtotal, igv, total, porcentaje_igv, condiciones_comerciales, pedido_id, cliente_id, prospecto_nombre, prospecto_ruc, prospecto_telefono, prospecto_correo, clientes(nombre, numero_documento, telefono, correo_electronico), usuarios(nombre)",
+      "id, numero, fecha, moneda, subtotal, igv, total, porcentaje_igv, oferta_valida_hasta, fecha_entrega, lugar_entrega, pedido_id, cliente_id, prospecto_nombre, prospecto_ruc, prospecto_telefono, prospecto_correo, clientes(nombre, numero_documento, telefono, correo_electronico), usuarios(nombre)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -169,16 +169,23 @@ export default async function CotizacionDetallePage({
             </div>
           </div>
 
-          {cotizacion.condiciones_comerciales && (
-            <div className="border-t border-gray-200 pt-4">
-              <p className="text-xs font-semibold uppercase text-gray-500">
-                Condiciones comerciales
-              </p>
-              <p className="whitespace-pre-line text-sm text-gray-700">
-                {cotizacion.condiciones_comerciales}
-              </p>
-            </div>
-          )}
+          <div className="border-t border-gray-200 pt-4">
+            <p className="mb-1 text-xs font-semibold uppercase text-gray-500">
+              Condiciones comerciales
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Oferta válido hasta:</span>{" "}
+              {cotizacion.oferta_valida_hasta ? formatFechaSolo(cotizacion.oferta_valida_hasta) : "—"}
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Fecha de entrega:</span>{" "}
+              {cotizacion.fecha_entrega ? formatFechaSolo(cotizacion.fecha_entrega) : "—"}
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Lugar de entrega:</span>{" "}
+              {cotizacion.lugar_entrega ?? "—"}
+            </p>
+          </div>
         </div>
       </div>
     </div>
