@@ -26,9 +26,17 @@ export default async function NuevaCobranzaPage({
       pedidoIds.length > 0
         ? await supabase
             .from("ventas")
-            .select("id, pedido_id, total, moneda")
+            .select("id, pedido_id, total, descuento, moneda")
             .in("pedido_id", pedidoIds)
-        : { data: [] as { id: string; pedido_id: string; total: number; moneda: string }[] };
+        : {
+            data: [] as {
+              id: string;
+              pedido_id: string;
+              total: number;
+              descuento: number;
+              moneda: string;
+            }[],
+          };
 
     const ventaIds = (ventas ?? []).map((v) => v.id);
     const { data: cobranzas } = await supabase
@@ -50,7 +58,7 @@ export default async function NuevaCobranzaPage({
       .map((p) => {
         const cliente = p.clientes as unknown as { nombre: string } | null;
         const venta = ventaPorPedido.get(p.id);
-        const total = venta ? venta.total : p.total;
+        const total = venta ? venta.total - venta.descuento : p.total;
         const moneda = venta ? venta.moneda : p.moneda;
         const cobrado = (cobranzas ?? [])
           .filter((c) => (venta ? c.venta_id === venta.id : c.pedido_id === p.id))
@@ -124,7 +132,7 @@ export default async function NuevaCobranzaPage({
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, moneda")
+    .select("id, total, descuento, moneda")
     .eq("pedido_id", pedidoId)
     .maybeSingle();
 
@@ -134,7 +142,7 @@ export default async function NuevaCobranzaPage({
     .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId)
     .eq("estado", "activa");
 
-  const totalReferencia = venta ? venta.total : pedido.total;
+  const totalReferencia = venta ? venta.total - venta.descuento : pedido.total;
   const monedaReferencia = venta ? venta.moneda : pedido.moneda;
   const cobrado = (cobranzasPrevias ?? []).reduce((acc, c) => acc + c.monto, 0);
   const saldoPendiente = totalReferencia - cobrado;

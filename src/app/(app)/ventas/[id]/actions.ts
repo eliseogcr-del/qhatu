@@ -15,7 +15,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   const { data: venta, error: ventaError } = await supabase
     .from("ventas")
-    .select("id, total, moneda, estado, almacen_id")
+    .select("id, total, descuento, moneda, estado, almacen_id")
     .eq("id", ventaId)
     .single();
 
@@ -29,7 +29,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     );
   }
 
-  const saldoActual = await getSaldoVenta(supabase, ventaId, venta.total);
+  const saldoActual = await getSaldoVenta(supabase, ventaId, venta.total, venta.descuento);
   if (saldoActual <= 0) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("No se puede editar una venta que ya está completamente pagada.")}`,
@@ -131,11 +131,24 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         .reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0) * 100,
     ) / 100;
 
-  const cobrado = Math.round((venta.total - saldoActual) * 100) / 100;
-  if (nuevoTotal < cobrado) {
+  const nuevoDescuento = Number(formData.get("descuento") || 0);
+  if (!(nuevoDescuento >= 0)) {
+    redirect(
+      `/ventas/${ventaId}/editar?error=${encodeURIComponent("El descuento no puede ser negativo.")}`,
+    );
+  }
+  if (nuevoDescuento > nuevoTotal) {
+    redirect(
+      `/ventas/${ventaId}/editar?error=${encodeURIComponent("El descuento no puede ser mayor al total de la venta.")}`,
+    );
+  }
+
+  const cobrado = Math.round((venta.total - venta.descuento - saldoActual) * 100) / 100;
+  const netoAPagar = Math.round((nuevoTotal - nuevoDescuento) * 100) / 100;
+  if (netoAPagar < cobrado) {
     redirect(
       `/ventas/${ventaId}/editar?error=${encodeURIComponent(
-        `El nuevo importe (${nuevoTotal.toFixed(2)}) no puede ser menor a lo ya cobrado (${cobrado.toFixed(2)}).`,
+        `El nuevo importe a pagar (${netoAPagar.toFixed(2)}) no puede ser menor a lo ya cobrado (${cobrado.toFixed(2)}).`,
       )}`,
     );
   }
@@ -355,7 +368,10 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   await registrarMovimientosKardex(supabase, empresaId, userId, movimientosKardex);
 
-  await supabase.from("ventas").update({ total: nuevoTotal }).eq("id", ventaId);
+  await supabase
+    .from("ventas")
+    .update({ total: nuevoTotal, descuento: nuevoDescuento })
+    .eq("id", ventaId);
 
   revalidatePath(`/ventas/${ventaId}`);
   revalidatePath("/ventas");

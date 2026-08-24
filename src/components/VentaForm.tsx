@@ -63,6 +63,8 @@ export default function VentaForm({
     })),
   );
 
+  const [descuento, setDescuento] = useState(0);
+
   const updateLinea = (
     id: string,
     patch: Partial<LineaVenta>,
@@ -76,6 +78,7 @@ export default function VentaForm({
     (acc, l) => acc + l.cantidad_entregada * l.precio_unitario,
     0,
   );
+  const netoAPagar = Math.max(total - descuento, 0);
 
   return (
     <form action={action} className="space-y-8">
@@ -105,6 +108,18 @@ export default function VentaForm({
               name="tipo_cambio_aplicado"
               required
               defaultValue={1}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Descuento (monto fijo sobre el total)">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="descuento"
+              value={descuento || ""}
+              onChange={(e) => setDescuento(Number(e.target.value) || 0)}
+              placeholder="0"
               className={inputClass}
             />
           </Field>
@@ -236,9 +251,20 @@ export default function VentaForm({
           })}
         </div>
 
-        <p className="text-right text-sm font-medium text-gray-900">
-          Total: {total.toFixed(2)}
-        </p>
+        <div className="ml-auto w-56 space-y-1 text-sm">
+          <div className="flex justify-between text-gray-600">
+            <span>Total</span>
+            <span>{total.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-gray-600">
+            <span>Descuento</span>
+            <span>{descuento.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between font-semibold text-gray-900">
+            <span>Neto a pagar</span>
+            <span>{netoAPagar.toFixed(2)}</span>
+          </div>
+        </div>
       </section>
 
       <SubmitButton pendingLabel="Registrando venta...">

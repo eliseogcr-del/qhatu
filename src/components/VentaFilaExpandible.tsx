@@ -45,6 +45,9 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
           {venta.moneda} {venta.total.toFixed(2)}
         </td>
         <td className="px-4 py-3 text-gray-600">
+          {venta.descuento > 0 ? `${venta.moneda} ${venta.descuento.toFixed(2)}` : "—"}
+        </td>
+        <td className="px-4 py-3 text-gray-600">
           {venta.moneda} {venta.cobrado.toFixed(2)}
         </td>
         <td className="px-4 py-3">
@@ -81,7 +84,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
       {abierta && tienePagos && (
         <tr className="border-b border-gray-100 bg-gray-50">
           <td />
-          <td colSpan={10} className="px-4 py-3">
+          <td colSpan={11} className="px-4 py-3">
             <table className="w-full text-left text-xs">
               <thead className="text-gray-400">
                 <tr>

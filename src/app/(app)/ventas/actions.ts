@@ -95,6 +95,18 @@ export async function createVenta(formData: FormData) {
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
+  const descuento = Number(formData.get("descuento") || 0);
+  if (!(descuento >= 0)) {
+    redirect(
+      `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El descuento no puede ser negativo.")}`,
+    );
+  }
+  if (descuento > total) {
+    redirect(
+      `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El descuento no puede ser mayor al total de la venta.")}`,
+    );
+  }
+
   const { data: productosInfo } = await supabase
     .from("productos")
     .select("id, nombre, control_inventario")
@@ -124,6 +136,7 @@ export async function createVenta(formData: FormData) {
       moneda,
       tipo_cambio_aplicado: tipoCambio,
       total,
+      descuento,
       almacen_id: pedido.almacen_id,
     })
     .select("id")
@@ -319,6 +332,16 @@ export async function createVentaDirecta(formData: FormData) {
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 
+  const descuento = Number(formData.get("descuento") || 0);
+  if (!(descuento >= 0)) {
+    redirect(`/ventas/directa?error=${encodeURIComponent("El descuento no puede ser negativo.")}`);
+  }
+  if (descuento > total) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("El descuento no puede ser mayor al total de la venta.")}`,
+    );
+  }
+
   const { data: productosInfo } = await supabase
     .from("productos")
     .select("id, nombre, control_inventario")
@@ -379,6 +402,7 @@ export async function createVentaDirecta(formData: FormData) {
         moneda,
         tipo_cambio_aplicado: tipoCambio,
         total,
+        descuento,
         almacen_id: almacenId,
       })
       .select("id")

@@ -14,6 +14,7 @@ export type VentaConSaldo = {
   fecha: string;
   moneda: string;
   total: number;
+  descuento: number;
   estado: string;
   cliente_nombre: string | null;
   almacen_nombre: string | null;
@@ -50,8 +51,8 @@ export async function fetchVentasConSaldo(
     .from("ventas")
     .select(
       clienteNombre
-        ? "id, fecha, moneda, total, estado, clientes!inner(nombre), almacenes(nombre)"
-        : "id, fecha, moneda, total, estado, clientes(nombre), almacenes(nombre)",
+        ? "id, fecha, moneda, total, descuento, estado, clientes!inner(nombre), almacenes(nombre)"
+        : "id, fecha, moneda, total, descuento, estado, clientes(nombre), almacenes(nombre)",
     )
     .order("fecha", { ascending: false });
 
@@ -138,13 +139,14 @@ export async function fetchVentasConSaldo(
       fecha: v.fecha,
       moneda: v.moneda,
       total: v.total,
+      descuento: v.descuento,
       estado: v.estado,
       cliente_nombre:
         (v.clientes as unknown as { nombre: string } | null)?.nombre ?? null,
       almacen_nombre:
         (v.almacenes as unknown as { nombre: string } | null)?.nombre ?? null,
       cobrado,
-      saldo: Math.round((v.total - cobrado) * 100) / 100,
+      saldo: Math.round((v.total - v.descuento - cobrado) * 100) / 100,
       pagos: pagosPorVenta.get(v.id) ?? [],
       comprobante_tipo: comprobante?.tipo ?? null,
       comprobante_numero: comprobante ? `${comprobante.serie}-${comprobante.numero}` : null,
@@ -162,6 +164,7 @@ export async function getSaldoVenta(
   supabase: Awaited<ReturnType<typeof createClient>>,
   ventaId: string,
   total: number,
+  descuento = 0,
 ): Promise<number> {
   const { data: cobranzas } = await supabase
     .from("cobranzas")
@@ -170,5 +173,5 @@ export async function getSaldoVenta(
     .eq("estado", "activa");
 
   const cobrado = (cobranzas ?? []).reduce((acc, c) => acc + c.monto, 0);
-  return Math.round((total - cobrado) * 100) / 100;
+  return Math.round((total - descuento - cobrado) * 100) / 100;
 }

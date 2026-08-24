@@ -43,6 +43,7 @@ export default function EditarVentaForm({
   unidadesMedida,
   stockPorProducto,
   cobrado,
+  descuentoInicial,
   moneda,
 }: {
   action: (formData: FormData) => void;
@@ -63,8 +64,10 @@ export default function EditarVentaForm({
   // (la validación real de stock ya la hace el servidor al guardar).
   stockPorProducto: Record<string, number>;
   cobrado: number;
+  descuentoInicial: number;
   moneda: string;
 }) {
+  const [descuento, setDescuento] = useState(descuentoInicial);
   const [lineas, setLineas] = useState<Linea[]>(
     lineasIniciales.map((l) => ({
       key: keyFor(),
@@ -147,7 +150,8 @@ export default function EditarVentaForm({
   };
 
   const total = lineas.reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0);
-  const totalMenorQueCobrado = total < cobrado;
+  const netoAPagar = total - descuento;
+  const totalMenorQueCobrado = netoAPagar < cobrado;
 
   const tieneDuplicados = (() => {
     const vistos = new Set<string>();
@@ -379,16 +383,34 @@ export default function EditarVentaForm({
         Agregar producto
       </button>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="font-medium text-gray-700" htmlFor="descuento">
+            Descuento (monto fijo sobre toda la venta)
+          </label>
+          <input
+            id="descuento"
+            type="number"
+            step="0.01"
+            min="0"
+            name="descuento"
+            value={descuento || ""}
+            onChange={(e) => setDescuento(Number(e.target.value) || 0)}
+            className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right focus:border-emerald-500 focus:outline-none"
+          />
+        </div>
         <p className="text-gray-600">
           Ya cobrado (no editable): {moneda} {cobrado.toFixed(2)}
         </p>
-        <p className="mt-1 text-right font-semibold text-gray-900">
-          Nuevo total: {moneda} {total.toFixed(2)}
+        <p className="text-right text-gray-600">
+          Total: {moneda} {total.toFixed(2)}
+        </p>
+        <p className="text-right font-semibold text-gray-900">
+          Neto a pagar: {moneda} {netoAPagar.toFixed(2)}
         </p>
         {totalMenorQueCobrado && (
           <p className="mt-1 text-red-600">
-            El nuevo total no puede ser menor a lo ya cobrado.
+            El neto a pagar no puede ser menor a lo ya cobrado.
           </p>
         )}
       </div>

@@ -104,7 +104,7 @@ export default async function VentaDetallePage({
   const cobrado = (cobranzas ?? [])
     .filter((c) => c.estado === "activa")
     .reduce((acc, c) => acc + c.monto, 0);
-  const saldo = Math.round((venta.total - cobrado) * 100) / 100;
+  const saldo = Math.round((venta.total - venta.descuento - cobrado) * 100) / 100;
   const anulada = venta.estado === "anulada";
   const puedeEditar = !anulada && saldo > 0;
 
@@ -237,9 +237,20 @@ export default async function VentaDetallePage({
               })}
             </tbody>
           </table>
-          <p className="mt-4 text-right text-sm font-semibold text-gray-900">
-            Total: {venta.moneda} {venta.total}
-          </p>
+          <div className="ml-auto mt-4 w-56 space-y-1 text-sm">
+            <div className="flex justify-between text-gray-600">
+              <span>Total</span>
+              <span>{venta.moneda} {venta.total}</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Descuento</span>
+              <span>{venta.moneda} {venta.descuento}</span>
+            </div>
+            <div className="flex justify-between font-semibold text-gray-900">
+              <span>Neto a pagar</span>
+              <span>{venta.moneda} {(venta.total - venta.descuento).toFixed(2)}</span>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

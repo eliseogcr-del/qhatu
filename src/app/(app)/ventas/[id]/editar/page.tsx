@@ -19,7 +19,7 @@ export default async function EditarVentaPage({
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, moneda, estado, almacen_id, clientes(nombre)")
+    .select("id, total, descuento, moneda, estado, almacen_id, clientes(nombre)")
     .eq("id", id)
     .single();
 
@@ -31,14 +31,14 @@ export default async function EditarVentaPage({
     );
   }
 
-  const saldo = await getSaldoVenta(supabase, id, venta.total);
+  const saldo = await getSaldoVenta(supabase, id, venta.total, venta.descuento);
   if (saldo <= 0) {
     redirect(
       `/ventas/${id}?error=${encodeURIComponent("No se puede editar una venta que ya está completamente pagada.")}`,
     );
   }
 
-  const cobrado = Math.round((venta.total - saldo) * 100) / 100;
+  const cobrado = Math.round((venta.total - venta.descuento - saldo) * 100) / 100;
 
   const [{ data: detalle }, { data: productos }, { data: inventario }, { data: unidadesMedida }] =
     await Promise.all([
@@ -112,6 +112,7 @@ export default async function EditarVentaPage({
             unidadesMedida={unidadesMedida ?? []}
             stockPorProducto={stockPorProducto}
             cobrado={cobrado}
+            descuentoInicial={venta.descuento}
             moneda={venta.moneda}
           />
         </div>

@@ -41,7 +41,7 @@ export async function createCobranza(formData: FormData) {
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total")
+    .select("id, total, descuento")
     .eq("pedido_id", pedidoId)
     .maybeSingle();
 
@@ -51,7 +51,7 @@ export async function createCobranza(formData: FormData) {
     .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId)
     .eq("estado", "activa");
 
-  const totalReferencia = venta ? venta.total : pedido.total;
+  const totalReferencia = venta ? venta.total - venta.descuento : pedido.total;
   const cobradoPrevio = (cobranzasPrevias ?? []).reduce((acc, c) => acc + c.monto, 0);
   const saldoPendiente = Math.round((totalReferencia - cobradoPrevio) * 100) / 100;
 
