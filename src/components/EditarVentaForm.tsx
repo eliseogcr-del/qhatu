@@ -384,10 +384,15 @@ export default function EditarVentaForm({
       </button>
 
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="font-medium text-gray-700" htmlFor="descuento">
-            Descuento (monto fijo sobre toda la venta)
-          </label>
+        <p className="text-gray-600">
+          Ya cobrado (no editable): {moneda} {cobrado.toFixed(2)}
+        </p>
+        <div className="flex items-center justify-between text-gray-600">
+          <span>Total</span>
+          <span>{moneda} {total.toFixed(2)}</span>
+        </div>
+        <div className="flex items-center justify-between text-gray-600">
+          <label htmlFor="descuento">Descuento</label>
           <input
             id="descuento"
             type="number"
@@ -396,18 +401,14 @@ export default function EditarVentaForm({
             name="descuento"
             value={descuento || ""}
             onChange={(e) => setDescuento(Number(e.target.value) || 0)}
-            className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right focus:border-emerald-500 focus:outline-none"
+            placeholder="0"
+            className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
           />
         </div>
-        <p className="text-gray-600">
-          Ya cobrado (no editable): {moneda} {cobrado.toFixed(2)}
-        </p>
-        <p className="text-right text-gray-600">
-          Total: {moneda} {total.toFixed(2)}
-        </p>
-        <p className="text-right font-semibold text-gray-900">
-          Neto a pagar: {moneda} {netoAPagar.toFixed(2)}
-        </p>
+        <div className="flex justify-between font-semibold text-gray-900">
+          <span>Neto a pagar</span>
+          <span>{moneda} {netoAPagar.toFixed(2)}</span>
+        </div>
         {totalMenorQueCobrado && (
           <p className="mt-1 text-red-600">
             El neto a pagar no puede ser menor a lo ya cobrado.

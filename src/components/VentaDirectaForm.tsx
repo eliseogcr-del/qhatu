@@ -184,18 +184,6 @@ export default function VentaDirectaForm({
               className={inputClass}
             />
           </Field>
-          <Field label="Descuento (monto fijo sobre el total)">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              name="descuento"
-              value={descuento || ""}
-              onChange={(e) => setDescuento(Number(e.target.value) || 0)}
-              placeholder="0"
-              className={inputClass}
-            />
-          </Field>
           {almacenes && almacenes.length > 0 && (
             <Field label="Almacén / Local">
               <select
@@ -353,13 +341,22 @@ export default function VentaDirectaForm({
         </button>
 
         <div className="ml-auto w-56 space-y-1 text-sm">
-          <div className="flex justify-between text-gray-600">
+          <div className="flex items-center justify-between text-gray-600">
             <span>Total</span>
             <span>{total.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-gray-600">
+          <div className="flex items-center justify-between text-gray-600">
             <span>Descuento</span>
-            <span>{descuento.toFixed(2)}</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="descuento"
+              value={descuento || ""}
+              onChange={(e) => setDescuento(Number(e.target.value) || 0)}
+              placeholder="0"
+              className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
+            />
           </div>
           <div className="flex justify-between font-semibold text-gray-900">
             <span>Neto a pagar</span>
