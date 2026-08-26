@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFecha, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { Plus, FileDown, Search, Eye, X } from "lucide-react";
+import { Plus, FileDown, Eye } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import {
   ESTADOS_PEDIDO,
@@ -9,6 +9,7 @@ import {
   canalLabel,
   type EstadoPedido,
 } from "@/lib/pedido-estados";
+import PedidosFiltroForm from "@/components/PedidosFiltroForm";
 
 export default async function PedidosPage({
   searchParams,
@@ -73,80 +74,14 @@ export default async function PedidosPage({
           </div>
         </div>
 
-        <form className="mb-4 flex flex-wrap items-end gap-3" method="get">
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Cliente
-            </label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Buscar por cliente..."
-                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Desde
-            </label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desdeEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Hasta
-            </label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hastaEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Estado
-            </label>
-            <select
-              name="estado"
-              defaultValue={estado ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {ESTADOS_PEDIDO.map((e) => (
-                <option key={e} value={e}>
-                  {ESTADO_LABEL[e]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Buscar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/pedidos?desde=&hasta="
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <PedidosFiltroForm
+          q={q ?? ""}
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
+          estado={estado ?? ""}
+          opcionesEstado={ESTADOS_PEDIDO.map((e) => ({ value: e, label: ESTADO_LABEL[e] }))}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
