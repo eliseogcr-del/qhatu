@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import ReportesVendedoresFiltroForm from "@/components/ReportesVendedoresFiltroForm";
 
 type Fila = {
   almacenId: string;
@@ -103,41 +104,11 @@ export default async function ReporteVendedoresPage({
           campo = un almacén). Las ventas anuladas no se cuentan.
         </p>
 
-        <form className="mb-4 flex items-end gap-3" method="get">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/reportes/vendedores"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ReportesVendedoresFiltroForm
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          hayFiltros={hayFiltros}
+        />
 
         <p className="mb-4 text-xs text-gray-400">
           Los montos asumen una sola moneda por simplicidad (no convierten PEN/USD).

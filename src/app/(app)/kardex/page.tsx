@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { Search, X, PackageMinus } from "lucide-react";
+import { PackageMinus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
+import KardexFiltroForm from "@/components/KardexFiltroForm";
 
 export default async function KardexPage({
   searchParams,
@@ -82,81 +83,16 @@ export default async function KardexPage({
           Registro inmutable de movimientos de stock (últimos 200).
         </p>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
-            <select
-              name="producto_id"
-              defaultValue={producto_id ?? ""}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {productos?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desdeEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hastaEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
-            {session.almacenId ? (
-              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                {almacenes?.[0]?.nombre ?? "Tu almacén"}
-              </p>
-            ) : (
-              <select
-                name="almacen_id"
-                defaultValue={almacenId ?? ""}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {almacenes?.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <button
-            type="submit"
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <Search size={16} />
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/kardex?desde=&hasta="
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <KardexFiltroForm
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
+          productoId={producto_id ?? ""}
+          almacenId={almacenId ?? ""}
+          productos={productos ?? []}
+          almacenes={almacenes ?? []}
+          almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

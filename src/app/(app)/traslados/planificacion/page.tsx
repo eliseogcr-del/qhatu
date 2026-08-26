@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import PlanificacionTrasladosFiltroForm from "@/components/PlanificacionTrasladosFiltroForm";
 
 type Fila = {
   productoId: string;
@@ -117,47 +118,12 @@ export default async function PlanificacionTrasladosPage({
           falta enviarle a cada vendedor.
         </p>
 
-        <form className="mb-4 flex items-end gap-3" method="get">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Fecha de entrega
-            </label>
-            <input
-              type="date"
-              name="fecha"
-              defaultValue={fechaEfectiva}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          {session.almacenId ? (
-            // Vendedor: su almacén es fijo, no hay nada que elegir.
-            <input type="hidden" name="almacen_origen_id" value={session.almacenId} />
-          ) : (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Almacén de origen
-              </label>
-              <select
-                name="almacen_origen_id"
-                defaultValue={origenId ?? ""}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">Selecciona un almacén</option>
-                {almacenes?.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-        </form>
+        <PlanificacionTrasladosFiltroForm
+          fecha={fechaEfectiva}
+          almacenOrigenId={origenId ?? ""}
+          almacenes={almacenes ?? []}
+          almacenFijoId={session.almacenId ?? null}
+        />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

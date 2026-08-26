@@ -10,6 +10,7 @@ import {
   type EstadoReparto,
   type TipoTransporte,
 } from "@/lib/reparto-estados";
+import RepartosFiltroForm from "@/components/RepartosFiltroForm";
 
 type ClienteDestino = {
   nombre: string;
@@ -79,60 +80,14 @@ export default async function RepartosPage({
           </p>
         )}
 
-        <form className="mb-4 flex items-end gap-3" method="get">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Fecha de reparto
-            </label>
-            <input
-              type="date"
-              name="fecha"
-              defaultValue={fechaEfectiva}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Estado
-            </label>
-            <select
-              name="estado"
-              defaultValue={estado ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {ESTADOS_REPARTO.map((e) => (
-                <option key={e} value={e}>
-                  {ESTADO_REPARTO_LABEL[e]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            Filtrar
-          </button>
-          {!esCargaInicial && (
-            <Link
-              href="/repartos?fecha=&estado="
-              className="text-sm font-medium text-gray-500 hover:underline"
-            >
-              Limpiar
-            </Link>
-          )}
-          {rutaCombinada && (
-            <a
-              href={rutaCombinada}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Ver ruta combinada del día ({destinos.length} paradas)
-            </a>
-          )}
-        </form>
+        <RepartosFiltroForm
+          fecha={fechaEfectiva}
+          estado={estado ?? ""}
+          opcionesEstado={ESTADOS_REPARTO.map((e) => ({ value: e, label: ESTADO_REPARTO_LABEL[e] }))}
+          esCargaInicial={esCargaInicial}
+          rutaCombinada={rutaCombinada}
+          numParadas={destinos.length}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { FileText, Search, X } from "lucide-react";
+import { FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_COMPROBANTE_LABEL, enlacePdfComprobante } from "@/lib/comprobante-links";
+import ComprobantesFiltroForm from "@/components/ComprobantesFiltroForm";
 
 const ESTADO_BADGE: Record<string, string> = {
   emitido: "bg-green-100 text-green-700",
@@ -49,70 +50,13 @@ export default async function ComprobantesPage({
           (documento interno, sin XML ni valor fiscal).
         </p>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Cliente</label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Buscar por nombre..."
-                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Estado</label>
-            <select name="estado" defaultValue={estado ?? ""} className="rounded-lg border border-gray-300 px-3 py-2 text-sm">
-              <option value="">Todos</option>
-              <option value="emitido">Emitido</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="error">Error</option>
-              <option value="anulado">Anulado</option>
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/comprobantes"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ComprobantesFiltroForm
+          q={q ?? ""}
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          estado={estado ?? ""}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

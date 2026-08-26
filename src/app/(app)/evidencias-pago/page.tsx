@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { FolderDown, ShieldCheck, Trash2, ImageOff, Search, X } from "lucide-react";
+import { FolderDown, ShieldCheck, Trash2, ImageOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/lib/cobranza-adjuntos";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { confirmarLiberarEspacio } from "./actions";
+import EvidenciasPagoFiltroForm from "@/components/EvidenciasPagoFiltroForm";
 
 function formatMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(0);
@@ -73,66 +73,12 @@ export default async function EvidenciasPagoPage({
           visible para administradores.
         </p>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Cliente
-            </label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Buscar por nombre..."
-                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Desde
-            </label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Hasta
-            </label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/evidencias-pago"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <EvidenciasPagoFiltroForm
+          q={q ?? ""}
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          hayFiltros={hayFiltros}
+        />
 
         <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-2 flex items-center justify-between text-sm">

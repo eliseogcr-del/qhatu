@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import InventarioFiltroForm from "@/components/InventarioFiltroForm";
 
 export default async function InventarioPage({
   searchParams,
@@ -131,96 +131,17 @@ export default async function InventarioPage({
           </div>
         </div>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Producto
-            </label>
-            <select
-              name="producto_id"
-              defaultValue={productoId ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {productos?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Almacén
-            </label>
-            {session.almacenId ? (
-              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                {almacenes?.[0]?.nombre ?? "Tu almacén"}
-              </p>
-            ) : (
-              <select
-                name="almacen_id"
-                defaultValue={almacenId ?? ""}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {almacenes?.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              name="bajo_minimo"
-              value="1"
-              defaultChecked={bajoMinimoFiltro === "1"}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            Bajo mínimo
-          </label>
-          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              name="sobre_maximo"
-              value="1"
-              defaultChecked={sobreMaximoFiltro === "1"}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            Sobre máximo
-          </label>
-          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              name="con_stock"
-              value="1"
-              defaultChecked={conStockFiltro === "1"}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            Con stock (mayor a 0)
-          </label>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/inventario"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <InventarioFiltroForm
+          productoId={productoId ?? ""}
+          almacenId={almacenId ?? ""}
+          bajoMinimo={bajoMinimoFiltro === "1"}
+          sobreMaximo={sobreMaximoFiltro === "1"}
+          conStock={conStockFiltro === "1"}
+          productos={productos ?? []}
+          almacenes={almacenes ?? []}
+          almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

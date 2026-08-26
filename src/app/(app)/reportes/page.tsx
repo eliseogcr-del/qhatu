@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import ReportesFiltroForm from "@/components/ReportesFiltroForm";
 
 export default async function ReportesPage({
   searchParams,
@@ -79,37 +80,11 @@ export default async function ReportesPage({
           </div>
         </div>
 
-        <form className="mb-6 flex items-end gap-3" method="get">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            Filtrar
-          </button>
-          {(desde || hasta) && (
-            <Link href="/reportes" className="text-sm font-medium text-gray-500 hover:underline">
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ReportesFiltroForm
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          hayFiltros={!!(desde || hasta)}
+        />
 
         <p className="mb-4 text-xs text-gray-400">
           Los montos asumen una sola moneda por simplicidad (no convierten PEN/USD).

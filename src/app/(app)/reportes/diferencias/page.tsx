@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import ReportesDiferenciasFiltroForm from "@/components/ReportesDiferenciasFiltroForm";
 
 type ProductoDiferencia = {
   productoId: string;
@@ -118,41 +119,11 @@ export default async function DiferenciasPedidoVentaPage({
           estaba en el pedido.
         </p>
 
-        <form className="mb-4 flex items-end gap-3" method="get">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {(desde || hasta) && (
-            <Link
-              href="/reportes/diferencias"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ReportesDiferenciasFiltroForm
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          hayFiltros={!!(desde || hasta)}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

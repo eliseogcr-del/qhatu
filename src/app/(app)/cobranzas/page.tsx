@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { XCircle, Search, X } from "lucide-react";
+import { XCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import {
@@ -11,9 +11,7 @@ import {
 } from "@/lib/cobranza-tipos";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { anularCobranza } from "./actions";
-
-const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+import CobranzasFiltroForm from "@/components/CobranzasFiltroForm";
 
 export default async function CobranzasPage({
   searchParams,
@@ -71,99 +69,16 @@ export default async function CobranzasPage({
           </Link>
         </div>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div className="min-w-[180px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Cliente
-            </label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Buscar por nombre..."
-                className={`${inputClass} pl-9`}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Desde
-            </label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Hasta
-            </label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Método de pago
-            </label>
-            <select name="metodo_pago" defaultValue={metodoPago ?? ""} className={inputClass}>
-              <option value="">Todos</option>
-              {METODOS_PAGO.map((m) => (
-                <option key={m} value={m}>
-                  {METODO_PAGO_LABEL[m]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Tipo de pago
-            </label>
-            <select name="tipo_pago" defaultValue={tipoPago ?? ""} className={inputClass}>
-              <option value="">Todos</option>
-              <option value="anticipo">Anticipo</option>
-              <option value="pago">Pago</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Estado
-            </label>
-            <select name="estado" defaultValue={estado ?? ""} className={inputClass}>
-              <option value="">Todos</option>
-              <option value="activa">Activa</option>
-              <option value="anulada">Anulada</option>
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/cobranzas"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <CobranzasFiltroForm
+          q={q ?? ""}
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          metodoPago={metodoPago ?? ""}
+          tipoPago={tipoPago ?? ""}
+          estado={estado ?? ""}
+          opcionesMetodoPago={METODOS_PAGO.map((m) => ({ value: m, label: METODO_PAGO_LABEL[m] }))}
+          hayFiltros={hayFiltros}
+        />
 
         {hayFiltros && rol === "admin" && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">

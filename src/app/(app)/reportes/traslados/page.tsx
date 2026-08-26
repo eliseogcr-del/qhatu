@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import ReportesTrasladosFiltroForm from "@/components/ReportesTrasladosFiltroForm";
 
 type Fila = {
   almacenId: string;
@@ -138,62 +139,14 @@ export default async function ReporteTrasladosPage({
           necesariamente el del final del rango filtrado.
         </p>
 
-        <form className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm" method="get">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
-            {session.almacenId ? (
-              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                {almacenes?.[0]?.nombre ?? "Tu almacén"}
-              </p>
-            ) : (
-              <select
-                name="almacen_id"
-                defaultValue={almacen_id ?? ""}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {almacenes?.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/reportes/traslados"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ReportesTrasladosFiltroForm
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          almacenId={almacen_id ?? ""}
+          almacenes={almacenes ?? []}
+          almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

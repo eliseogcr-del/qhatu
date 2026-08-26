@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { Plus, Search, X, Pencil } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireLogisticaOAdmin } from "@/utils/supabase/session";
+import ProduccionFiltroForm from "@/components/ProduccionFiltroForm";
 
 export default async function ProduccionPage({
   searchParams,
@@ -82,61 +83,13 @@ export default async function ProduccionPage({
           directo al inventario, con su movimiento de kardex).
         </p>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
-            <select
-              key={productoId ?? ""}
-              name="producto_id"
-              defaultValue={productoId ?? ""}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {productos?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desdeEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hastaEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <Search size={16} />
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/produccion?desde=&hasta=&producto_id="
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ProduccionFiltroForm
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
+          productoId={productoId ?? ""}
+          productos={productos ?? []}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

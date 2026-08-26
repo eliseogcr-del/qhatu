@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Plus, FileDown, Search, Pencil, Power, X } from "lucide-react";
+import { Plus, FileDown, Pencil, Power } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { toggleActivoProducto } from "./actions";
+import ProductosFiltroForm from "@/components/ProductosFiltroForm";
 
 export default async function ProductosPage({
   searchParams,
@@ -45,36 +46,7 @@ export default async function ProductosPage({
           </div>
         </div>
 
-        <form className="mb-4 flex items-center gap-2" method="get">
-          <div className="relative max-w-sm flex-1">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder="Buscar por nombre..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Buscar
-          </button>
-          {q && (
-            <Link
-              href="/productos"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <ProductosFiltroForm q={q ?? ""} />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

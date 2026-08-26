@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { formatFechaHora, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { ShieldCheck, X } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, ENTIDAD_LABEL } from "@/lib/auditoria-tipos";
+import AuditoriaFiltroForm from "@/components/AuditoriaFiltroForm";
 
 export default async function AuditoriaPage({
   searchParams,
@@ -50,80 +50,17 @@ export default async function AuditoriaPage({
           administradores.
         </p>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Desde
-            </label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desde ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Hasta
-            </label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hasta ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Entidad
-            </label>
-            <select
-              name="entidad"
-              defaultValue={entidad ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todas</option>
-              <option value="venta">Venta</option>
-              <option value="cobranza">Cobranza</option>
-              <option value="produccion">Producción</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Tipo de movimiento
-            </label>
-            <select
-              name="tipo"
-              defaultValue={tipo ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {Object.entries(TIPO_MOVIMIENTO_LABEL).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/auditoria"
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <AuditoriaFiltroForm
+          desde={desde ?? ""}
+          hasta={hasta ?? ""}
+          entidad={entidad ?? ""}
+          tipo={tipo ?? ""}
+          opcionesTipo={Object.entries(TIPO_MOVIMIENTO_LABEL).map(([value, label]) => ({
+            value,
+            label,
+          }))}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
