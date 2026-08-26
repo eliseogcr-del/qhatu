@@ -52,7 +52,7 @@ export default async function NuevoAbastecimientoCampoPage({
           y cuánto, y suma de inmediato a su almacén.
         </p>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <AbastecimientoCampoForm
             action={createAbastecimientoCampo}
             error={error}

@@ -58,7 +58,7 @@ export default async function EditarProduccionPage({
           </Link>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <EditarProduccionForm
             action={updateProduccionDetalle}
             error={error}

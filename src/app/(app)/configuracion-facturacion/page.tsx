@@ -55,7 +55,7 @@ export default async function ConfiguracionFacturacionPage({
           </p>
         )}
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <form action={guardarConfiguracionFacturacion} className="space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -95,7 +95,7 @@ export default async function ConfiguracionFacturacionPage({
             y numeración independiente.
           </p>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
             {almacenes && almacenes.length > 0 ? (
               <form action={guardarSeriesNotaVenta} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

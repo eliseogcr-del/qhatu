@@ -26,7 +26,7 @@ export default async function NuevoProveedorPage({
           </Link>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <ProveedorForm
             action={createProveedor}
             error={error}

@@ -50,7 +50,7 @@ export default async function MovimientoInventarioPage({
           </Link>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <form action={registrarMovimientoManual} className="space-y-4">
             {error && (
               <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

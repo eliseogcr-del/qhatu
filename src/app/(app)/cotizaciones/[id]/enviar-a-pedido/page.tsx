@@ -59,7 +59,7 @@ export default async function EnviarAPedidoPage({
           </p>
         )}
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <form action={enviarAPedido.bind(null, id)} className="space-y-6">
             <p className="text-sm text-gray-600">
               Esto crea un Pedido nuevo con los mismos productos, cantidades y
