@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFecha, formatFechaHora } from "@/lib/fecha";
-import { Pencil, Ban, XCircle, FileText, Send } from "lucide-react";
+import { ArrowLeft, Pencil, Ban, XCircle, FileText, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
@@ -10,7 +10,6 @@ import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA, enlacePdfComprobante } from "@
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
 import ReemplazarEvidenciaCobranza from "@/components/ReemplazarEvidenciaCobranza";
-import VolverAtras from "@/components/VolverAtras";
 import { anularVenta } from "./actions";
 import { anularCobranza, actualizarEvidenciaCobranza } from "../../cobranzas/actions";
 import {
@@ -25,10 +24,10 @@ export default async function VentaDetallePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; volver?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, volver } = await searchParams;
   const supabase = await createClient();
   const { rol } = await getEmpresaSession(supabase);
 
@@ -148,9 +147,13 @@ export default async function VentaDetallePage({
                 Anular venta
               </ConfirmFormButton>
             )}
-            <VolverAtras className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline">
+            <Link
+              href={volver || "/ventas"}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
+            >
+              <ArrowLeft size={16} />
               Volver al listado
-            </VolverAtras>
+            </Link>
           </div>
         </div>
 
@@ -492,7 +495,9 @@ export default async function VentaDetallePage({
             </h2>
             {pedido && (
               <Link
-                href={`/cobranzas/nueva?pedido_id=${pedido.id}`}
+                href={`/cobranzas/nueva?pedido_id=${pedido.id}&volver=${encodeURIComponent(
+                  `/ventas/${id}${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`,
+                )}`}
                 className="text-sm font-medium text-emerald-700 hover:underline"
               >
                 Registrar cobro

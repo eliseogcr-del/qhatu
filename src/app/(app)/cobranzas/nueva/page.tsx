@@ -9,9 +9,9 @@ import { createCobranza } from "../actions";
 export default async function NuevaCobranzaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; pedido_id?: string }>;
+  searchParams: Promise<{ error?: string; pedido_id?: string; volver?: string }>;
 }) {
-  const { error, pedido_id: pedidoId } = await searchParams;
+  const { error, pedido_id: pedidoId, volver } = await searchParams;
   const supabase = await createClient();
 
   if (!pedidoId) {
@@ -161,10 +161,10 @@ export default async function NuevaCobranzaPage({
             Registrar cobro
           </h1>
           <Link
-            href={`/pedidos/${pedidoId}`}
+            href={volver || `/pedidos/${pedidoId}`}
             className="text-sm font-medium text-gray-600 hover:underline"
           >
-            ← Volver al pedido
+            ← Volver
           </Link>
         </div>
 
@@ -176,6 +176,7 @@ export default async function NuevaCobranzaPage({
             clienteNombre={cliente?.nombre ?? "—"}
             monedaSugerida={monedaReferencia}
             saldoPendiente={saldoPendiente}
+            redirectTo={volver}
             almacenamientoBloqueado={almacenamientoBloqueado}
             almacenamientoAviso={almacenamientoAviso}
           />

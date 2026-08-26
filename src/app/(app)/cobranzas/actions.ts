@@ -17,15 +17,20 @@ export async function createCobranza(formData: FormData) {
   const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
   const metodoPago = String(formData.get("metodo_pago") ?? "efectivo");
   const referencia = String(formData.get("referencia") ?? "") || null;
+  // A dónde volver tras registrar el cobro (la venta o el pedido desde
+  // donde se abrió el formulario) — si no viene, se cae al comportamiento
+  // de siempre (la página del pedido).
+  const redirectTo = String(formData.get("redirect_to") ?? "") || null;
+  const volverQs = redirectTo ? `&volver=${encodeURIComponent(redirectTo)}` : "";
 
   if (!pedidoId || monto <= 0) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("Ingresa un monto válido.")}`,
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent("Ingresa un monto válido.")}`,
     );
   }
   if (!(tipoCambio > 0)) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
     );
   }
 
@@ -57,7 +62,7 @@ export async function createCobranza(formData: FormData) {
 
   if (monto > saldoPendiente) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent(
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent(
         `El monto (${monto.toFixed(2)}) no puede ser mayor al saldo pendiente (${saldoPendiente.toFixed(2)}).`,
       )}`,
     );
@@ -82,7 +87,7 @@ export async function createCobranza(formData: FormData) {
 
   if (error || !cobranza) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent(error?.message ?? "No se pudo registrar el cobro.")}`,
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent(error?.message ?? "No se pudo registrar el cobro.")}`,
     );
   }
 
@@ -131,7 +136,8 @@ export async function createCobranza(formData: FormData) {
   revalidatePath("/cobranzas");
   revalidatePath("/evidencias-pago");
   revalidatePath(`/pedidos/${pedidoId}`);
-  redirect(`/pedidos/${pedidoId}`);
+  if (venta) revalidatePath(`/ventas/${venta.id}`);
+  redirect(redirectTo || `/pedidos/${pedidoId}`);
 }
 
 // Sube o reemplaza la evidencia de pago de un cobro ya registrado. A

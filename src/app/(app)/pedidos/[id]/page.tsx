@@ -277,7 +277,7 @@ export default async function PedidoDetallePage({
               Cobranzas
             </h2>
             <Link
-              href={`/cobranzas/nueva?pedido_id=${id}`}
+              href={`/cobranzas/nueva?pedido_id=${id}&volver=${encodeURIComponent(`/pedidos/${id}`)}`}
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
               <Wallet size={16} />

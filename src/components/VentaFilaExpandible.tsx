@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatFecha } from "@/lib/fecha";
 import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
@@ -11,6 +12,13 @@ import type { VentaConSaldo } from "@/utils/supabase/ventas";
 export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo }) {
   const [abierta, setAbierta] = useState(false);
   const tienePagos = venta.pagos.length > 0;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Se manda la URL actual (con filtros) al detalle de la venta, para que
+  // "Volver al listado" regrese exactamente aquí en vez de reiniciar los
+  // filtros — ir y volver por historial del navegador no es confiable
+  // cuando de por medio hay una redirección de servidor (ej. al cobrar).
+  const listaUrl = `${pathname}?${searchParams.toString()}`;
 
   return (
     <>
@@ -74,7 +82,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
         </td>
         <td className="px-4 py-3 text-right">
           <Link
-            href={`/ventas/${venta.id}`}
+            href={`/ventas/${venta.id}?volver=${encodeURIComponent(listaUrl)}`}
             className="text-sm font-medium text-gray-700 hover:underline"
           >
             Ver

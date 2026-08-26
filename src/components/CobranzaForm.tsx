@@ -31,6 +31,7 @@ export default function CobranzaForm({
   saldoPendiente,
   almacenamientoBloqueado,
   almacenamientoAviso,
+  redirectTo,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -40,6 +41,10 @@ export default function CobranzaForm({
   saldoPendiente: number | null;
   almacenamientoBloqueado?: boolean;
   almacenamientoAviso?: boolean;
+  // A dónde volver tras registrar el cobro — la venta o el pedido desde
+  // donde se abrió este formulario, para no perder el punto de partida
+  // (ej. una lista de Ventas con filtros aplicados).
+  redirectTo?: string;
 }) {
   return (
     <form action={action} className="space-y-6">
@@ -50,6 +55,7 @@ export default function CobranzaForm({
       )}
 
       <input type="hidden" name="pedido_id" value={pedidoId} />
+      {redirectTo && <input type="hidden" name="redirect_to" value={redirectTo} />}
 
       <div>
         <p className="text-sm text-gray-500">Cliente</p>
