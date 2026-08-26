@@ -20,7 +20,7 @@ type LineaVenta = LineaPedido & {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
 function Field({
   label,
@@ -254,7 +254,7 @@ export default function VentaForm({
               value={descuento || ""}
               onChange={(e) => setDescuento(Number(e.target.value) || 0)}
               placeholder="0"
-              className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
             />
           </div>
           <div className="flex justify-between font-semibold text-gray-900">

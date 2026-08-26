@@ -78,7 +78,7 @@ function Field({
 }
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
 export default function ClienteForm({
   action,
@@ -232,7 +232,7 @@ export default function ClienteForm({
                 type="button"
                 onClick={buscarDocumento}
                 disabled={buscandoDocumento}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
                 {buscandoDocumento ? (
                   <Loader2 size={14} className="animate-spin" />

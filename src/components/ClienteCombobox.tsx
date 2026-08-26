@@ -57,7 +57,7 @@ export default function ClienteCombobox({
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
         autoComplete="off"
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
       />
       {open && (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">

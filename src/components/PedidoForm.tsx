@@ -31,7 +31,7 @@ type Linea = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
 function Field({
   label,
@@ -362,7 +362,7 @@ export default function PedidoForm({
                       : prev,
                   )
                 }
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm text-gray-500 hover:bg-gray-100"
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 hover:bg-gray-100"
               >
                 <Trash2 size={14} />
                 Quitar

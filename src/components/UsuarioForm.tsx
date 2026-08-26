@@ -6,7 +6,7 @@ import { ROLES, ROL_LABEL, requiereAlmacen } from "@/lib/roles";
 import SubmitButton from "./SubmitButton";
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
 function Field({
   label,

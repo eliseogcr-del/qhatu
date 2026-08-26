@@ -224,7 +224,7 @@ export default function EditarVentaForm({
                   productos={productos}
                   value={linea.producto_id}
                   onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               ) : (
                 <>
@@ -251,7 +251,7 @@ export default function EditarVentaForm({
                 onChange={(e) =>
                   actualizarLinea(linea.key, { cantidad: Number(e.target.value) })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
               {factor !== 1 && (
                 <p className="mt-1 text-xs text-gray-400">= {cantidadBase} unidades</p>
@@ -273,7 +273,7 @@ export default function EditarVentaForm({
                 onChange={(e) =>
                   actualizarLinea(linea.key, { unidad_medida_id: e.target.value })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 <option value="">—</option>
                 {unidadesMedida.map((u) => (
@@ -299,7 +299,7 @@ export default function EditarVentaForm({
                     precio_unitario: Number(e.target.value),
                   })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -318,7 +318,7 @@ export default function EditarVentaForm({
               type="button"
               onClick={() => quitarLinea(linea.key)}
               disabled={!linea.esNueva && linea.cantidad === 0}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-sm text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Trash2 size={14} />
               {!linea.esNueva && linea.cantidad === 0 ? "Quitado" : "Quitar"}
@@ -402,7 +402,7 @@ export default function EditarVentaForm({
             value={descuento || ""}
             onChange={(e) => setDescuento(Number(e.target.value) || 0)}
             placeholder="0"
-            className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
+            className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
           />
         </div>
         <div className="flex justify-between font-semibold text-gray-900">

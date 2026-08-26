@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
 
 type Opcion = { value: string; label: string };
 
