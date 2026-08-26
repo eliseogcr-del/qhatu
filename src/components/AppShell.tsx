@@ -106,7 +106,7 @@ export default function AppShell({
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Barra superior — solo en móvil */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-white/10 bg-emerald-800 px-4 py-3 md:hidden">
+      <div className="no-imprimir fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-white/10 bg-emerald-800 px-4 py-3 md:hidden">
         <BrandRow />
         <button
           type="button"

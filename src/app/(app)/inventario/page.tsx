@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import InventarioFiltroForm from "@/components/InventarioFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import BotonImprimir from "@/components/BotonImprimir";
 
 export default async function InventarioPage({
   searchParams,
@@ -116,7 +117,7 @@ export default async function InventarioPage({
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Inventario</h1>
-          <div className="flex items-center gap-4">
+          <div className="no-imprimir flex items-center gap-4">
             <Link
               href="/almacenes"
               className="text-sm font-medium text-gray-600 hover:underline"
@@ -129,20 +130,23 @@ export default async function InventarioPage({
             >
               + Registrar movimiento
             </Link>
+            <BotonImprimir />
           </div>
         </div>
 
-        <InventarioFiltroForm
-          productoId={productoId ?? ""}
-          almacenId={almacenId ?? ""}
-          bajoMinimo={bajoMinimoFiltro === "1"}
-          sobreMaximo={sobreMaximoFiltro === "1"}
-          conStock={conStockFiltro === "1"}
-          productos={productos ?? []}
-          almacenes={almacenes ?? []}
-          almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
-          hayFiltros={hayFiltros}
-        />
+        <div className="no-imprimir">
+          <InventarioFiltroForm
+            productoId={productoId ?? ""}
+            almacenId={almacenId ?? ""}
+            bajoMinimo={bajoMinimoFiltro === "1"}
+            sobreMaximo={sobreMaximoFiltro === "1"}
+            conStock={conStockFiltro === "1"}
+            productos={productos ?? []}
+            almacenes={almacenes ?? []}
+            almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
+            hayFiltros={hayFiltros}
+          />
+        </div>
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
