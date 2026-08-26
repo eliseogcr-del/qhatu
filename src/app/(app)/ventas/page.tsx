@@ -6,6 +6,7 @@ import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
 import { hoyLima } from "@/lib/fecha";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
 import VentasFiltroForm from "@/components/VentasFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 function buildExportHref(
   base: "/ventas/export" | "/ventas/export-detalle",
@@ -155,6 +156,8 @@ export default async function VentasPage({
             {error}
           </p>
         )}
+
+        <ResultadosCount count={ventas.length} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

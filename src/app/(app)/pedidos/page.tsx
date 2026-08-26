@@ -10,6 +10,7 @@ import {
   type EstadoPedido,
 } from "@/lib/pedido-estados";
 import PedidosFiltroForm from "@/components/PedidosFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function PedidosPage({
   searchParams,
@@ -88,6 +89,8 @@ export default async function PedidosPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={pedidos?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
