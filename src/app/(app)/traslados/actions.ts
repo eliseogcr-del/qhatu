@@ -53,11 +53,12 @@ export async function createTraslado(formData: FormData) {
     );
   }
 
-  // Solo el administrador puede mover mercadería entre almacenes libremente
-  // (cualquier origen, cualquier destino). Cualquier otro rol —vendedor,
-  // logística— solo puede ENVIAR desde su propio almacén hacia otro, nunca
+  // Admin y logística mueven mercadería entre almacenes libremente
+  // (cualquier origen, cualquier destino) — logística no tiene almacén
+  // fijo propio, igual que en inventario/kardex/repartos. Un vendedor sí
+  // tiene almacén fijo y solo puede ENVIAR desde el suyo hacia otro, nunca
   // recibir ni mover entre dos almacenes que no sean el suyo.
-  if (rol !== "admin" && almacenId !== almacenOrigenId) {
+  if (rol !== "admin" && rol !== "logistica" && almacenId !== almacenOrigenId) {
     redirect(
       `/traslados/nuevo?error=${encodeURIComponent("Solo puedes enviar mercadería desde tu propio almacén.")}`,
     );
