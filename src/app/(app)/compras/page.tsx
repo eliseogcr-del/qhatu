@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { fetchComprasConSaldo } from "@/utils/supabase/compras";
 import CompraFilaExpandible from "@/components/CompraFilaExpandible";
 import ComprasFiltroForm from "@/components/ComprasFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 function buildExportHref(
   base: "/compras/export" | "/compras/export-detalle",
@@ -88,6 +89,8 @@ export default async function ComprasPage({
             {error}
           </p>
         )}
+
+        <ResultadosCount count={compras.length} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

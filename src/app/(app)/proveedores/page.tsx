@@ -3,6 +3,7 @@ import { Plus, FileDown, Pencil, Power } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { toggleActivoProveedor } from "./actions";
 import ProveedoresFiltroForm from "@/components/ProveedoresFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function ProveedoresPage({
   searchParams,
@@ -51,6 +52,8 @@ export default async function ProveedoresPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={proveedores?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

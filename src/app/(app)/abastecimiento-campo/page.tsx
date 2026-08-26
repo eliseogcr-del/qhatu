@@ -3,6 +3,7 @@ import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha
 import { Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import AbastecimientoCampoFiltroForm from "@/components/AbastecimientoCampoFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function AbastecimientoCampoPage({
   searchParams,
@@ -95,6 +96,8 @@ export default async function AbastecimientoCampoPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={filas.length} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

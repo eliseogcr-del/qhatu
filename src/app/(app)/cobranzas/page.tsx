@@ -12,6 +12,7 @@ import {
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { anularCobranza } from "./actions";
 import CobranzasFiltroForm from "@/components/CobranzasFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function CobranzasPage({
   searchParams,
@@ -96,6 +97,8 @@ export default async function CobranzasPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={cobranzas?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

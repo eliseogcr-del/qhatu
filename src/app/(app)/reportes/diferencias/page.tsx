@@ -3,6 +3,7 @@ import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import ReportesDiferenciasFiltroForm from "@/components/ReportesDiferenciasFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 type ProductoDiferencia = {
   productoId: string;
@@ -130,6 +131,8 @@ export default async function DiferenciasPedidoVentaPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={pedidosConDiferencias.length} />
 
         <div className="space-y-4">
           {pedidosConDiferencias.map((p) => (

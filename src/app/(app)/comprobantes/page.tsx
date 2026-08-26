@@ -4,6 +4,7 @@ import { FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { TIPO_COMPROBANTE_LABEL, enlacePdfComprobante } from "@/lib/comprobante-links";
 import ComprobantesFiltroForm from "@/components/ComprobantesFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 const ESTADO_BADGE: Record<string, string> = {
   emitido: "bg-green-100 text-green-700",
@@ -63,6 +64,8 @@ export default async function ComprobantesPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={comprobantes?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

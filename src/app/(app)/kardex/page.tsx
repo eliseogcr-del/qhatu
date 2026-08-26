@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
 import KardexFiltroForm from "@/components/KardexFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function KardexPage({
   searchParams,
@@ -99,6 +100,8 @@ export default async function KardexPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={movimientos?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

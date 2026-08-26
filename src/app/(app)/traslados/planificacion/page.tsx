@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import PlanificacionTrasladosFiltroForm from "@/components/PlanificacionTrasladosFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 type Fila = {
   productoId: string;
@@ -124,6 +125,8 @@ export default async function PlanificacionTrasladosPage({
           almacenes={almacenes ?? []}
           almacenFijoId={session.almacenId ?? null}
         />
+
+        <ResultadosCount count={filas.length} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

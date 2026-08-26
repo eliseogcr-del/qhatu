@@ -11,6 +11,7 @@ import {
   type TipoTransporte,
 } from "@/lib/reparto-estados";
 import RepartosFiltroForm from "@/components/RepartosFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 type ClienteDestino = {
   nombre: string;
@@ -94,6 +95,8 @@ export default async function RepartosPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={repartos?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

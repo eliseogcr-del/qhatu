@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import ReportesVendedoresFiltroForm from "@/components/ReportesVendedoresFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 type Fila = {
   almacenId: string;
@@ -119,6 +120,8 @@ export default async function ReporteVendedoresPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={filas.length} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

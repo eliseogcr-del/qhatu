@@ -10,6 +10,7 @@ import {
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { confirmarLiberarEspacio } from "./actions";
 import EvidenciasPagoFiltroForm from "@/components/EvidenciasPagoFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 function formatMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(0);
@@ -144,6 +145,8 @@ export default async function EvidenciasPagoPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={adjuntos?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

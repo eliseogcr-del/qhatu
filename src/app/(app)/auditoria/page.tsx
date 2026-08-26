@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, ENTIDAD_LABEL } from "@/lib/auditoria-tipos";
 import AuditoriaFiltroForm from "@/components/AuditoriaFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function AuditoriaPage({
   searchParams,
@@ -67,6 +68,8 @@ export default async function AuditoriaPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={registros?.length ?? 0} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

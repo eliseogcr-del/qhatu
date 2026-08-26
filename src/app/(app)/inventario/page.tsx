@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import InventarioFiltroForm from "@/components/InventarioFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 export default async function InventarioPage({
   searchParams,
@@ -148,6 +149,8 @@ export default async function InventarioPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={inventario.length} />
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">

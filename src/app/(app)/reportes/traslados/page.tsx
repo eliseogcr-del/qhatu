@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import ReportesTrasladosFiltroForm from "@/components/ReportesTrasladosFiltroForm";
+import ResultadosCount from "@/components/ResultadosCount";
 
 type Fila = {
   almacenId: string;
@@ -153,6 +154,8 @@ export default async function ReporteTrasladosPage({
             {error.message}
           </p>
         )}
+
+        <ResultadosCount count={filas.length} />
 
         <div className="space-y-6">
           {almacenesConMovimiento.map((a) => {
