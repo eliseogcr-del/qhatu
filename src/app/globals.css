@@ -27,13 +27,28 @@ body {
 
 /* Imprimir un listado: se oculta el chrome de la app (sidebar, barra
    móvil) y cualquier elemento marcado .no-imprimir (filtros, botones),
-   dejando solo el título y la tabla resultante. */
+   dejando solo el título y la tabla resultante. Siempre en vertical, y
+   la tabla marcada .tabla-imprimir sale como cuadrícula compacta: borde
+   en cada celda (líneas verticales entre columnas, horizontales entre
+   filas) y el mínimo de aire entre líneas. */
 @media print {
+  @page {
+    size: portrait;
+  }
   aside,
   .no-imprimir {
     display: none !important;
   }
   main {
     padding-top: 0 !important;
+  }
+  .tabla-imprimir {
+    border-collapse: collapse !important;
+  }
+  .tabla-imprimir th,
+  .tabla-imprimir td {
+    border: 1px solid #000 !important;
+    padding: 2px 6px !important;
+    line-height: 1.2 !important;
   }
 }
