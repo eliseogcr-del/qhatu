@@ -63,7 +63,7 @@ export default async function PedidoDetallePage({
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, moneda")
+    .select("id, total, descuento, moneda")
     .eq("pedido_id", id)
     .maybeSingle();
 
@@ -73,7 +73,7 @@ export default async function PedidoDetallePage({
     .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : id)
     .order("fecha", { ascending: false });
 
-  const totalReferencia = venta ? venta.total : pedido.total;
+  const totalReferencia = venta ? venta.total - venta.descuento : pedido.total;
   const monedaReferencia = venta ? venta.moneda : pedido.moneda;
   const cobrado = (cobranzas ?? [])
     .filter((c) => c.estado === "activa")

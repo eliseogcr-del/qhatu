@@ -10,6 +10,7 @@ import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA, enlacePdfComprobante } from "@
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
 import ReemplazarEvidenciaCobranza from "@/components/ReemplazarEvidenciaCobranza";
+import VolverAtras from "@/components/VolverAtras";
 import { anularVenta } from "./actions";
 import { anularCobranza, actualizarEvidenciaCobranza } from "../../cobranzas/actions";
 import {
@@ -147,12 +148,9 @@ export default async function VentaDetallePage({
                 Anular venta
               </ConfirmFormButton>
             )}
-            <Link
-              href="/ventas"
-              className="text-sm font-medium text-gray-600 hover:underline"
-            >
-              ← Volver al listado
-            </Link>
+            <VolverAtras className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline">
+              Volver al listado
+            </VolverAtras>
           </div>
         </div>
 

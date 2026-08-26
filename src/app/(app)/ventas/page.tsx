@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { FileDown, Plus, Search, X } from "lucide-react";
+import { FileDown, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
 import { hoyLima } from "@/lib/fecha";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
+import VentasFiltroForm from "@/components/VentasFiltroForm";
 
 function buildExportHref(
   base: "/ventas/export" | "/ventas/export-detalle",
@@ -136,116 +137,18 @@ export default async function VentasPage({
           </div>
         </div>
 
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          method="get"
-        >
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Cliente
-            </label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Buscar por nombre..."
-                className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Desde
-            </label>
-            <input
-              type="date"
-              name="desde"
-              defaultValue={desdeEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Hasta
-            </label>
-            <input
-              type="date"
-              name="hasta"
-              defaultValue={hastaEfectivo}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Almacén
-            </label>
-            {session.almacenId ? (
-              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                {almacenes?.[0]?.nombre ?? "Tu almacén"}
-              </p>
-            ) : (
-              <select
-                name="almacen_id"
-                defaultValue={almacenId ?? ""}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {almacenes?.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Vendedor
-            </label>
-            <select
-              name="vendedor_id"
-              defaultValue={vendedorId ?? ""}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              <option value="">Todos</option>
-              {vendedores?.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              name="pendientes"
-              value="1"
-              defaultChecked={pendientes === "1"}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            Solo pendientes de pago
-          </label>
-          <button
-            type="submit"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Filtrar
-          </button>
-          {hayFiltros && (
-            <Link
-              href="/ventas?desde=&hasta="
-              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-            >
-              <X size={14} />
-              Limpiar
-            </Link>
-          )}
-        </form>
+        <VentasFiltroForm
+          q={q ?? ""}
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
+          almacenId={almacenId ?? ""}
+          vendedorId={vendedorId ?? ""}
+          pendientes={pendientes === "1"}
+          almacenes={almacenes ?? []}
+          vendedores={vendedores ?? []}
+          almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
+          hayFiltros={hayFiltros}
+        />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
