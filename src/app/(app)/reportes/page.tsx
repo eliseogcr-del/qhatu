@@ -53,6 +53,12 @@ export default async function ReportesPage({
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Reportes</h1>
           <div className="flex gap-4 text-sm">
+            <Link
+              href="/reportes/dashboard"
+              className="font-medium text-emerald-700 hover:underline"
+            >
+              Dashboard del negocio
+            </Link>
             <Link href="/inventario" className="font-medium text-gray-600 hover:underline">
               Ver inventario
             </Link>
