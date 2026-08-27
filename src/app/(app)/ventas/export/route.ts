@@ -6,6 +6,7 @@ import { buildExcelText } from "@/lib/csv";
 
 const HEADERS = [
   "Cliente",
+  "Vendedor",
   "Fecha",
   "Moneda",
   "Total",
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
 
   const rows = ventas.map((v) => [
     v.cliente_nombre,
+    v.vendedor_nombre,
     formatFecha(v.fecha),
     v.moneda,
     v.total,

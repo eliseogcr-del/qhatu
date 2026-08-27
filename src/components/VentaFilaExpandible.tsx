@@ -46,6 +46,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
           {venta.cliente_nombre ?? "—"}
         </td>
         <td className="px-4 py-3 text-gray-600">{venta.almacen_nombre ?? "—"}</td>
+        <td className="px-4 py-3 text-gray-600">{venta.vendedor_nombre ?? "—"}</td>
         <td className="px-4 py-3 text-gray-600">
           {formatFecha(venta.fecha)}
         </td>
@@ -92,7 +93,7 @@ export default function VentaFilaExpandible({ venta }: { venta: VentaConSaldo })
       {abierta && tienePagos && (
         <tr className="border-b border-gray-100 bg-gray-50">
           <td />
-          <td colSpan={11} className="px-4 py-3">
+          <td colSpan={12} className="px-4 py-3">
             <table className="w-full text-left text-xs">
               <thead className="text-gray-400">
                 <tr>

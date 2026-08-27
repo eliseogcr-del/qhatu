@@ -18,6 +18,7 @@ export type VentaConSaldo = {
   estado: string;
   cliente_nombre: string | null;
   almacen_nombre: string | null;
+  vendedor_nombre: string | null;
   cobrado: number;
   saldo: number;
   pagos: PagoDetalle[];
@@ -51,8 +52,8 @@ export async function fetchVentasConSaldo(
     .from("ventas")
     .select(
       clienteNombre
-        ? "id, fecha, moneda, total, descuento, estado, clientes!inner(nombre), almacenes(nombre)"
-        : "id, fecha, moneda, total, descuento, estado, clientes(nombre), almacenes(nombre)",
+        ? "id, fecha, moneda, total, descuento, estado, clientes!inner(nombre), almacenes(nombre), pedidos(usuarios(nombre))"
+        : "id, fecha, moneda, total, descuento, estado, clientes(nombre), almacenes(nombre), pedidos(usuarios(nombre))",
     )
     .order("fecha", { ascending: false });
 
@@ -145,6 +146,9 @@ export async function fetchVentasConSaldo(
         (v.clientes as unknown as { nombre: string } | null)?.nombre ?? null,
       almacen_nombre:
         (v.almacenes as unknown as { nombre: string } | null)?.nombre ?? null,
+      vendedor_nombre:
+        (v.pedidos as unknown as { usuarios: { nombre: string | null } | null } | null)?.usuarios
+          ?.nombre ?? null,
       cobrado,
       saldo: Math.round((v.total - v.descuento - cobrado) * 100) / 100,
       pagos: pagosPorVenta.get(v.id) ?? [],
