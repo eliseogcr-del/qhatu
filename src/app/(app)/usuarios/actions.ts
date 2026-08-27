@@ -108,6 +108,7 @@ export async function updateUsuario(id: string, formData: FormData) {
 
   const username = String(formData.get("username") ?? "").trim();
   const nombre = String(formData.get("nombre") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
   const rolRaw = String(formData.get("rol") ?? "vendedor");
   const rol = ROLES.includes(rolRaw as (typeof ROLES)[number]) ? rolRaw : "vendedor";
   const activo = formData.get("activo") === "on";
@@ -117,6 +118,12 @@ export async function updateUsuario(id: string, formData: FormData) {
   if (!username || !nombre) {
     redirect(
       `/usuarios/${id}/editar?error=${encodeURIComponent("Usuario y nombre son obligatorios.")}`,
+    );
+  }
+
+  if (password && password.length < 6) {
+    redirect(
+      `/usuarios/${id}/editar?error=${encodeURIComponent("La nueva contraseña debe tener al menos 6 caracteres.")}`,
     );
   }
 
@@ -139,6 +146,13 @@ export async function updateUsuario(id: string, formData: FormData) {
     redirect(
       `/usuarios/${id}/editar?error=${encodeURIComponent("Ese nombre de usuario ya está en uso.")}`,
     );
+  }
+
+  if (password) {
+    const { error: passwordError } = await admin.auth.admin.updateUserById(id, { password });
+    if (passwordError) {
+      redirect(`/usuarios/${id}/editar?error=${encodeURIComponent(passwordError.message)}`);
+    }
   }
 
   const { error } = await admin

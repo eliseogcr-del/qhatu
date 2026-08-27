@@ -122,6 +122,16 @@ export default function UsuarioForm({
               className={`${inputClass} bg-gray-50 text-gray-500`}
             />
           </Field>
+          <Field label="Nueva contraseña (opcional)">
+            <input
+              type="password"
+              name="password"
+              minLength={6}
+              autoComplete="new-password"
+              placeholder="Dejar en blanco para no cambiarla"
+              className={inputClass}
+            />
+          </Field>
         </div>
       )}
 
