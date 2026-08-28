@@ -256,6 +256,7 @@ export default function ProductoForm({
             >
               <option value="bien">Bien</option>
               <option value="servicio">Servicio</option>
+              <option value="insumo">Insumo</option>
             </select>
           </Field>
           <Field label="Lugar de elaboración">
