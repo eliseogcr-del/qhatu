@@ -110,8 +110,68 @@ export async function createAbastecimientoCampo(formData: FormData) {
 
   await registrarMovimientosKardex(supabase, empresaId, userId, movimientos);
 
+  // Registro automático e interno de la compra al proveedor: el ingreso
+  // del producto ya lo hizo este abastecimiento (kardex incluido), así
+  // que esta compra "espejo" nunca vuelve a tocar kardex/inventario —
+  // solo deja constancia del costo para cuentas por pagar, pendiente de
+  // que Admin/Logística la valide. Nunca bloquea el abastecimiento: si
+  // algo sale mal generándola, el abastecimiento ya quedó registrado.
+  if (proveedorId) {
+    try {
+      const { data: productosCosto } = await supabase
+        .from("productos")
+        .select("id, costo_referencial, unidades_medida(cantidad)")
+        .in("id", [...productoIdsUnicos]);
+
+      const lineasCompra = detalleRows.map((row) => {
+        const info = productosCosto?.find((p) => p.id === row.producto_id);
+        const factor =
+          (info?.unidades_medida as unknown as { cantidad: number } | null)
+            ?.cantidad || 1;
+        const costoUnitario =
+          Math.round(((info?.costo_referencial ?? 0) / factor) * 100) / 100;
+        return {
+          producto_id: row.producto_id,
+          cantidad: row.cantidad,
+          costo_unitario: costoUnitario,
+          subtotal: Math.round(costoUnitario * row.cantidad * 100) / 100,
+        };
+      });
+
+      const { data: compraAuto, error: compraAutoError } = await supabase
+        .from("compras")
+        .insert({
+          empresa_id: empresaId,
+          proveedor_id: proveedorId,
+          total: lineasCompra.reduce((acc, l) => acc + l.subtotal, 0),
+          usuario_id: userId,
+          almacen_id: almacenId,
+          origen: "abastecimiento_campo",
+          validado: false,
+          abastecimiento_id: abastecimiento.id,
+        })
+        .select("id")
+        .single();
+
+      if (!compraAutoError && compraAuto) {
+        await supabase.from("compra_detalle").insert(
+          lineasCompra.map((l) => ({
+            compra_id: compraAuto.id,
+            producto_id: l.producto_id,
+            cantidad: l.cantidad,
+            costo_unitario: l.costo_unitario,
+            subtotal: l.subtotal,
+          })),
+        );
+      }
+    } catch {
+      // best-effort: ver comentario arriba.
+    }
+  }
+
   revalidatePath("/abastecimiento-campo");
   revalidatePath("/inventario");
   revalidatePath("/kardex");
+  revalidatePath("/compras");
   redirect("/abastecimiento-campo");
 }

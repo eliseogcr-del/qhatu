@@ -3,10 +3,16 @@ import { formatFecha, formatFechaHora } from "@/lib/fecha";
 import { Ban, XCircle, Save } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { METODOS_PAGO, METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
-import { anularCompra, createPagoProveedor, anularPagoProveedor } from "../actions";
+import {
+  anularCompra,
+  createPagoProveedor,
+  anularPagoProveedor,
+  validarCompra,
+} from "../actions";
 
 export default async function CompraDetallePage({
   params,
@@ -18,6 +24,8 @@ export default async function CompraDetallePage({
   const { id } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
+  const puedeValidar = session.rol === "admin" || session.rol === "logistica";
 
   const { data: compra } = await supabase
     .from("compras")
@@ -30,7 +38,7 @@ export default async function CompraDetallePage({
   const [{ data: detalle }, { data: pagos }] = await Promise.all([
     supabase
       .from("compra_detalle")
-      .select("id, cantidad, costo_unitario, subtotal, productos(nombre)")
+      .select("id, producto_id, cantidad, costo_unitario, subtotal, productos(nombre)")
       .eq("compra_id", id),
     supabase
       .from("pagos_proveedor")
@@ -63,6 +71,16 @@ export default async function CompraDetallePage({
             >
               {anulada ? "Anulada" : "Registrada"}
             </span>
+            {compra.origen === "abastecimiento_campo" && (
+              <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-medium text-sky-700">
+                Desde abastecimiento en campo
+              </span>
+            )}
+            {!compra.validado && (
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                Pendiente de validar
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {!anulada && (
@@ -110,32 +128,97 @@ export default async function CompraDetallePage({
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
             Productos comprados
           </h2>
-          <table className="w-full text-left text-sm">
-            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
-              <tr>
-                <th className="py-2 font-bold">Producto</th>
-                <th className="py-2 font-bold">Cantidad</th>
-                <th className="py-2 font-bold">Costo unitario</th>
-                <th className="py-2 font-bold">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detalle?.map((linea) => {
-                const producto = linea.productos as unknown as { nombre: string } | null;
-                return (
-                  <tr key={linea.id} className="border-b-2 border-gray-200 last:border-0">
-                    <td className="py-2 text-gray-900">{producto?.nombre ?? "—"}</td>
-                    <td className="py-2 text-gray-600">{linea.cantidad}</td>
-                    <td className="py-2 text-gray-600">{linea.costo_unitario}</td>
-                    <td className="py-2 text-gray-600">{linea.subtotal}</td>
+
+          {!compra.validado && puedeValidar && !anulada ? (
+            <form action={validarCompra} className="space-y-4">
+              <input type="hidden" name="compra_id" value={id} />
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Esta compra se generó automáticamente desde un abastecimiento en
+                campo, valorizada con el costo referencial del producto.
+                Verifica/corrige cantidades e importes antes de validarla.
+              </p>
+              <table className="w-full text-left text-sm">
+                <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+                  <tr>
+                    <th className="py-2 font-bold">Producto</th>
+                    <th className="py-2 font-bold">Cantidad</th>
+                    <th className="py-2 font-bold">Costo unitario</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <p className="mt-4 text-right text-sm font-semibold text-gray-900">
-            Total: {compra.moneda} {compra.total}
-          </p>
+                </thead>
+                <tbody>
+                  {detalle?.map((linea) => {
+                    const producto = linea.productos as unknown as { nombre: string } | null;
+                    return (
+                      <tr key={linea.id} className="border-b-2 border-gray-200 last:border-0">
+                        <td className="py-2 text-gray-900">{producto?.nombre ?? "—"}</td>
+                        <td className="py-2">
+                          <input type="hidden" name="detalle_id[]" value={linea.id} />
+                          <input type="hidden" name="producto_id[]" value={linea.producto_id} />
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            name="cantidad[]"
+                            required
+                            defaultValue={linea.cantidad}
+                            className="w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
+                          />
+                        </td>
+                        <td className="py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="costo_unitario[]"
+                            required
+                            defaultValue={linea.costo_unitario}
+                            className="w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <SubmitButton icon={<Save size={16} />} pendingLabel="Validando...">
+                Validar y guardar
+              </SubmitButton>
+            </form>
+          ) : (
+            <>
+              <table className="w-full text-left text-sm">
+                <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+                  <tr>
+                    <th className="py-2 font-bold">Producto</th>
+                    <th className="py-2 font-bold">Cantidad</th>
+                    <th className="py-2 font-bold">Costo unitario</th>
+                    <th className="py-2 font-bold">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detalle?.map((linea) => {
+                    const producto = linea.productos as unknown as { nombre: string } | null;
+                    return (
+                      <tr key={linea.id} className="border-b-2 border-gray-200 last:border-0">
+                        <td className="py-2 text-gray-900">{producto?.nombre ?? "—"}</td>
+                        <td className="py-2 text-gray-600">{linea.cantidad}</td>
+                        <td className="py-2 text-gray-600">{linea.costo_unitario}</td>
+                        <td className="py-2 text-gray-600">{linea.subtotal}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <p className="mt-4 text-right text-sm font-semibold text-gray-900">
+                Total: {compra.moneda} {compra.total}
+              </p>
+              {!compra.validado && !puedeValidar && (
+                <p className="mt-2 text-right text-xs text-amber-700">
+                  Pendiente de validación por Admin/Logística.
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -215,7 +298,13 @@ export default async function CompraDetallePage({
             <p className="mb-6 text-sm text-gray-400">Aún no hay pagos registrados.</p>
           )}
 
-          {!anulada && saldo > 0 && (
+          {!anulada && !compra.validado && (
+            <p className="border-t border-gray-100 pt-4 text-sm text-amber-700">
+              Esta compra debe validarse antes de poder registrar pagos.
+            </p>
+          )}
+
+          {!anulada && compra.validado && saldo > 0 && (
             <form
               action={createPagoProveedor}
               className="grid grid-cols-1 items-end gap-3 border-t border-gray-100 pt-4 sm:grid-cols-[140px_140px_1fr_auto]"

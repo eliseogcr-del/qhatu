@@ -14,6 +14,8 @@ export type CompraConSaldo = {
   moneda: string;
   total: number;
   estado: string;
+  origen: string;
+  validado: boolean;
   proveedor_nombre: string | null;
   almacen_nombre: string | null;
   pagado: number;
@@ -38,8 +40,8 @@ export async function fetchComprasConSaldo(
     .from("compras")
     .select(
       proveedorNombre
-        ? "id, fecha, moneda, total, estado, proveedores!inner(nombre), almacenes(nombre)"
-        : "id, fecha, moneda, total, estado, proveedores(nombre), almacenes(nombre)",
+        ? "id, fecha, moneda, total, estado, origen, validado, proveedores!inner(nombre), almacenes(nombre)"
+        : "id, fecha, moneda, total, estado, origen, validado, proveedores(nombre), almacenes(nombre)",
     )
     .order("fecha", { ascending: false });
 
@@ -93,6 +95,8 @@ export async function fetchComprasConSaldo(
       moneda: c.moneda,
       total: c.total,
       estado: c.estado,
+      origen: c.origen,
+      validado: c.validado,
       proveedor_nombre:
         (c.proveedores as unknown as { nombre: string } | null)?.nombre ?? null,
       almacen_nombre:

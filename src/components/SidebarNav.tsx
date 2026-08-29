@@ -73,6 +73,11 @@ const FINANZAS = {
   ],
 };
 
+const FINANZAS_LOGISTICA = {
+  label: "Finanzas",
+  items: [{ href: "/compras", label: "Compras", icon: ShoppingBag }],
+};
+
 const ADMINISTRACION = {
   label: "Administración",
   items: [
@@ -124,7 +129,8 @@ const FINANZAS_VENDEDOR = {
 
 function gruposPorRol(rol: string) {
   if (rol === "admin") return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS, ADMINISTRACION];
-  if (rol === "logistica") return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA];
+  if (rol === "logistica")
+    return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA, FINANZAS_LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
   // vendedor (y cualquier valor no reconocido): solo Pedidos, Abastecimiento
   // en campo (para registrar lo que recibe en ruta) y Ventas.

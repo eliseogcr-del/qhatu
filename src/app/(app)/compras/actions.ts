@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
+import {
+  getEmpresaSession,
+  resolverAlmacenId,
+  requireLogisticaOAdmin,
+} from "@/utils/supabase/session";
 import { registrarMovimientosKardex } from "@/utils/supabase/kardex";
 import { getSaldoCompra } from "@/utils/supabase/compras";
 
@@ -275,6 +279,78 @@ export async function createPagoProveedor(formData: FormData) {
 
   revalidatePath(`/compras/${compraId}`);
   revalidatePath("/compras");
+  redirect(`/compras/${compraId}`);
+}
+
+// Revisión de una compra generada automáticamente desde Abastecimiento
+// en campo (origen='abastecimiento_campo', validado=false): Admin o
+// Logística corrige cantidades/costos y la marca validada. Nunca toca
+// kardex/inventario, aunque cambien las cantidades — el stock ya lo
+// movió el propio abastecimiento.
+export async function validarCompra(formData: FormData) {
+  const supabase = await createClient();
+  await requireLogisticaOAdmin(supabase);
+
+  const compraId = String(formData.get("compra_id") ?? "");
+  const detalleIds = formData.getAll("detalle_id[]").map(String);
+  const productoIds = formData.getAll("producto_id[]").map(String);
+  const cantidades = formData.getAll("cantidad[]").map(Number);
+  const costos = formData.getAll("costo_unitario[]").map(Number);
+
+  const lineas = detalleIds.map((id, i) => ({
+    id,
+    producto_id: productoIds[i],
+    cantidad: cantidades[i],
+    costo_unitario: costos[i],
+    subtotal: Math.round(cantidades[i] * costos[i] * 100) / 100,
+  }));
+
+  if (lineas.some((l) => !(l.cantidad > 0) || !(l.costo_unitario >= 0))) {
+    redirect(
+      `/compras/${compraId}?error=${encodeURIComponent(
+        "Cada línea debe tener una cantidad mayor a 0 y un costo unitario válido.",
+      )}`,
+    );
+  }
+
+  await Promise.all(
+    lineas.map((l) =>
+      supabase
+        .from("compra_detalle")
+        .update({
+          cantidad: l.cantidad,
+          costo_unitario: l.costo_unitario,
+          subtotal: l.subtotal,
+        })
+        .eq("id", l.id),
+    ),
+  );
+
+  const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
+
+  const { error } = await supabase
+    .from("compras")
+    .update({ total, validado: true })
+    .eq("id", compraId);
+
+  if (error) {
+    redirect(`/compras/${compraId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  // Deja costo_referencial al día con lo validado, igual que hace una
+  // compra manual (createCompra) -- best-effort, no bloquea la validación.
+  await Promise.all(
+    lineas.map((l) =>
+      supabase
+        .from("productos")
+        .update({ costo_referencial: l.costo_unitario })
+        .eq("id", l.producto_id),
+    ),
+  );
+
+  revalidatePath(`/compras/${compraId}`);
+  revalidatePath("/compras");
+  revalidatePath("/productos");
   redirect(`/compras/${compraId}`);
 }
 

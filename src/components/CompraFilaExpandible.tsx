@@ -53,15 +53,22 @@ export default function CompraFilaExpandible({ compra }: { compra: CompraConSald
           </span>
         </td>
         <td className="px-4 py-3">
-          <span
-            className={
-              compra.estado === "anulada"
-                ? "rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
-                : "rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
-            }
-          >
-            {compra.estado === "anulada" ? "Anulada" : "Registrada"}
-          </span>
+          <div className="flex flex-wrap gap-1">
+            <span
+              className={
+                compra.estado === "anulada"
+                  ? "rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
+                  : "rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
+              }
+            >
+              {compra.estado === "anulada" ? "Anulada" : "Registrada"}
+            </span>
+            {!compra.validado && (
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                Pendiente de validar
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-4 py-3 text-right">
           <Link
