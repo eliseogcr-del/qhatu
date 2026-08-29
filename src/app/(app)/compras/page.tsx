@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileDown, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { hoyLima } from "@/lib/fecha";
 import { fetchComprasConSaldo } from "@/utils/supabase/compras";
 import CompraFilaExpandible from "@/components/CompraFilaExpandible";
 import ComprasFiltroForm from "@/components/ComprasFiltroForm";
@@ -37,10 +38,14 @@ export default async function ComprasPage({
   const { q, desde, hasta, pendientes } = await searchParams;
   const supabase = await createClient();
 
+  const hoy = hoyLima();
+  const desdeEfectivo = desde || hoy;
+  const hastaEfectivo = hasta || hoy;
+
   const { compras, error } = await fetchComprasConSaldo(supabase, {
     proveedorNombre: q,
-    fechaDesde: desde,
-    fechaHasta: hasta,
+    fechaDesde: desdeEfectivo,
+    fechaHasta: hastaEfectivo,
     soloPendientes: pendientes === "1",
   });
 
@@ -53,14 +58,24 @@ export default async function ComprasPage({
           <h1 className="text-2xl font-semibold text-gray-900">Compras</h1>
           <div className="flex items-center gap-3">
             <a
-              href={buildExportHref("/compras/export", { q, desde, hasta, pendientes })}
+              href={buildExportHref("/compras/export", {
+                q,
+                desde: desdeEfectivo,
+                hasta: hastaEfectivo,
+                pendientes,
+              })}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
               Exportar resumen
             </a>
             <a
-              href={buildExportHref("/compras/export-detalle", { q, desde, hasta, pendientes })}
+              href={buildExportHref("/compras/export-detalle", {
+                q,
+                desde: desdeEfectivo,
+                hasta: hastaEfectivo,
+                pendientes,
+              })}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
@@ -78,8 +93,8 @@ export default async function ComprasPage({
 
         <ComprasFiltroForm
           q={q ?? ""}
-          desde={desde ?? ""}
-          hasta={hasta ?? ""}
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
           pendientes={pendientes === "1"}
           hayFiltros={hayFiltros}
         />
