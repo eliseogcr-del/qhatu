@@ -7,12 +7,14 @@ import ProductoCombobox from "./ProductoCombobox";
 
 type Almacen = { id: string; nombre: string };
 type Proveedor = { id: string; nombre: string };
-type Producto = { id: string; nombre: string };
+type Producto = { id: string; nombre: string; unidad_medida_id: string | null };
+type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
 type Linea = {
   key: string;
   producto_id: string;
   cantidad: number;
+  unidad_medida_id: string;
 };
 
 const inputClass =
@@ -36,7 +38,7 @@ function Field({
 let nextKey = 0;
 function newLinea(): Linea {
   nextKey += 1;
-  return { key: `l${nextKey}`, producto_id: "", cantidad: 1 };
+  return { key: `l${nextKey}`, producto_id: "", cantidad: 1, unidad_medida_id: "" };
 }
 
 export default function AbastecimientoCampoForm({
@@ -44,17 +46,37 @@ export default function AbastecimientoCampoForm({
   error,
   proveedores,
   productos,
+  unidadesMedida,
   almacenes,
+  initialValues,
+  submitLabel = "Registrar abastecimiento",
+  submitPendingLabel = "Registrando...",
 }: {
   action: (formData: FormData) => void;
   error?: string;
   proveedores: Proveedor[];
   productos: Producto[];
+  unidadesMedida: UnidadMedida[];
   // Solo se pasa (con al menos un local) cuando quien registra es admin
   // — un vendedor tiene su almacén fijo y el servidor lo asigna solo.
   almacenes?: Almacen[];
+  // Al editar, proveedor y almacén quedan fijos (cambiarlos movería stock
+  // ya contabilizado entre almacenes, un caso distinto — ver traslados) —
+  // se muestran como texto en vez de selects.
+  initialValues?: {
+    proveedorNombre: string | null;
+    almacenNombre: string;
+    nota: string | null;
+    lineas: { producto_id: string; cantidad: number; unidad_medida_id: string }[];
+  };
+  submitLabel?: string;
+  submitPendingLabel?: string;
 }) {
-  const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
+  const [lineas, setLineas] = useState<Linea[]>(() =>
+    initialValues && initialValues.lineas.length > 0
+      ? initialValues.lineas.map((l) => ({ ...newLinea(), ...l }))
+      : [newLinea()],
+  );
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
@@ -74,7 +96,11 @@ export default function AbastecimientoCampoForm({
     }
 
     setAvisoDuplicado(null);
-    updateLinea(key, { producto_id: productoId });
+    const producto = productos.find((p) => p.id === productoId);
+    updateLinea(key, {
+      producto_id: productoId,
+      unidad_medida_id: producto?.unidad_medida_id ?? "",
+    });
   };
 
   const tieneDuplicados = (() => {
@@ -114,34 +140,50 @@ export default function AbastecimientoCampoForm({
           Datos del abastecimiento
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Proveedor (opcional)">
-            <select name="proveedor_id" defaultValue="" className={inputClass}>
-              <option value="">Sin especificar</option>
-              {proveedores.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </Field>
-          {almacenes && almacenes.length > 0 && (
-            <Field label="Almacén / Local">
-              <select name="almacen_id" required defaultValue="" className={inputClass}>
-                <option value="" disabled>
-                  Selecciona un local
-                </option>
-                {almacenes.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre}
-                  </option>
-                ))}
-              </select>
-            </Field>
+          {initialValues ? (
+            <>
+              <Field label="Proveedor">
+                <p className="py-2 text-sm text-gray-700">
+                  {initialValues.proveedorNombre ?? "Sin especificar"}
+                </p>
+              </Field>
+              <Field label="Almacén / Local">
+                <p className="py-2 text-sm text-gray-700">{initialValues.almacenNombre}</p>
+              </Field>
+            </>
+          ) : (
+            <>
+              <Field label="Proveedor (opcional)">
+                <select name="proveedor_id" defaultValue="" className={inputClass}>
+                  <option value="">Sin especificar</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {almacenes && almacenes.length > 0 && (
+                <Field label="Almacén / Local">
+                  <select name="almacen_id" required defaultValue="" className={inputClass}>
+                    <option value="" disabled>
+                      Selecciona un local
+                    </option>
+                    {almacenes.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+            </>
           )}
         </div>
         <Field label="Nota (opcional)">
           <input
             name="nota"
+            defaultValue={initialValues?.nota ?? ""}
             placeholder="Ej. recogido camino a Los Olivos..."
             className={inputClass}
           />
@@ -158,44 +200,74 @@ export default function AbastecimientoCampoForm({
         </p>
 
         <div className="space-y-3">
-          {lineas.map((linea) => (
-            <div
-              key={linea.key}
-              className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_140px_auto]"
-            >
-              <Field label="Producto">
-                <ProductoCombobox
-                  productos={productos}
-                  value={linea.producto_id}
-                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Cantidad">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  name="cantidad[]"
-                  value={linea.cantidad || ""}
-                  onChange={(e) =>
-                    updateLinea(linea.key, { cantidad: Number(e.target.value) })
-                  }
-                  className={inputClass}
-                />
-              </Field>
-              <button
-                type="button"
-                onClick={() =>
-                  setLineas((prev) => (prev.length > 1 ? prev.filter((l) => l.key !== linea.key) : prev))
-                }
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 hover:bg-gray-100"
+          {lineas.map((linea) => {
+            const unidadSeleccionada = unidadesMedida.find(
+              (u) => u.id === linea.unidad_medida_id,
+            );
+            const factor = unidadSeleccionada?.cantidad ?? 1;
+            const cantidadBase = linea.cantidad * factor;
+
+            return (
+              <div
+                key={linea.key}
+                className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_150px_auto]"
               >
-                <Trash2 size={14} />
-                Quitar
-              </button>
-            </div>
-          ))}
+                <Field label="Producto">
+                  <ProductoCombobox
+                    productos={productos}
+                    value={linea.producto_id}
+                    onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Cantidad">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="cantidad[]"
+                    value={linea.cantidad || ""}
+                    onChange={(e) =>
+                      updateLinea(linea.key, { cantidad: Number(e.target.value) })
+                    }
+                    className={inputClass}
+                  />
+                  {factor !== 1 && (
+                    <p className="mt-1 text-xs text-gray-400">= {cantidadBase} unidades</p>
+                  )}
+                </Field>
+                <Field label="Unidad de medida">
+                  <select
+                    name="unidad_medida_id[]"
+                    value={linea.unidad_medida_id}
+                    onChange={(e) =>
+                      updateLinea(linea.key, { unidad_medida_id: e.target.value })
+                    }
+                    className={inputClass}
+                  >
+                    <option value="">—</option>
+                    {unidadesMedida.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.descripcion}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLineas((prev) =>
+                      prev.length > 1 ? prev.filter((l) => l.key !== linea.key) : prev,
+                    )
+                  }
+                  className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 hover:bg-gray-100"
+                >
+                  <Trash2 size={14} />
+                  Quitar
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         <button
@@ -208,8 +280,8 @@ export default function AbastecimientoCampoForm({
         </button>
       </section>
 
-      <SubmitButton icon={<Send size={16} />} pendingLabel="Registrando...">
-        Registrar abastecimiento
+      <SubmitButton icon={<Send size={16} />} pendingLabel={submitPendingLabel}>
+        {submitLabel}
       </SubmitButton>
     </form>
   );

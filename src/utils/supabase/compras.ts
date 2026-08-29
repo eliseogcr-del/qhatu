@@ -1,6 +1,18 @@
 import { createClient } from "./server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 
+// Costo referencial de un producto está expresado en su unidad de
+// medida por defecto (ej. costo por DOCENA) — para valorizar una compra
+// generada automáticamente desde abastecimiento en campo (cuyas
+// cantidades siempre están en unidades base, sin selector de unidad
+// propio) hace falta convertirlo a costo por unidad base.
+export function costoBaseDesdeReferencial(
+  costoReferencial: number | null,
+  factorUnidadProducto: number | null,
+): number {
+  return Math.round(((costoReferencial ?? 0) / (factorUnidadProducto || 1)) * 100) / 100;
+}
+
 export type PagoDetalle = {
   fecha: string;
   monto: number;

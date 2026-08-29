@@ -14,12 +14,12 @@ export default async function NuevoAbastecimientoCampoPage({
   const supabase = await createClient();
   const { empresaId, almacenId } = await getEmpresaSession(supabase);
 
-  const [{ data: proveedores }, { data: productos }, { data: almacenes }] =
+  const [{ data: proveedores }, { data: productos }, { data: almacenes }, { data: unidadesMedida }] =
     await Promise.all([
       supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre")
+        .select("id, nombre, unidad_medida_id")
         .eq("activo", true)
         .eq("control_inventario", true)
         .order("nombre"),
@@ -31,6 +31,11 @@ export default async function NuevoAbastecimientoCampoPage({
             .eq("empresa_id", empresaId)
             .eq("activo", true)
             .order("nombre"),
+      supabase
+        .from("unidades_medida")
+        .select("id, descripcion, cantidad")
+        .eq("activo", true)
+        .order("descripcion"),
     ]);
 
   return (
@@ -58,6 +63,7 @@ export default async function NuevoAbastecimientoCampoPage({
             error={error}
             proveedores={proveedores ?? []}
             productos={productos ?? []}
+            unidadesMedida={unidadesMedida ?? []}
             almacenes={almacenes ?? undefined}
           />
         </div>

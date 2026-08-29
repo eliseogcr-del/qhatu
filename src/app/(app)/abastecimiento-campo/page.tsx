@@ -56,6 +56,7 @@ export default async function AbastecimientoCampoPage({
       .filter((l) => !productoId || l.producto_id === productoId)
       .map((l) => ({
         id: l.id,
+        abastecimientoId: a.id,
         fecha: a.fecha,
         proveedorNombre: proveedor?.nombre ?? "—",
         productoNombre: l.productos?.nombre ?? "—",
@@ -109,6 +110,7 @@ export default async function AbastecimientoCampoPage({
                 <th className="px-4 py-3 font-bold">Cantidad</th>
                 <th className="px-4 py-3 font-bold">Almacén</th>
                 <th className="px-4 py-3 font-bold">Usuario responsable</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -120,11 +122,19 @@ export default async function AbastecimientoCampoPage({
                   <td className="px-4 py-3 text-gray-600">{f.cantidad}</td>
                   <td className="px-4 py-3 text-gray-600">{f.almacenNombre}</td>
                   <td className="px-4 py-3 text-gray-600">{f.usuarioNombre}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/abastecimiento-campo/${f.abastecimientoId}/editar`}
+                      className="text-sm font-medium text-gray-700 hover:underline"
+                    >
+                      Editar
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {filas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ningún abastecimiento coincide con los filtros."
                       : "Aún no hay abastecimientos en campo registrados."}
