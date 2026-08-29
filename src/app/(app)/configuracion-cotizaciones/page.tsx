@@ -58,7 +58,7 @@ export default async function ConfiguracionCotizacionesPage({
                   name="numero_inicial"
                   required
                   defaultValue={config?.numero_inicial ?? 1}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <div>
@@ -72,7 +72,7 @@ export default async function ConfiguracionCotizacionesPage({
                   name="porcentaje_igv"
                   required
                   defaultValue={config?.porcentaje_igv ?? 10.5}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
             </div>
