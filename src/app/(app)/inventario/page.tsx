@@ -37,7 +37,7 @@ export default async function InventarioPage({
   // en vez de desaparecer del listado.
   let productosQuery = supabase
     .from("productos")
-    .select("id, nombre, stock_minimo, stock_maximo")
+    .select("id, nombre, stock_minimo, stock_maximo, unidades_medida(descripcion)")
     .eq("activo", true)
     .eq("control_inventario", true)
     .order("nombre");
@@ -168,10 +168,15 @@ export default async function InventarioPage({
               </tr>
             </thead>
             <tbody>
-              {inventario.map((item) => (
+              {inventario.map((item) => {
+                const unidad = (
+                  item.producto?.unidades_medida as unknown as { descripcion: string } | null
+                )?.descripcion;
+                return (
                 <tr key={item.id} className="border-b-2 border-gray-200 last:border-0">
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {item.producto?.nombre ?? "—"}
+                    {unidad && <span className="text-gray-500"> ({unidad})</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{item.almacen?.nombre ?? "—"}</td>
                   <td className="px-4 py-3">
@@ -204,7 +209,8 @@ export default async function InventarioPage({
                     {item.producto?.stock_maximo ?? "—"}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {inventario.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
