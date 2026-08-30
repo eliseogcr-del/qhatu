@@ -205,6 +205,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     supabase,
     venta.almacen_id,
     lineasQueDescuentan,
+    "Realiza un traslado del producto desde el almacén principal a este almacén antes de guardar los cambios.",
   );
   if (errorStock) {
     redirect(`/ventas/${ventaId}/editar?error=${encodeURIComponent(errorStock)}`);

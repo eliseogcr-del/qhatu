@@ -9,6 +9,10 @@ export async function validarStockDisponible(
   supabase: Awaited<ReturnType<typeof createClient>>,
   almacenId: string,
   lineas: { productoId: string; productoNombre: string; cantidad: number }[],
+  // Texto extra a agregar al final del mensaje (ej. sugerir un traslado
+  // desde el almacén principal) — cada módulo que llama a esto sabe mejor
+  // que nadie qué acción de seguimiento tiene sentido para su caso.
+  sugerencia?: string,
 ): Promise<string | null> {
   if (lineas.length === 0) return null;
 
@@ -35,7 +39,7 @@ export async function validarStockDisponible(
     )
     .join("; ");
 
-  return `No hay stock suficiente en ese almacén: ${detalle}.`;
+  return `No hay stock suficiente en ese almacén: ${detalle}.${sugerencia ? ` ${sugerencia}` : ""}`;
 }
 
 export async function registrarMovimientoKardex(
