@@ -17,23 +17,29 @@ export default async function MovimientoInventarioPage({
   const supabase = await createClient();
   const { empresaId, almacenId } = await getEmpresaSession(supabase);
 
-  const [{ data: productos }, { data: almacenes }] = await Promise.all([
-    supabase
-      .from("productos")
-      .select("id, nombre")
-      .eq("activo", true)
-      .eq("control_inventario", true)
-      .order("nombre"),
-    (() => {
-      let query = supabase
-        .from("almacenes")
+  const [{ data: productos }, { data: almacenes }, { data: unidadesMedida }] =
+    await Promise.all([
+      supabase
+        .from("productos")
         .select("id, nombre")
-        .eq("empresa_id", empresaId)
-        .eq("activo", true);
-      if (almacenId) query = query.eq("id", almacenId);
-      return query.order("nombre");
-    })(),
-  ]);
+        .eq("activo", true)
+        .eq("control_inventario", true)
+        .order("nombre"),
+      (() => {
+        let query = supabase
+          .from("almacenes")
+          .select("id, nombre")
+          .eq("empresa_id", empresaId)
+          .eq("activo", true);
+        if (almacenId) query = query.eq("id", almacenId);
+        return query.order("nombre");
+      })(),
+      supabase
+        .from("unidades_medida")
+        .select("id, descripcion, cantidad")
+        .eq("activo", true)
+        .order("descripcion"),
+    ]);
 
   return (
     <div className="p-8">
@@ -88,7 +94,7 @@ export default async function MovimientoInventarioPage({
               </select>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Tipo
@@ -112,7 +118,21 @@ export default async function MovimientoInventarioPage({
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Cantidad
+                  Unidad de medida
+                </label>
+                <select name="unidad_medida_id" required className={inputClass}>
+                  <option value="">Selecciona una unidad</option>
+                  {unidadesMedida?.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.descripcion}
+                      {u.cantidad !== 1 ? ` (= ${u.cantidad} unidades)` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Cantidad (en la unidad elegida)
                 </label>
                 <input
                   type="number"
