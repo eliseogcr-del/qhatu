@@ -142,11 +142,12 @@ export default function PedidoForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const productosDisponibles = productos.filter((p) => {
-    if (!p.control_inventario) return true;
-    if (!almacenSeleccionado) return true;
-    return (stockPorAlmacen[`${p.id}::${almacenSeleccionado}`] ?? 0) > 0;
-  });
+  // Un pedido no mueve stock ni kardex (eso pasa recién al registrar la
+  // venta), así que acá se puede pedir cualquier producto activo sin
+  // importar el stock actual — el stock disponible solo se muestra como
+  // referencia informativa más abajo, nunca restringe qué se puede pedir
+  // ni cuánto.
+  const productosDisponibles = productos;
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) =>
@@ -277,11 +278,6 @@ export default function PedidoForm({
                 onChange={(e) => {
                   setAlmacenSeleccionado(e.target.value);
                   localStorage.setItem(ALMACEN_RECORDADO_KEY, e.target.value);
-                  // El catálogo disponible cambia con el almacén, así que
-                  // las líneas ya elegidas dejan de ser válidas.
-                  setLineas((prev) =>
-                    prev.map((l) => ({ ...l, producto_id: "", precio_unitario: 0 })),
-                  );
                 }}
                 className={inputClass}
               >
@@ -303,11 +299,6 @@ export default function PedidoForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Productos pedidos
         </h2>
-        {almacenSeleccionado && productosDisponibles.length === 0 && (
-          <p className="text-sm text-amber-600">
-            Ese almacén no tiene productos con stock disponible en este momento.
-          </p>
-        )}
 
         <div className="space-y-3">
           {lineas.map((linea) => {
