@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   FileText,
   Warehouse,
+  Pencil,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
@@ -44,7 +45,9 @@ export default async function PedidoDetallePage({
         .single(),
       supabase
         .from("pedido_detalle")
-        .select("id, cantidad, precio_unitario, subtotal, productos(nombre)")
+        .select(
+          "id, cantidad, precio_unitario, subtotal, productos(nombre), unidades_medida(descripcion)",
+        )
         .eq("pedido_id", id),
       supabase
         .from("pedido_adjuntos")
@@ -105,6 +108,15 @@ export default async function PedidoDetallePage({
             Pedido de {cliente?.nombre ?? "—"}
           </h1>
           <div className="flex items-center gap-4">
+            {estado === "pendiente_confirmacion" && (
+              <Link
+                href={`/pedidos/${id}/editar`}
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Pencil size={16} />
+                Editar pedido
+              </Link>
+            )}
             <Link
               href={`/ventas/nueva?pedido_id=${id}`}
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
@@ -248,6 +260,7 @@ export default async function PedidoDetallePage({
               <tr>
                 <th className="py-2 font-bold">Producto</th>
                 <th className="py-2 font-bold">Cantidad</th>
+                <th className="py-2 font-bold">Unidad de medida</th>
                 <th className="py-2 font-bold">Precio unitario</th>
                 <th className="py-2 font-bold">Subtotal</th>
               </tr>
@@ -260,6 +273,10 @@ export default async function PedidoDetallePage({
                       ?.nombre ?? "—"}
                   </td>
                   <td className="py-2 text-gray-600">{linea.cantidad}</td>
+                  <td className="py-2 text-gray-600">
+                    {(linea.unidades_medida as unknown as { descripcion: string } | null)
+                      ?.descripcion ?? "—"}
+                  </td>
                   <td className="py-2 text-gray-600">{linea.precio_unitario}</td>
                   <td className="py-2 text-gray-600">{linea.subtotal}</td>
                 </tr>

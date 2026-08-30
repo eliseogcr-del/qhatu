@@ -30,6 +30,22 @@ type Linea = {
   unidad_medida_id: string;
 };
 
+type LineaInicial = {
+  producto_id: string;
+  cantidad: number;
+  precio_unitario: number;
+  unidad_medida_id: string;
+};
+
+type PedidoInicial = {
+  cliente_id: string;
+  canal_pedido: string;
+  fecha_entrega_requerida: string | null;
+  moneda: string;
+  almacen_id: string | null;
+  lineas: LineaInicial[];
+};
+
 const inputClass =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
 
@@ -62,6 +78,11 @@ function newLinea(): Linea {
   };
 }
 
+function lineaDesdeInicial(l: LineaInicial): Linea {
+  nextKey += 1;
+  return { key: `l${nextKey}`, ...l };
+}
+
 export default function PedidoForm({
   action,
   error,
@@ -71,6 +92,8 @@ export default function PedidoForm({
   almacenes,
   stockPorAlmacen,
   almacenSesion,
+  pedidoInicial,
+  modo = "crear",
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -86,17 +109,28 @@ export default function PedidoForm({
   stockPorAlmacen: Record<string, number>;
   // Almacén fijo del usuario (vendedor); null/undefined si es admin.
   almacenSesion?: string | null;
+  // Datos existentes al editar un pedido ya creado. El almacén no se
+  // reasigna desde acá (ver "Reasignar almacén" en el detalle del
+  // pedido) — solo se usa para filtrar qué productos tienen stock.
+  pedidoInicial?: PedidoInicial;
+  modo?: "crear" | "editar";
 }) {
-  const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
+  const [lineas, setLineas] = useState<Linea[]>(() =>
+    pedidoInicial && pedidoInicial.lineas.length > 0
+      ? pedidoInicial.lineas.map(lineaDesdeInicial)
+      : [newLinea()],
+  );
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
-  const [almacenSeleccionado, setAlmacenSeleccionado] = useState(almacenSesion ?? "");
+  const [almacenSeleccionado, setAlmacenSeleccionado] = useState(
+    pedidoInicial?.almacen_id ?? almacenSesion ?? "",
+  );
 
   // Se hace en un efecto (no en el useState inicial) para que el primer
   // render en el cliente coincida con el del servidor y React no se queje
   // de un mismatch de hidratación — leer localStorage antes de montar no
   // es seguro porque el servidor nunca tiene ese valor.
   useEffect(() => {
-    if (almacenSesion) return; // vendedor: ya viene fijo, no hay nada que recordar
+    if (almacenSesion || pedidoInicial) return; // ya viene fijo, no hay nada que recordar
     const recordado = localStorage.getItem(ALMACEN_RECORDADO_KEY);
     if (recordado && almacenes?.some((a) => a.id === recordado)) {
       // localStorage no existe en el servidor, así que esto solo puede
@@ -187,7 +221,12 @@ export default function PedidoForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Cliente">
-            <select name="cliente_id" required className={inputClass}>
+            <select
+              name="cliente_id"
+              required
+              defaultValue={pedidoInicial?.cliente_id ?? ""}
+              className={inputClass}
+            >
               <option value="">Selecciona un cliente</option>
               {clientes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -197,7 +236,11 @@ export default function PedidoForm({
             </select>
           </Field>
           <Field label="Canal del pedido">
-            <select name="canal_pedido" defaultValue="telefono" className={inputClass}>
+            <select
+              name="canal_pedido"
+              defaultValue={pedidoInicial?.canal_pedido ?? "telefono"}
+              className={inputClass}
+            >
               <option value="telefono">Teléfono</option>
               <option value="whatsapp_texto">WhatsApp (texto)</option>
               <option value="whatsapp_imagen">WhatsApp (imagen)</option>
@@ -211,16 +254,21 @@ export default function PedidoForm({
             <input
               type="date"
               name="fecha_entrega_requerida"
+              defaultValue={pedidoInicial?.fecha_entrega_requerida ?? undefined}
               className={inputClass}
             />
           </Field>
           <Field label="Moneda">
-            <select name="moneda" defaultValue="PEN" className={inputClass}>
+            <select
+              name="moneda"
+              defaultValue={pedidoInicial?.moneda ?? "PEN"}
+              className={inputClass}
+            >
               <option value="PEN">Soles (PEN)</option>
               <option value="USD">Dólares (USD)</option>
             </select>
           </Field>
-          {almacenes && almacenes.length > 0 && (
+          {modo === "crear" && almacenes && almacenes.length > 0 && (
             <Field label="Almacén / Local">
               <select
                 name="almacen_id"
@@ -386,26 +434,31 @@ export default function PedidoForm({
         </p>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Adjuntos
-        </h2>
-        <Field label="Fotos o capturas del pedido (WhatsApp, etc.)">
-          <div className="flex items-center gap-2">
-            <Paperclip size={16} className="shrink-0 text-gray-400" />
-            <input
-              type="file"
-              name="adjuntos"
-              multiple
-              accept="image/*,application/pdf"
-              className="block w-full text-sm text-gray-600"
-            />
-          </div>
-        </Field>
-      </section>
+      {modo === "crear" && (
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Adjuntos
+          </h2>
+          <Field label="Fotos o capturas del pedido (WhatsApp, etc.)">
+            <div className="flex items-center gap-2">
+              <Paperclip size={16} className="shrink-0 text-gray-400" />
+              <input
+                type="file"
+                name="adjuntos"
+                multiple
+                accept="image/*,application/pdf"
+                className="block w-full text-sm text-gray-600"
+              />
+            </div>
+          </Field>
+        </section>
+      )}
 
-      <SubmitButton icon={<Save size={16} />} pendingLabel="Creando pedido...">
-        Crear pedido
+      <SubmitButton
+        icon={<Save size={16} />}
+        pendingLabel={modo === "editar" ? "Guardando cambios..." : "Creando pedido..."}
+      >
+        {modo === "editar" ? "Guardar cambios" : "Crear pedido"}
       </SubmitButton>
     </form>
   );
