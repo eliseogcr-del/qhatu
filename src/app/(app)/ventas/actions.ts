@@ -120,7 +120,12 @@ export async function createVenta(formData: FormData) {
       cantidad: l.cantidad_entregada_base,
     }));
 
-  const errorStock = await validarStockDisponible(supabase, pedido.almacen_id, lineasControladas);
+  const errorStock = await validarStockDisponible(
+    supabase,
+    pedido.almacen_id,
+    lineasControladas,
+    "Realiza un traslado del producto desde el almacén principal a este almacén antes de registrar la venta.",
+  );
   if (errorStock) {
     redirect(
       `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent(errorStock)}`,
@@ -355,7 +360,12 @@ export async function createVentaDirecta(formData: FormData) {
       cantidad: l.cantidad_base,
     }));
 
-  const errorStock = await validarStockDisponible(supabase, almacenId, lineasControladas);
+  const errorStock = await validarStockDisponible(
+    supabase,
+    almacenId,
+    lineasControladas,
+    "Realiza un traslado del producto desde el almacén principal a este almacén antes de registrar la venta.",
+  );
   if (errorStock) {
     redirect(`/ventas/directa?error=${encodeURIComponent(errorStock)}`);
   }
