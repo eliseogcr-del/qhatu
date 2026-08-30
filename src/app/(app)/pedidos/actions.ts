@@ -123,6 +123,121 @@ export async function createPedido(formData: FormData) {
   redirect(`/pedidos/${pedido.id}`);
 }
 
+// Un pedido solo se puede editar mientras está pendiente de confirmación
+// — una vez que avanza (producción, reparto, venta) ya hay gente actuando
+// sobre esos números y cambiarlos por debajo generaría inconsistencias.
+// No hay ajuste de kardex acá porque un pedido, a diferencia de una venta,
+// todavía no mueve stock.
+export async function updatePedido(id: string, formData: FormData) {
+  const supabase = await createClient();
+  await getEmpresaSession(supabase);
+
+  const { data: pedido } = await supabase
+    .from("pedidos")
+    .select("id, estado")
+    .eq("id", id)
+    .single();
+
+  if (!pedido) {
+    redirect(`/pedidos?error=${encodeURIComponent("No se encontró el pedido.")}`);
+  }
+
+  if (pedido.estado !== "pendiente_confirmacion") {
+    redirect(
+      `/pedidos/${id}?error=${encodeURIComponent(
+        "Solo se puede editar un pedido mientras está pendiente de confirmación.",
+      )}`,
+    );
+  }
+
+  const clienteId = String(formData.get("cliente_id") ?? "");
+  const canalPedido = String(formData.get("canal_pedido") ?? "telefono");
+  const fechaEntrega = formData.get("fecha_entrega_requerida");
+  const moneda = String(formData.get("moneda") ?? "PEN");
+
+  const productoIds = formData.getAll("producto_id[]").map(String);
+  const cantidades = formData.getAll("cantidad[]").map(Number);
+  const precios = formData.getAll("precio_unitario[]").map(Number);
+  const unidadesMedidaIds = formData.getAll("unidad_medida_id[]").map(String);
+
+  const lineasConProducto = productoIds
+    .map((producto_id, i) => ({
+      producto_id,
+      cantidad: cantidades[i],
+      precio_unitario: precios[i],
+      unidad_medida_id: unidadesMedidaIds[i] || null,
+    }))
+    .filter((l) => l.producto_id);
+
+  if (lineasConProducto.length === 0) {
+    redirect(
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Agrega al menos un producto al pedido.")}`,
+    );
+  }
+
+  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
+    redirect(
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+    );
+  }
+
+  if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
+    redirect(
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
+    );
+  }
+
+  const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineasConProducto.length) {
+    redirect(
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Hay un producto repetido en el pedido. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
+  const lineas = lineasConProducto.map((l) => ({
+    ...l,
+    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
+  }));
+
+  const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
+
+  const { error: deleteError } = await supabase
+    .from("pedido_detalle")
+    .delete()
+    .eq("pedido_id", id);
+
+  if (deleteError) {
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(deleteError.message)}`);
+  }
+
+  const { error: detalleError } = await supabase
+    .from("pedido_detalle")
+    .insert(lineas.map((l) => ({ ...l, pedido_id: id })));
+
+  if (detalleError) {
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(detalleError.message)}`);
+  }
+
+  const { error: updateError } = await supabase
+    .from("pedidos")
+    .update({
+      cliente_id: clienteId,
+      canal_pedido: canalPedido,
+      fecha_entrega_requerida: fechaEntrega || null,
+      moneda,
+      total,
+    })
+    .eq("id", id);
+
+  if (updateError) {
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(updateError.message)}`);
+  }
+
+  revalidatePath(`/pedidos/${id}`);
+  revalidatePath("/pedidos");
+  redirect(`/pedidos/${id}`);
+}
+
 export async function updateEstadoPedido(id: string, estado: string) {
   const supabase = await createClient();
   await getEmpresaSession(supabase);
