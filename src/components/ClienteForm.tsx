@@ -110,6 +110,9 @@ export default function ClienteForm({
   const [ubicacionTocada, setUbicacionTocada] = useState(false);
   const [buscandoMapa, setBuscandoMapa] = useState(false);
   const [avisoMapa, setAvisoMapa] = useState<string | null>(null);
+  const [busquedaLibre, setBusquedaLibre] = useState("");
+  const [buscandoLibre, setBuscandoLibre] = useState(false);
+  const [avisoBusquedaLibre, setAvisoBusquedaLibre] = useState<string | null>(null);
 
   const direccionCompleta = [
     ubicacion.direccion,
@@ -182,6 +185,27 @@ export default function ClienteForm({
       );
     } finally {
       setBuscandoDocumento(false);
+    }
+  };
+
+  const buscarPorNombre = async () => {
+    if (!busquedaLibre.trim()) return;
+    setBuscandoLibre(true);
+    setAvisoBusquedaLibre(null);
+    try {
+      const resultado = await geocodeAddress(busquedaLibre);
+      if (resultado) {
+        setLat(resultado.lat);
+        setLng(resultado.lng);
+      } else {
+        setAvisoBusquedaLibre(
+          "No se encontró ese lugar. Prueba con otro nombre/referencia, o ubica el punto directamente en el mapa, o ingresa las coordenadas a mano.",
+        );
+      }
+    } catch {
+      setAvisoBusquedaLibre("No se pudo buscar. Intenta de nuevo.");
+    } finally {
+      setBuscandoLibre(false);
     }
   };
 
@@ -343,6 +367,40 @@ export default function ClienteForm({
         {avisoMapa && (
           <p className="-mt-2 text-sm text-amber-600">{avisoMapa}</p>
         )}
+
+        <Field label="Buscar por nombre del lugar (mercado, negocio, referencia)">
+          <div className="flex gap-2">
+            <input
+              value={busquedaLibre}
+              onChange={(e) => setBusquedaLibre(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  buscarPorNombre();
+                }
+              }}
+              placeholder="Ej. Mercado Carapongo, Ate"
+              className={inputClass}
+            />
+            <button
+              type="button"
+              onClick={buscarPorNombre}
+              disabled={buscandoLibre}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {buscandoLibre ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Search size={14} />
+              )}
+              Buscar
+            </button>
+          </div>
+        </Field>
+        {avisoBusquedaLibre && (
+          <p className="-mt-2 text-sm text-amber-600">{avisoBusquedaLibre}</p>
+        )}
+
         <ClienteMapPicker
           lat={lat}
           lng={lng}
@@ -353,9 +411,31 @@ export default function ClienteForm({
         />
         <input type="hidden" name="latitud" value={lat ?? ""} readOnly />
         <input type="hidden" name="longitud" value={lng ?? ""} readOnly />
-        <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
-          <p>Latitud: {lat?.toFixed(6) ?? "sin definir"}</p>
-          <p>Longitud: {lng?.toFixed(6) ?? "sin definir"}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Latitud">
+            <input
+              type="number"
+              step="any"
+              value={lat ?? ""}
+              onChange={(e) =>
+                setLat(e.target.value === "" ? null : Number(e.target.value))
+              }
+              placeholder="sin definir"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Longitud">
+            <input
+              type="number"
+              step="any"
+              value={lng ?? ""}
+              onChange={(e) =>
+                setLng(e.target.value === "" ? null : Number(e.target.value))
+              }
+              placeholder="sin definir"
+              className={inputClass}
+            />
+          </Field>
         </div>
       </section>
 
