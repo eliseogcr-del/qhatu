@@ -35,7 +35,8 @@ function productoFromForm(formData: FormData) {
     control_inventario: formData.get("control_inventario") === "on",
     tipo_producto: String(formData.get("tipo_producto") ?? "bien"),
     lugar_elaboracion: text("lugar_elaboracion"),
-    precio_venta: num("precio_venta") ?? 0,
+    precio_campo: num("precio_campo") ?? 0,
+    precio_digital: num("precio_digital") ?? 0,
     precio_venta_moneda: String(formData.get("precio_venta_moneda") ?? "PEN"),
     costo_referencial: num("costo_referencial"),
     unidad_medida_id: text("unidad_medida_id"),
@@ -48,9 +49,9 @@ export async function createProducto(formData: FormData) {
   const { empresaId: empresa_id } = await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
 
-  if (!(producto.precio_venta > 0)) {
+  if (!(producto.precio_campo > 0) || !(producto.precio_digital > 0)) {
     redirect(
-      `/productos/nuevo?error=${encodeURIComponent("El precio de venta debe ser mayor a 0.")}`,
+      `/productos/nuevo?error=${encodeURIComponent("El Precio Campo y el Precio Digital deben ser mayores a 0.")}`,
     );
   }
   if (!producto.unidad_medida_id) {
@@ -74,9 +75,9 @@ export async function updateProducto(id: string, formData: FormData) {
   await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
 
-  if (!(producto.precio_venta > 0)) {
+  if (!(producto.precio_campo > 0) || !(producto.precio_digital > 0)) {
     redirect(
-      `/productos/${id}/editar?error=${encodeURIComponent("El precio de venta debe ser mayor a 0.")}`,
+      `/productos/${id}/editar?error=${encodeURIComponent("El Precio Campo y el Precio Digital deben ser mayores a 0.")}`,
     );
   }
   if (!producto.unidad_medida_id) {

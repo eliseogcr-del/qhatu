@@ -8,6 +8,7 @@ import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supa
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
 import { TIPO_AJUSTE_VENTA_LABEL, type TipoAjusteVenta } from "@/lib/ajuste-venta-tipos";
+import { preciosBloqueados, resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
 
 export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   const { data: venta, error: ventaError } = await supabase
     .from("ventas")
-    .select("id, total, descuento, moneda, estado, almacen_id")
+    .select("id, total, descuento, moneda, estado, almacen_id, cliente_id")
     .eq("id", ventaId)
     .single();
 
@@ -51,7 +52,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const tiposAjuste = formData.getAll("tipo_ajuste[]").map(String);
   const detallesAjuste = formData.getAll("detalle_ajuste[]").map(String);
 
-  const enviadas = lineaIds.map((id, i) => ({
+  let enviadas = lineaIds.map((id, i) => ({
     id: id || null,
     producto_id: productoIds[i],
     cantidad: cantidades[i],
@@ -92,6 +93,28 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     redirect(
       `/ventas/${ventaId}/editar?error=${encodeURIComponent("Todo producto con cantidad debe tener un precio unitario mayor a 0.")}`,
     );
+  }
+
+  // Las líneas ya existentes conservan su precio guardado (no se tocan
+  // acá salvo que la propia línea cambie); una línea nueva sí se recalcula
+  // con la misma lógica que la sugirió en el formulario, para no confiar
+  // en lo que haya llegado del cliente.
+  if (await preciosBloqueados(supabase, empresaId)) {
+    const idsNuevos = enviadas
+      .filter((l) => !l.id && l.producto_id && l.cantidad > 0)
+      .map((l) => l.producto_id);
+    if (idsNuevos.length > 0) {
+      const digital = await esAlmacenDigital(supabase, venta.almacen_id);
+      const precios = await resolverPrecios(supabase, {
+        empresaId,
+        clienteId: venta.cliente_id,
+        esDigital: digital,
+        productoIds: idsNuevos,
+      });
+      enviadas = enviadas.map((l) =>
+        !l.id ? { ...l, precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario } : l,
+      );
+    }
   }
 
   const idsEnviados = new Set(enviadas.filter((l) => l.id).map((l) => l.id));

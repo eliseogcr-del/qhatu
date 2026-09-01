@@ -11,7 +11,8 @@ const COLUMNS = [
   "familia",
   "modelo",
   "tipo_producto",
-  "precio_venta",
+  "precio_campo",
+  "precio_digital",
   "precio_venta_moneda",
   "costo_referencial",
   "control_inventario",
@@ -29,7 +30,8 @@ const HEADERS = [
   "Familia",
   "Modelo",
   "Tipo de producto",
-  "Precio de venta",
+  "Precio Campo",
+  "Precio Digital",
   "Moneda",
   "Costo referencial",
   "Control de inventario",
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from("productos")
     .select(
-      "codigo_barra, codigo_proveedor, nombre, marca, grupo, familia, modelo, tipo_producto, precio_venta, precio_venta_moneda, costo_referencial, control_inventario, stock_minimo, stock_maximo, activo",
+      "codigo_barra, codigo_proveedor, nombre, marca, grupo, familia, modelo, tipo_producto, precio_campo, precio_digital, precio_venta_moneda, costo_referencial, control_inventario, stock_minimo, stock_maximo, activo",
     )
     .order("nombre");
   if (q) query = query.ilike("nombre", `%${q}%`);

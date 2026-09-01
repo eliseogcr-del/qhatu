@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial, resolverAlmacenId } from "@/utils/supabase/session";
+import { preciosBloqueados, resolverPrecios } from "@/utils/supabase/precios";
 
 export async function createCotizacion(formData: FormData) {
   const supabase = await createClient();
@@ -58,6 +59,23 @@ export async function createCotizacion(formData: FormData) {
     );
   }
 
+  // Una cotización no tiene almacén propio, así que siempre se trata como
+  // canal campo (esDigital = false) salvo que el cliente tenga un precio
+  // especial configurado.
+  let lineasConPrecio = lineasConProducto;
+  if (await preciosBloqueados(supabase, empresaId)) {
+    const precios = await resolverPrecios(supabase, {
+      empresaId,
+      clienteId,
+      esDigital: false,
+      productoIds: lineasConProducto.map((l) => l.producto_id),
+    });
+    lineasConPrecio = lineasConProducto.map((l) => ({
+      ...l,
+      precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
+    }));
+  }
+
   const { data: config } = await supabase
     .from("configuracion_cotizaciones")
     .select("numero_inicial, porcentaje_igv")
@@ -70,7 +88,7 @@ export async function createCotizacion(formData: FormData) {
   // El precio unitario ya incluye el impuesto (igual que en Nota de
   // venta/Boleta) — el impuesto se extrae del total de cada línea, no se
   // suma encima de un precio sin impuesto.
-  const lineas = lineasConProducto.map((l) => {
+  const lineas = lineasConPrecio.map((l) => {
     const lineaTotal = Math.round(l.cantidad * l.precio_unitario * 100) / 100;
     const valorUnitario = l.precio_unitario / (1 + porcentajeIgv / 100);
     const subtotalSinIgv = Math.round(l.cantidad * valorUnitario * 100) / 100;

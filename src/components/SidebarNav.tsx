@@ -27,6 +27,7 @@ import {
   Settings,
   Ruler,
   FileSpreadsheet,
+  Tags,
 } from "lucide-react";
 
 const GENERAL = {
@@ -83,6 +84,7 @@ const ADMINISTRACION = {
   items: [
     { href: "/almacenes", label: "Almacenes", icon: Warehouse },
     { href: "/unidades-medida", label: "Unidades de medida", icon: Ruler },
+    { href: "/configuracion-precios", label: "Config. precios", icon: Tags },
     { href: "/configuracion-cotizaciones", label: "Config. cotizaciones", icon: FileSpreadsheet },
     { href: "/usuarios", label: "Usuarios", icon: UserCog },
     { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },

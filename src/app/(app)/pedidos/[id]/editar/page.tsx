@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import PedidoForm from "@/components/PedidoForm";
 import { updatePedido } from "../../actions";
 
@@ -16,7 +17,7 @@ export default async function EditarPedidoPage({
   const { id } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
-  await getEmpresaSession(supabase);
+  const { empresaId } = await getEmpresaSession(supabase);
 
   const { data: pedido } = await supabase
     .from("pedidos")
@@ -36,8 +37,14 @@ export default async function EditarPedidoPage({
     );
   }
 
-  const [{ data: detalle }, { data: clientes }, { data: productos }, { data: inventario }, { data: unidadesMedida }] =
-    await Promise.all([
+  const [
+    { data: detalle },
+    { data: clientes },
+    { data: productos },
+    { data: inventario },
+    { data: unidadesMedida },
+    preciosBloqueados,
+  ] = await Promise.all([
       supabase
         .from("pedido_detalle")
         .select("producto_id, cantidad, precio_unitario, unidad_medida_id")
@@ -45,9 +52,7 @@ export default async function EditarPedidoPage({
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select(
-          "id, nombre, precio_venta, precio_venta_moneda, control_inventario, unidad_medida_id",
-        )
+        .select("id, nombre, control_inventario, unidad_medida_id")
         .eq("activo", true)
         .order("nombre"),
       supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
@@ -56,6 +61,7 @@ export default async function EditarPedidoPage({
         .select("id, descripcion, cantidad")
         .eq("activo", true)
         .order("descripcion"),
+      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   const stockPorAlmacen = Object.fromEntries(
@@ -89,6 +95,7 @@ export default async function EditarPedidoPage({
             productos={productos ?? []}
             unidadesMedida={unidadesMedida ?? []}
             stockPorAlmacen={stockPorAlmacen}
+            preciosBloqueados={preciosBloqueados}
             pedidoInicial={{
               cliente_id: pedido.cliente_id,
               canal_pedido: pedido.canal_pedido,

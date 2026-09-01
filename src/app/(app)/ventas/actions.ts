@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 import { crearNotaVentaAutomatica } from "@/utils/supabase/comprobantes";
+import { preciosBloqueados, resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
 
 export async function createVenta(formData: FormData) {
   const supabase = await createClient();
@@ -36,7 +37,7 @@ export async function createVenta(formData: FormData) {
         .single(),
       supabase
         .from("pedido_detalle")
-        .select("id, producto_id, cantidad, unidad_medida_id")
+        .select("id, producto_id, cantidad, unidad_medida_id, precio_unitario")
         .in("id", detalleIds),
     ]);
 
@@ -57,13 +58,19 @@ export async function createVenta(formData: FormData) {
     (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
   );
 
+  // El precio de la línea es el que ya quedó fijado en el pedido — nunca
+  // se vuelve a pedir a mano al registrar la venta, esté o no bloqueado el
+  // precio (bloquearlo solo afecta si se puede editar mientras se arma el
+  // pedido, no si se puede alterar después al facturarlo).
+  const bloqueado = await preciosBloqueados(supabase, empresaId);
+
   const lineas = detalleIds
     .map((detalleId, i) => {
       const original = pedidoDetalle?.find((d) => d.id === detalleId);
       if (!original) return null;
 
       const cantidadEntregada = cantidadesEntregadas[i] ?? 0;
-      const precioUnitario = precios[i] ?? 0;
+      const precioUnitario = bloqueado ? original.precio_unitario : (precios[i] ?? 0);
       const factor = factorPorUnidad.get(original.unidad_medida_id as string) ?? 1;
 
       return {
@@ -312,27 +319,42 @@ export async function createVentaDirecta(formData: FormData) {
     );
   }
 
+  const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineasConProducto.length) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
+  let lineasConPrecio = lineasConProducto;
+  if (await preciosBloqueados(supabase, empresaId)) {
+    const digital = await esAlmacenDigital(supabase, almacenId);
+    const precios = await resolverPrecios(supabase, {
+      empresaId,
+      clienteId,
+      esDigital: digital,
+      productoIds: lineasConProducto.map((l) => l.producto_id),
+    });
+    lineasConPrecio = lineasConProducto.map((l) => ({
+      ...l,
+      precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
+    }));
+  }
+
   const { data: unidadesInfo } = await supabase
     .from("unidades_medida")
     .select("id, cantidad")
-    .in("id", [...new Set(lineasConProducto.map((l) => l.unidad_medida_id!))]);
+    .in("id", [...new Set(lineasConPrecio.map((l) => l.unidad_medida_id!))]);
   const factorPorUnidad = new Map(
     (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
   );
 
-  const lineas = lineasConProducto.map((l) => ({
+  const lineas = lineasConPrecio.map((l) => ({
     ...l,
     subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
     cantidad_base:
       Math.round(l.cantidad * (factorPorUnidad.get(l.unidad_medida_id!) ?? 1) * 100) / 100,
   }));
-
-  const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
-  if (productoIdsUnicos.size !== lineas.length) {
-    redirect(
-      `/ventas/directa?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
-    );
-  }
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);

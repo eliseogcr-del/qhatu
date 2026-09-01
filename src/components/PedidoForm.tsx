@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Save, Paperclip } from "lucide-react";
+import { Plus, Trash2, Save, Paperclip, Lock } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ProductoCombobox from "./ProductoCombobox";
+import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
 
 // Un admin/logística no tiene un almacén fijo propio (puede operar en
 // cualquiera), pero en la práctica suele trabajar seguido desde el mismo
@@ -15,8 +16,6 @@ type Cliente = { id: string; nombre: string };
 type Producto = {
   id: string;
   nombre: string;
-  precio_venta: number;
-  precio_venta_moneda: string;
   control_inventario: boolean;
   unidad_medida_id: string | null;
 };
@@ -48,6 +47,8 @@ type PedidoInicial = {
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+const inputBloqueadoClass =
+  "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700";
 
 function Field({
   label,
@@ -94,6 +95,7 @@ export default function PedidoForm({
   almacenSesion,
   pedidoInicial,
   modo = "crear",
+  preciosBloqueados,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -114,6 +116,11 @@ export default function PedidoForm({
   // pedido) — solo se usa para filtrar qué productos tienen stock.
   pedidoInicial?: PedidoInicial;
   modo?: "crear" | "editar";
+  // Configuración de Precios → Bloqueo de precios. Bloqueado (default): el
+  // precio se calcula solo (especial del cliente, o Campo/Digital según
+  // el almacén) y no se puede tocar a mano. El servidor vuelve a calcular
+  // este mismo valor al guardar, así que esto es solo para mostrarlo.
+  preciosBloqueados: boolean;
 }) {
   const [lineas, setLineas] = useState<Linea[]>(() =>
     pedidoInicial && pedidoInicial.lineas.length > 0
@@ -124,6 +131,7 @@ export default function PedidoForm({
   const [almacenSeleccionado, setAlmacenSeleccionado] = useState(
     pedidoInicial?.almacen_id ?? almacenSesion ?? "",
   );
+  const [clienteId, setClienteId] = useState(pedidoInicial?.cliente_id ?? "");
 
   // Se hace en un efecto (no en el useState inicial) para que el primer
   // render en el cliente coincida con el del servidor y React no se queje
@@ -155,6 +163,27 @@ export default function PedidoForm({
     );
   };
 
+  const resolverPrecioLinea = async (key: string, productoId: string) => {
+    if (!productoId) return;
+    const precio = await consultarPrecioLinea(
+      clienteId || null,
+      productoId,
+      almacenSeleccionado || null,
+    );
+    updateLinea(key, { precio_unitario: precio });
+  };
+
+  // Cuando el precio está bloqueado depende del cliente (precio especial)
+  // y del almacén (Campo/Digital) — si cualquiera de los dos cambia, hay
+  // que volver a consultar el precio de todas las líneas ya elegidas.
+  useEffect(() => {
+    if (!preciosBloqueados) return;
+    lineas.forEach((l) => {
+      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId, almacenSeleccionado, preciosBloqueados]);
+
   const seleccionarProducto = (key: string, productoId: string) => {
     const yaExiste =
       productoId !== "" &&
@@ -172,9 +201,11 @@ export default function PedidoForm({
     const producto = productos.find((p) => p.id === productoId);
     updateLinea(key, {
       producto_id: productoId,
-      precio_unitario: producto?.precio_venta ?? 0,
       unidad_medida_id: producto?.unidad_medida_id ?? "",
     });
+    if (preciosBloqueados) {
+      resolverPrecioLinea(key, productoId);
+    }
   };
 
   const total = lineas.reduce(
@@ -225,7 +256,8 @@ export default function PedidoForm({
             <select
               name="cliente_id"
               required
-              defaultValue={pedidoInicial?.cliente_id ?? ""}
+              value={clienteId}
+              onChange={(e) => setClienteId(e.target.value)}
               className={inputClass}
             >
               <option value="">Selecciona un cliente</option>
@@ -371,19 +403,33 @@ export default function PedidoForm({
                 </select>
               </Field>
               <Field label="Precio unitario">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  name="precio_unitario[]"
-                  value={linea.precio_unitario || ""}
-                  onChange={(e) =>
-                    updateLinea(linea.key, {
-                      precio_unitario: Number(e.target.value),
-                    })
-                  }
-                  className={inputClass}
-                />
+                {preciosBloqueados ? (
+                  <div className={`${inputBloqueadoClass} flex items-center gap-1.5`}>
+                    <Lock size={12} className="shrink-0 text-gray-400" />
+                    {linea.precio_unitario.toFixed(2)}
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="precio_unitario[]"
+                    value={linea.precio_unitario || ""}
+                    onChange={(e) =>
+                      updateLinea(linea.key, {
+                        precio_unitario: Number(e.target.value),
+                      })
+                    }
+                    className={inputClass}
+                  />
+                )}
+                {preciosBloqueados && (
+                  <input
+                    type="hidden"
+                    name="precio_unitario[]"
+                    value={linea.precio_unitario}
+                  />
+                )}
               </Field>
               <Field label="Subtotal">
                 <input

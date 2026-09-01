@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial } from "@/utils/supabase/session";
+import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import { hoyLima } from "@/lib/fecha";
 import CotizacionForm from "@/components/CotizacionForm";
 import { createCotizacion } from "../actions";
@@ -16,12 +17,17 @@ export default async function NuevaCotizacionPage({
   const supabase = await createClient();
   const { empresaId } = await requireComercial(supabase);
 
-  const [{ data: clientes }, { data: productos }, { data: unidadesMedida }, { data: config }] =
-    await Promise.all([
+  const [
+    { data: clientes },
+    { data: productos },
+    { data: unidadesMedida },
+    { data: config },
+    preciosBloqueados,
+  ] = await Promise.all([
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, precio_venta, precio_venta_moneda, unidad_medida_id")
+        .select("id, nombre, unidad_medida_id")
         .eq("activo", true)
         .order("nombre"),
       supabase
@@ -34,6 +40,7 @@ export default async function NuevaCotizacionPage({
         .select("porcentaje_igv")
         .eq("empresa_id", empresaId)
         .maybeSingle(),
+      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   return (
@@ -59,6 +66,7 @@ export default async function NuevaCotizacionPage({
             unidadesMedida={unidadesMedida ?? []}
             porcentajeIgv={config?.porcentaje_igv ?? 10.5}
             hoy={hoyLima()}
+            preciosBloqueados={preciosBloqueados}
           />
         </div>
       </div>
