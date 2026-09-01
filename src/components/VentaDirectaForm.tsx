@@ -104,11 +104,16 @@ export default function VentaDirectaForm({
     );
   };
 
-  const resolverPrecioLinea = async (key: string, productoId: string) => {
+  const resolverPrecioLinea = async (
+    key: string,
+    productoId: string,
+    unidadMedidaId: string,
+  ) => {
     if (!productoId) return;
     const precio = await consultarPrecioLinea(
       clienteId || null,
       productoId,
+      unidadMedidaId || null,
       almacenSeleccionado || null,
     );
     updateLinea(key, { precio_unitario: precio });
@@ -121,7 +126,7 @@ export default function VentaDirectaForm({
   useEffect(() => {
     if (!preciosBloqueados) return;
     lineas.forEach((l) => {
-      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id);
+      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id, l.unidad_medida_id);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId, almacenSeleccionado, preciosBloqueados]);
@@ -141,11 +146,20 @@ export default function VentaDirectaForm({
 
     setAvisoDuplicado(null);
     const producto = productos.find((p) => p.id === productoId);
+    const unidadMedidaId = producto?.unidad_medida_id ?? "";
     updateLinea(key, {
       producto_id: productoId,
-      unidad_medida_id: producto?.unidad_medida_id ?? "",
+      unidad_medida_id: unidadMedidaId,
     });
-    resolverPrecioLinea(key, productoId);
+    resolverPrecioLinea(key, productoId, unidadMedidaId);
+  };
+
+  const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
+    updateLinea(key, { unidad_medida_id: unidadMedidaId });
+    const linea = lineas.find((l) => l.key === key);
+    if (preciosBloqueados && linea?.producto_id) {
+      resolverPrecioLinea(key, linea.producto_id, unidadMedidaId);
+    }
   };
 
   const total = lineas.reduce(
@@ -307,9 +321,7 @@ export default function VentaDirectaForm({
                 <select
                   name="unidad_medida_id[]"
                   value={linea.unidad_medida_id}
-                  onChange={(e) =>
-                    updateLinea(linea.key, { unidad_medida_id: e.target.value })
-                  }
+                  onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
                   className={inputClass}
                 >
                   <option value="">—</option>

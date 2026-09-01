@@ -73,7 +73,10 @@ export async function createPedido(formData: FormData) {
       empresaId,
       clienteId,
       esDigital: digital,
-      productoIds: lineasConProducto.map((l) => l.producto_id),
+      lineas: lineasConProducto.map((l) => ({
+        productoId: l.producto_id,
+        unidadMedidaId: l.unidad_medida_id,
+      })),
     });
     lineasConPrecio = lineasConProducto.map((l) => ({
       ...l,
@@ -220,7 +223,10 @@ export async function updatePedido(id: string, formData: FormData) {
       empresaId,
       clienteId,
       esDigital: digital,
-      productoIds: lineasConProducto.map((l) => l.producto_id),
+      lineas: lineasConProducto.map((l) => ({
+        productoId: l.producto_id,
+        unidadMedidaId: l.unidad_medida_id,
+      })),
     });
     lineasConPrecio = lineasConProducto.map((l) => ({
       ...l,

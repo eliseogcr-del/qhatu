@@ -85,11 +85,16 @@ export default function CotizacionForm({
   // Una cotización no tiene almacén propio — el precio se calcula siempre
   // como canal campo (esDigital = false), salvo que el cliente tenga un
   // precio especial configurado.
-  const resolverPrecioLinea = async (key: string, productoId: string) => {
+  const resolverPrecioLinea = async (
+    key: string,
+    productoId: string,
+    unidadMedidaId: string,
+  ) => {
     if (!productoId) return;
     const precio = await consultarPrecioLinea(
       tipoCliente === "registrado" && clienteId ? clienteId : null,
       productoId,
+      unidadMedidaId || null,
       null,
     );
     updateLinea(key, { precio_unitario: precio });
@@ -98,7 +103,7 @@ export default function CotizacionForm({
   useEffect(() => {
     if (!preciosBloqueados) return;
     lineas.forEach((l) => {
-      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id);
+      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id, l.unidad_medida_id);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId, tipoCliente, preciosBloqueados]);
@@ -117,11 +122,20 @@ export default function CotizacionForm({
 
     setAvisoDuplicado(null);
     const producto = productos.find((p) => p.id === productoId);
+    const unidadMedidaId = producto?.unidad_medida_id ?? "";
     updateLinea(key, {
       producto_id: productoId,
-      unidad_medida_id: producto?.unidad_medida_id ?? "",
+      unidad_medida_id: unidadMedidaId,
     });
-    resolverPrecioLinea(key, productoId);
+    resolverPrecioLinea(key, productoId, unidadMedidaId);
+  };
+
+  const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
+    updateLinea(key, { unidad_medida_id: unidadMedidaId });
+    const linea = lineas.find((l) => l.key === key);
+    if (preciosBloqueados && linea?.producto_id) {
+      resolverPrecioLinea(key, linea.producto_id, unidadMedidaId);
+    }
   };
 
   // El precio unitario ya incluye el impuesto (igual que en Nota de
@@ -269,9 +283,7 @@ export default function CotizacionForm({
                   <select
                     name="unidad_medida_id[]"
                     value={linea.unidad_medida_id}
-                    onChange={(e) =>
-                      updateLinea(linea.key, { unidad_medida_id: e.target.value })
-                    }
+                    onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
                     className={inputClass}
                   >
                     <option value="">—</option>

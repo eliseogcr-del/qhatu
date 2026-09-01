@@ -100,16 +100,19 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   // con la misma lógica que la sugirió en el formulario, para no confiar
   // en lo que haya llegado del cliente.
   if (await preciosBloqueados(supabase, empresaId)) {
-    const idsNuevos = enviadas
-      .filter((l) => !l.id && l.producto_id && l.cantidad > 0)
-      .map((l) => l.producto_id);
-    if (idsNuevos.length > 0) {
+    const lineasNuevasParaPrecio = enviadas.filter(
+      (l) => !l.id && l.producto_id && l.cantidad > 0,
+    );
+    if (lineasNuevasParaPrecio.length > 0) {
       const digital = await esAlmacenDigital(supabase, venta.almacen_id);
       const precios = await resolverPrecios(supabase, {
         empresaId,
         clienteId: venta.cliente_id,
         esDigital: digital,
-        productoIds: idsNuevos,
+        lineas: lineasNuevasParaPrecio.map((l) => ({
+          productoId: l.producto_id,
+          unidadMedidaId: l.unidad_medida_id,
+        })),
       });
       enviadas = enviadas.map((l) =>
         !l.id ? { ...l, precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario } : l,

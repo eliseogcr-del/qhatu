@@ -68,7 +68,10 @@ export async function createCotizacion(formData: FormData) {
       empresaId,
       clienteId,
       esDigital: false,
-      productoIds: lineasConProducto.map((l) => l.producto_id),
+      lineas: lineasConProducto.map((l) => ({
+        productoId: l.producto_id,
+        unidadMedidaId: l.unidad_medida_id,
+      })),
     });
     lineasConPrecio = lineasConProducto.map((l) => ({
       ...l,
