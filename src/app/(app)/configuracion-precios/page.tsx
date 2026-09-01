@@ -1,11 +1,14 @@
-import { Tags, Save, Trash2 } from "lucide-react";
+import { Tags, Save } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import SubmitButton from "@/components/SubmitButton";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import ProductoCombobox from "@/components/ProductoCombobox";
+import PreciosEspecialesFiltro from "@/components/PreciosEspecialesFiltro";
+import PrecioEspecialRow from "@/components/PrecioEspecialRow";
 import {
   actualizarBloqueoPrecios,
+  actualizarPrecioEspecial,
   crearPrecioEspecial,
   eliminarPrecioEspecial,
 } from "./actions";
@@ -18,12 +21,28 @@ export default async function ConfiguracionPreciosPage({
     guardado?: string;
     cliente_id?: string;
     producto_id?: string;
+    q?: string;
   }>;
 }) {
-  const { error, guardado, cliente_id: clienteIdPrevio, producto_id: productoIdPrevio } =
-    await searchParams;
+  const {
+    error,
+    guardado,
+    cliente_id: clienteIdPrevio,
+    producto_id: productoIdPrevio,
+    q,
+  } = await searchParams;
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
+
+  let especialesQuery = supabase
+    .from("precios_especiales_cliente")
+    .select(
+      q
+        ? "id, precio, clientes!inner(nombre), productos(nombre), unidades_medida(descripcion)"
+        : "id, precio, clientes(nombre), productos(nombre), unidades_medida(descripcion)",
+    )
+    .order("created_at", { ascending: false });
+  if (q) especialesQuery = especialesQuery.ilike("clientes.nombre", `%${q}%`);
 
   const [
     { data: config },
@@ -44,10 +63,7 @@ export default async function ConfiguracionPreciosPage({
         .select("id, descripcion")
         .eq("activo", true)
         .order("descripcion"),
-      supabase
-        .from("precios_especiales_cliente")
-        .select("id, precio, clientes(nombre), productos(nombre), unidades_medida(descripcion)")
-        .order("created_at", { ascending: false }),
+      especialesQuery,
     ]);
 
   const preciosBloqueados = config?.precios_bloqueados ?? true;
@@ -169,6 +185,8 @@ export default async function ConfiguracionPreciosPage({
           </p>
         </div>
 
+        <PreciosEspecialesFiltro q={q ?? ""} />
+
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
@@ -186,31 +204,23 @@ export default async function ConfiguracionPreciosPage({
                 const producto = e.productos as unknown as { nombre: string } | null;
                 const unidad = e.unidades_medida as unknown as { descripcion: string } | null;
                 return (
-                  <tr key={e.id} className="border-b-2 border-gray-200 last:border-0">
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {cliente?.nombre ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{producto?.nombre ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{unidad?.descripcion ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{e.precio}</td>
-                    <td className="px-4 py-3 text-right">
-                      <form action={eliminarPrecioEspecial.bind(null, e.id)}>
-                        <button
-                          type="submit"
-                          className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:underline"
-                        >
-                          <Trash2 size={14} />
-                          Quitar
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
+                  <PrecioEspecialRow
+                    key={e.id}
+                    clienteNombre={cliente?.nombre ?? "—"}
+                    productoNombre={producto?.nombre ?? "—"}
+                    unidadDescripcion={unidad?.descripcion ?? "—"}
+                    precio={e.precio}
+                    onActualizar={actualizarPrecioEspecial.bind(null, e.id)}
+                    onEliminar={eliminarPrecioEspecial.bind(null, e.id)}
+                  />
                 );
               })}
               {especiales?.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
-                    Aún no hay precios especiales configurados.
+                    {q
+                      ? "Ningún precio especial coincide con ese cliente."
+                      : "Aún no hay precios especiales configurados."}
                   </td>
                 </tr>
               )}

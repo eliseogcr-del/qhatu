@@ -78,6 +78,32 @@ export async function crearPrecioEspecial(formData: FormData) {
   redirect(`/configuracion-precios?guardado=1&cliente_id=${clienteId}&producto_id=${productoId}`);
 }
 
+export async function actualizarPrecioEspecial(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const { empresaId } = await requireAdmin(supabase);
+
+  const precio = Number(formData.get("precio") ?? 0);
+
+  if (!(precio > 0)) {
+    redirect(
+      `/configuracion-precios?error=${encodeURIComponent("El precio especial debe ser mayor a 0.")}`,
+    );
+  }
+
+  const { error } = await supabase
+    .from("precios_especiales_cliente")
+    .update({ precio })
+    .eq("id", id)
+    .eq("empresa_id", empresaId);
+
+  if (error) {
+    redirect(`/configuracion-precios?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/configuracion-precios");
+  redirect("/configuracion-precios?guardado=1");
+}
+
 export async function eliminarPrecioEspecial(id: string) {
   const supabase = await createClient();
   await requireAdmin(supabase);
