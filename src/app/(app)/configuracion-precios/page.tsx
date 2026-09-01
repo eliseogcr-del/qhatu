@@ -19,8 +19,13 @@ export default async function ConfiguracionPreciosPage({
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
 
-  const [{ data: config }, { data: clientes }, { data: productos }, { data: especiales }] =
-    await Promise.all([
+  const [
+    { data: config },
+    { data: clientes },
+    { data: productos },
+    { data: unidadesMedida },
+    { data: especiales },
+  ] = await Promise.all([
       supabase
         .from("configuracion_precios")
         .select("precios_bloqueados")
@@ -29,8 +34,13 @@ export default async function ConfiguracionPreciosPage({
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
+        .from("unidades_medida")
+        .select("id, descripcion")
+        .eq("activo", true)
+        .order("descripcion"),
+      supabase
         .from("precios_especiales_cliente")
-        .select("id, precio, clientes(nombre), productos(nombre)")
+        .select("id, precio, clientes(nombre), productos(nombre), unidades_medida(descripcion)")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -92,7 +102,7 @@ export default async function ConfiguracionPreciosPage({
           </h2>
           <form
             action={crearPrecioEspecial}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_140px_auto] sm:items-end"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_140px_140px_auto] sm:items-end"
           >
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -106,8 +116,29 @@ export default async function ConfiguracionPreciosPage({
               </label>
               <ProductoCombobox
                 productos={productos ?? []}
+                name="producto_id"
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Unidad de medida
+              </label>
+              <select
+                name="unidad_medida_id"
+                required
+                defaultValue=""
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="" disabled>
+                  Selecciona
+                </option>
+                {unidadesMedida?.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.descripcion}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -124,6 +155,11 @@ export default async function ConfiguracionPreciosPage({
             </div>
             <SubmitButton>Guardar</SubmitButton>
           </form>
+          <p className="mt-2 text-xs text-gray-500">
+            Indica para qué unidad negociaste ese precio (ej. &quot;S/ 30
+            por DOCENA&quot;) — si en el pedido/venta se elige otra unidad,
+            el sistema convierte el precio proporcionalmente.
+          </p>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -132,6 +168,7 @@ export default async function ConfiguracionPreciosPage({
               <tr>
                 <th className="px-4 py-3 font-bold">Cliente</th>
                 <th className="px-4 py-3 font-bold">Producto</th>
+                <th className="px-4 py-3 font-bold">Unidad</th>
                 <th className="px-4 py-3 font-bold">Precio especial</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -140,12 +177,14 @@ export default async function ConfiguracionPreciosPage({
               {especiales?.map((e) => {
                 const cliente = e.clientes as unknown as { nombre: string } | null;
                 const producto = e.productos as unknown as { nombre: string } | null;
+                const unidad = e.unidades_medida as unknown as { descripcion: string } | null;
                 return (
                   <tr key={e.id} className="border-b-2 border-gray-200 last:border-0">
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {cliente?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{producto?.nombre ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-600">{unidad?.descripcion ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{e.precio}</td>
                     <td className="px-4 py-3 text-right">
                       <form action={eliminarPrecioEspecial.bind(null, e.id)}>
@@ -163,7 +202,7 @@ export default async function ConfiguracionPreciosPage({
               })}
               {especiales?.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay precios especiales configurados.
                   </td>
                 </tr>

@@ -118,12 +118,23 @@ export default function EditarVentaForm({
 
     setAviso(null);
     const producto = productos.find((p) => p.id === productoId);
+    const unidadMedidaId = producto?.unidad_medida_id ?? "";
     actualizarLinea(key, {
       producto_id: productoId,
-      unidad_medida_id: producto?.unidad_medida_id ?? "",
+      unidad_medida_id: unidadMedidaId,
     });
     if (preciosBloqueados) {
-      consultarPrecioLinea(clienteId || null, productoId, almacenId || null).then(
+      consultarPrecioLinea(clienteId || null, productoId, unidadMedidaId || null, almacenId || null).then(
+        (precio) => actualizarLinea(key, { precio_unitario: precio }),
+      );
+    }
+  };
+
+  const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
+    actualizarLinea(key, { unidad_medida_id: unidadMedidaId });
+    const linea = lineas.find((l) => l.key === key);
+    if (preciosBloqueados && linea?.esNueva && linea.producto_id) {
+      consultarPrecioLinea(clienteId || null, linea.producto_id, unidadMedidaId || null, almacenId || null).then(
         (precio) => actualizarLinea(key, { precio_unitario: precio }),
       );
     }
@@ -283,9 +294,7 @@ export default function EditarVentaForm({
               <select
                 name="unidad_medida_id[]"
                 value={linea.unidad_medida_id}
-                onChange={(e) =>
-                  actualizarLinea(linea.key, { unidad_medida_id: e.target.value })
-                }
+                onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 <option value="">—</option>

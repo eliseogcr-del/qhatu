@@ -32,11 +32,12 @@ export async function crearPrecioEspecial(formData: FormData) {
 
   const clienteId = String(formData.get("cliente_id") ?? "");
   const productoId = String(formData.get("producto_id") ?? "");
+  const unidadMedidaId = String(formData.get("unidad_medida_id") ?? "");
   const precio = Number(formData.get("precio") ?? 0);
 
-  if (!clienteId || !productoId) {
+  if (!clienteId || !productoId || !unidadMedidaId) {
     redirect(
-      `/configuracion-precios?error=${encodeURIComponent("Selecciona un cliente y un producto.")}`,
+      `/configuracion-precios?error=${encodeURIComponent("Selecciona un cliente, un producto y la unidad de medida.")}`,
     );
   }
   if (!(precio > 0)) {
@@ -46,7 +47,13 @@ export async function crearPrecioEspecial(formData: FormData) {
   }
 
   const { error } = await supabase.from("precios_especiales_cliente").upsert(
-    { empresa_id: empresaId, cliente_id: clienteId, producto_id: productoId, precio },
+    {
+      empresa_id: empresaId,
+      cliente_id: clienteId,
+      producto_id: productoId,
+      unidad_medida_id: unidadMedidaId,
+      precio,
+    },
     { onConflict: "empresa_id,cliente_id,producto_id" },
   );
 
