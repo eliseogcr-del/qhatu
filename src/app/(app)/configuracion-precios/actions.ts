@@ -42,27 +42,40 @@ export async function crearPrecioEspecial(formData: FormData) {
   }
   if (!(precio > 0)) {
     redirect(
-      `/configuracion-precios?error=${encodeURIComponent("El precio especial debe ser mayor a 0.")}`,
+      `/configuracion-precios?error=${encodeURIComponent("El precio especial debe ser mayor a 0.")}&cliente_id=${clienteId}&producto_id=${productoId}`,
     );
   }
 
-  const { error } = await supabase.from("precios_especiales_cliente").upsert(
-    {
-      empresa_id: empresaId,
-      cliente_id: clienteId,
-      producto_id: productoId,
-      unidad_medida_id: unidadMedidaId,
-      precio,
-    },
-    { onConflict: "empresa_id,cliente_id,producto_id" },
-  );
+  const { data: existente } = await supabase
+    .from("precios_especiales_cliente")
+    .select("id")
+    .eq("empresa_id", empresaId)
+    .eq("cliente_id", clienteId)
+    .eq("producto_id", productoId)
+    .maybeSingle();
+
+  if (existente) {
+    redirect(
+      `/configuracion-precios?error=${encodeURIComponent("Este cliente ya tiene un precio especial para ese producto. Quítalo primero si quieres cambiar el precio.")}&cliente_id=${clienteId}&producto_id=${productoId}`,
+    );
+  }
+
+  const { error } = await supabase.from("precios_especiales_cliente").insert({
+    empresa_id: empresaId,
+    cliente_id: clienteId,
+    producto_id: productoId,
+    unidad_medida_id: unidadMedidaId,
+    precio,
+  });
 
   if (error) {
-    redirect(`/configuracion-precios?error=${encodeURIComponent(error.message)}`);
+    redirect(
+      `/configuracion-precios?error=${encodeURIComponent(error.message)}&cliente_id=${clienteId}&producto_id=${productoId}`,
+    );
   }
 
   revalidatePath("/configuracion-precios");
-  redirect("/configuracion-precios");
+  redirect(`/configuracion-precios?guardado=1&cliente_id=${clienteId}&producto_id=${productoId}`);
 }
 
 export async function eliminarPrecioEspecial(id: string) {
