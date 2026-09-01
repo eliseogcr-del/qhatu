@@ -63,6 +63,7 @@ export default function CotizacionForm({
   porcentajeIgv,
   hoy,
   preciosBloqueados,
+  almacenId,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -72,6 +73,7 @@ export default function CotizacionForm({
   porcentajeIgv: number;
   hoy: string;
   preciosBloqueados: boolean;
+  almacenId: string | null;
 }) {
   const [tipoCliente, setTipoCliente] = useState<"registrado" | "prospecto">("registrado");
   const [clienteId, setClienteId] = useState("");
@@ -82,9 +84,9 @@ export default function CotizacionForm({
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   };
 
-  // Una cotización no tiene almacén propio — el precio se calcula siempre
-  // como canal campo (esDigital = false), salvo que el cliente tenga un
-  // precio especial configurado.
+  // Una cotización no tiene almacén propio — el canal (campo vs. digital)
+  // se toma del almacén fijo del vendedor que la está creando, igual que
+  // hará el servidor al guardar.
   const resolverPrecioLinea = async (
     key: string,
     productoId: string,
@@ -95,7 +97,7 @@ export default function CotizacionForm({
       tipoCliente === "registrado" && clienteId ? clienteId : null,
       productoId,
       unidadMedidaId || null,
-      null,
+      almacenId,
     );
     updateLinea(key, { precio_unitario: precio });
   };

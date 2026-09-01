@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial, resolverAlmacenId } from "@/utils/supabase/session";
-import { preciosBloqueados, resolverPrecios } from "@/utils/supabase/precios";
+import { esAlmacenDigital, preciosBloqueados, resolverPrecios } from "@/utils/supabase/precios";
 
 export async function createCotizacion(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await requireComercial(supabase);
+  const { userId, empresaId, almacenId } = await requireComercial(supabase);
 
   const clienteId = String(formData.get("cliente_id") ?? "") || null;
   const prospectoNombre = String(formData.get("prospecto_nombre") ?? "").trim() || null;
@@ -59,15 +59,17 @@ export async function createCotizacion(formData: FormData) {
     );
   }
 
-  // Una cotización no tiene almacén propio, así que siempre se trata como
-  // canal campo (esDigital = false) salvo que el cliente tenga un precio
-  // especial configurado.
+  // Una cotización no tiene almacén propio, así que el canal (campo vs.
+  // digital) se toma del almacén fijo del vendedor que la está creando —
+  // igual que cuando ese mismo vendedor registra un pedido o una venta. Un
+  // admin (sin almacén fijo) cae al canal campo por defecto.
   let lineasConPrecio = lineasConProducto;
   if (await preciosBloqueados(supabase, empresaId)) {
+    const esDigital = await esAlmacenDigital(supabase, almacenId);
     const precios = await resolverPrecios(supabase, {
       empresaId,
       clienteId,
-      esDigital: false,
+      esDigital,
       lineas: lineasConProducto.map((l) => ({
         productoId: l.producto_id,
         unidadMedidaId: l.unidad_medida_id,
