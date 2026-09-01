@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Lock } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
+import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
   id: string;
   nombre: string;
-  precio_venta: number;
-  precio_venta_moneda: string;
   control_inventario: boolean;
   unidad_medida_id: string | null;
 };
@@ -26,6 +26,8 @@ type Linea = {
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
+const inputBloqueadoClass =
+  "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700";
 
 function Field({
   label,
@@ -65,6 +67,7 @@ export default function VentaDirectaForm({
   almacenes,
   stockPorAlmacen,
   almacenSesion,
+  preciosBloqueados,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -80,11 +83,14 @@ export default function VentaDirectaForm({
   stockPorAlmacen: Record<string, number>;
   // Almacén fijo del usuario (vendedor); null/undefined si es admin.
   almacenSesion?: string | null;
+  // Configuración de Precios → Bloqueo de precios.
+  preciosBloqueados: boolean;
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
   const [almacenSeleccionado, setAlmacenSeleccionado] = useState(almacenSesion ?? "");
   const [descuento, setDescuento] = useState(0);
+  const [clienteId, setClienteId] = useState("");
 
   const productosDisponibles = productos.filter((p) => {
     if (!p.control_inventario) return true;
@@ -97,6 +103,28 @@ export default function VentaDirectaForm({
       prev.map((l) => (l.key === key ? { ...l, ...patch } : l)),
     );
   };
+
+  const resolverPrecioLinea = async (key: string, productoId: string) => {
+    if (!productoId) return;
+    const precio = await consultarPrecioLinea(
+      clienteId || null,
+      productoId,
+      almacenSeleccionado || null,
+    );
+    updateLinea(key, { precio_unitario: precio });
+  };
+
+  // Si el precio está bloqueado, cambiar de cliente (precio especial) o de
+  // almacén (Campo/Digital) obliga a recalcular lo ya elegido. Cuando no
+  // está bloqueado no se toca nada, para no pisar un precio que el
+  // usuario ya haya escrito a mano.
+  useEffect(() => {
+    if (!preciosBloqueados) return;
+    lineas.forEach((l) => {
+      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId, almacenSeleccionado, preciosBloqueados]);
 
   const seleccionarProducto = (key: string, productoId: string) => {
     const yaExiste =
@@ -115,9 +143,9 @@ export default function VentaDirectaForm({
     const producto = productos.find((p) => p.id === productoId);
     updateLinea(key, {
       producto_id: productoId,
-      precio_unitario: producto?.precio_venta ?? 0,
       unidad_medida_id: producto?.unidad_medida_id ?? "",
     });
+    resolverPrecioLinea(key, productoId);
   };
 
   const total = lineas.reduce(
@@ -166,7 +194,7 @@ export default function VentaDirectaForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Cliente">
-            <ClienteCombobox clientes={clientes} />
+            <ClienteCombobox clientes={clientes} onChange={setClienteId} />
           </Field>
           <Field label="Moneda">
             <select name="moneda" defaultValue="PEN" className={inputClass}>
@@ -293,19 +321,33 @@ export default function VentaDirectaForm({
                 </select>
               </Field>
               <Field label="Precio unitario">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  name="precio_unitario[]"
-                  value={linea.precio_unitario || ""}
-                  onChange={(e) =>
-                    updateLinea(linea.key, {
-                      precio_unitario: Number(e.target.value),
-                    })
-                  }
-                  className={inputClass}
-                />
+                {preciosBloqueados ? (
+                  <div className={`${inputBloqueadoClass} flex items-center gap-1.5`}>
+                    <Lock size={12} className="shrink-0 text-gray-400" />
+                    {linea.precio_unitario.toFixed(2)}
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="precio_unitario[]"
+                    value={linea.precio_unitario || ""}
+                    onChange={(e) =>
+                      updateLinea(linea.key, {
+                        precio_unitario: Number(e.target.value),
+                      })
+                    }
+                    className={inputClass}
+                  />
+                )}
+                {preciosBloqueados && (
+                  <input
+                    type="hidden"
+                    name="precio_unitario[]"
+                    value={linea.precio_unitario}
+                  />
+                )}
               </Field>
               <Field label="Subtotal">
                 <input

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { formatFecha } from "@/lib/fecha";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
+import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import VentaForm from "@/components/VentaForm";
 import { createVenta } from "../actions";
 
@@ -12,6 +14,7 @@ export default async function NuevaVentaPage({
 }) {
   const { error, pedido_id: pedidoId } = await searchParams;
   const supabase = await createClient();
+  const { empresaId } = await getEmpresaSession(supabase);
 
   if (!pedidoId) {
     const { data: ventaPedidoIds } = await supabase
@@ -152,6 +155,7 @@ export default async function NuevaVentaPage({
             clienteNombre={cliente?.nombre ?? "—"}
             monedaPedido={pedido.moneda}
             lineasPedido={lineasPedido}
+            preciosBloqueados={await obtenerPreciosBloqueados(supabase, empresaId)}
           />
         </div>
       </div>

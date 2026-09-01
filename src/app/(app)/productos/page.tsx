@@ -16,7 +16,7 @@ export default async function ProductosPage({
   let query = supabase
     .from("productos")
     .select(
-      "id, nombre, marca, grupo, precio_venta, precio_venta_moneda, control_inventario, activo",
+      "id, nombre, marca, grupo, precio_campo, precio_digital, precio_venta_moneda, control_inventario, activo",
     )
     .order("nombre");
 
@@ -64,7 +64,8 @@ export default async function ProductosPage({
                 <th className="px-4 py-3 font-bold">Nombre</th>
                 <th className="px-4 py-3 font-bold">Marca</th>
                 <th className="px-4 py-3 font-bold">Grupo</th>
-                <th className="px-4 py-3 font-bold">Precio</th>
+                <th className="px-4 py-3 font-bold">Precio Campo</th>
+                <th className="px-4 py-3 font-bold">Precio Digital</th>
                 <th className="px-4 py-3 font-bold">Inventario</th>
                 <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
@@ -86,7 +87,10 @@ export default async function ProductosPage({
                     {producto.grupo ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {producto.precio_venta_moneda} {producto.precio_venta}
+                    {producto.precio_venta_moneda} {producto.precio_campo}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {producto.precio_venta_moneda} {producto.precio_digital}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {producto.control_inventario ? "Sí" : "No"}
@@ -133,7 +137,7 @@ export default async function ProductosPage({
 
               {productos?.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
                     {q
                       ? `Ningún producto coincide con "${q}".`
                       : "Aún no hay productos registrados."}

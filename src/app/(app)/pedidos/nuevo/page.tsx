@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import PedidoForm from "@/components/PedidoForm";
 import { createPedido } from "../actions";
 
@@ -20,6 +21,7 @@ export default async function NuevoPedidoPage({
     { data: almacenes },
     { data: inventario },
     { data: unidadesMedida },
+    preciosBloqueados,
   ] = await Promise.all([
       supabase
         .from("clientes")
@@ -28,9 +30,7 @@ export default async function NuevoPedidoPage({
         .order("nombre"),
       supabase
         .from("productos")
-        .select(
-          "id, nombre, precio_venta, precio_venta_moneda, control_inventario, unidad_medida_id",
-        )
+        .select("id, nombre, control_inventario, unidad_medida_id")
         .eq("activo", true)
         .order("nombre"),
       almacenId
@@ -47,6 +47,7 @@ export default async function NuevoPedidoPage({
         .select("id, descripcion, cantidad")
         .eq("activo", true)
         .order("descripcion"),
+      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   const stockPorAlmacen = Object.fromEntries(
@@ -79,6 +80,7 @@ export default async function NuevoPedidoPage({
             almacenes={almacenes ?? undefined}
             stockPorAlmacen={stockPorAlmacen}
             almacenSesion={almacenId}
+            preciosBloqueados={preciosBloqueados}
           />
         </div>
       </div>

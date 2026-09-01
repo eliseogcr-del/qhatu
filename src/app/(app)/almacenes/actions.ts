@@ -11,10 +11,11 @@ export async function createAlmacen(formData: FormData) {
 
   const nombre = String(formData.get("nombre") ?? "");
   const direccion = String(formData.get("direccion") ?? "") || null;
+  const esDigital = formData.get("es_digital") === "on";
 
   const { error } = await supabase
     .from("almacenes")
-    .insert({ empresa_id: empresaId, nombre, direccion });
+    .insert({ empresa_id: empresaId, nombre, direccion, es_digital: esDigital });
 
   if (error) {
     redirect(`/almacenes?error=${encodeURIComponent(error.message)}`);
@@ -30,10 +31,11 @@ export async function updateAlmacen(id: string, formData: FormData) {
 
   const nombre = String(formData.get("nombre") ?? "");
   const direccion = String(formData.get("direccion") ?? "") || null;
+  const esDigital = formData.get("es_digital") === "on";
 
   const { error } = await supabase
     .from("almacenes")
-    .update({ nombre, direccion })
+    .update({ nombre, direccion, es_digital: esDigital })
     .eq("id", id);
 
   if (error) {

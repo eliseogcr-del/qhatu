@@ -13,7 +13,7 @@ export default async function AlmacenesPage({
   await requireAdmin(supabase);
   const { data: almacenes } = await supabase
     .from("almacenes")
-    .select("id, nombre, direccion, activo")
+    .select("id, nombre, direccion, activo, es_digital")
     .order("nombre");
 
   return (
@@ -36,24 +36,34 @@ export default async function AlmacenesPage({
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
             Nuevo almacén
           </h2>
-          <form action={createAlmacen} className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto]">
-            <input
-              name="nombre"
-              placeholder="Nombre"
-              required
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-            <input
-              name="direccion"
-              placeholder="Dirección (opcional)"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              Crear
-            </button>
+          <form action={createAlmacen} className="space-y-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                name="nombre"
+                placeholder="Nombre"
+                required
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <input
+                name="direccion"
+                placeholder="Dirección (opcional)"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                Crear
+              </button>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="es_digital"
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              Es almacén digital (usa Precio Digital en vez de Precio Campo)
+            </label>
           </form>
         </div>
 
@@ -70,7 +80,14 @@ export default async function AlmacenesPage({
             <tbody>
               {almacenes?.map((a) => (
                 <tr key={a.id} className="border-b-2 border-gray-200 last:border-0">
-                  <td className="px-4 py-3 font-medium text-gray-900">{a.nombre}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {a.nombre}
+                    {a.es_digital && (
+                      <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+                        Digital
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{a.direccion ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span

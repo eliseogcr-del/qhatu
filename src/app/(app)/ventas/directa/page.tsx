@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import VentaDirectaForm from "@/components/VentaDirectaForm";
 import { createVentaDirecta } from "../actions";
 
@@ -19,6 +20,7 @@ export default async function VentaDirectaPage({
     { data: almacenes },
     { data: inventario },
     { data: unidadesMedida },
+    preciosBloqueados,
   ] = await Promise.all([
       supabase
         .from("clientes")
@@ -27,9 +29,7 @@ export default async function VentaDirectaPage({
         .order("nombre"),
       supabase
         .from("productos")
-        .select(
-          "id, nombre, precio_venta, precio_venta_moneda, control_inventario, unidad_medida_id",
-        )
+        .select("id, nombre, control_inventario, unidad_medida_id")
         .eq("activo", true)
         .order("nombre"),
       almacenId
@@ -46,6 +46,7 @@ export default async function VentaDirectaPage({
         .select("id, descripcion, cantidad")
         .eq("activo", true)
         .order("descripcion"),
+      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   const stockPorAlmacen = Object.fromEntries(
@@ -81,6 +82,7 @@ export default async function VentaDirectaPage({
             almacenes={almacenes ?? undefined}
             stockPorAlmacen={stockPorAlmacen}
             almacenSesion={almacenId}
+            preciosBloqueados={preciosBloqueados}
           />
         </div>
       </div>

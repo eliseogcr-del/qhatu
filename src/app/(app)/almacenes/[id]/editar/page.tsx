@@ -20,7 +20,7 @@ export default async function EditarAlmacenPage({
 
   const { data: almacen } = await supabase
     .from("almacenes")
-    .select("id, nombre, direccion")
+    .select("id, nombre, direccion, es_digital")
     .eq("id", id)
     .single();
 
@@ -74,6 +74,15 @@ export default async function EditarAlmacenPage({
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="es_digital"
+                defaultChecked={almacen.es_digital}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              Es almacén digital (usa Precio Digital en vez de Precio Campo)
+            </label>
             <div>
               <SubmitButton>Guardar cambios</SubmitButton>
             </div>

@@ -19,7 +19,8 @@ export type ProductoInitialValues = {
   control_inventario: boolean;
   tipo_producto: string;
   lugar_elaboracion: string | null;
-  precio_venta: number;
+  precio_campo: number;
+  precio_digital: number;
   precio_venta_moneda: string;
   costo_referencial: number | null;
   unidad_medida_id: string | null;
@@ -44,7 +45,8 @@ const emptyValues: ProductoInitialValues = {
   control_inventario: true,
   tipo_producto: "bien",
   lugar_elaboracion: null,
-  precio_venta: 0,
+  precio_campo: 0,
+  precio_digital: 0,
   precio_venta_moneda: "PEN",
   costo_referencial: null,
   unidad_medida_id: null,
@@ -189,16 +191,33 @@ export default function ProductoForm({
           Precio e impuestos
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Precio de venta">
+          <Field label="Precio Campo">
             <input
               type="number"
               step="0.01"
               min="0.01"
-              name="precio_venta"
+              name="precio_campo"
               required
-              defaultValue={values.precio_venta || ""}
+              defaultValue={values.precio_campo || ""}
               className={inputClass}
             />
+            <p className="mt-1 text-xs text-gray-400">
+              Almacén principal, móviles y demás locales físicos.
+            </p>
+          </Field>
+          <Field label="Precio Digital">
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              name="precio_digital"
+              required
+              defaultValue={values.precio_digital || ""}
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Ventas por el almacén marcado como digital.
+            </p>
           </Field>
           <Field label="Moneda">
             <select

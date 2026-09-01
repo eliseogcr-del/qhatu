@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, requireAdmin, resolverAlmacenId } from "@/utils/supabase/session";
+import { preciosBloqueados, resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
 
 export async function createPedido(formData: FormData) {
   const supabase = await createClient();
@@ -55,17 +56,35 @@ export async function createPedido(formData: FormData) {
     );
   }
 
-  const lineas = lineasConProducto.map((l) => ({
-    ...l,
-    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
-  }));
-
-  const productoIdsUnicos = new Set(lineas.map((l) => l.producto_id));
-  if (productoIdsUnicos.size !== lineas.length) {
+  const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineasConProducto.length) {
     redirect(
       `/pedidos/nuevo?error=${encodeURIComponent("Hay un producto repetido en el pedido. Cada producto debe aparecer una sola vez.")}`,
     );
   }
+
+  // El precio nunca se confía del cliente cuando está bloqueado — se
+  // recalcula acá con la misma lógica (especial > Campo/Digital) que se
+  // usó para mostrarlo en el formulario.
+  let lineasConPrecio = lineasConProducto;
+  if (await preciosBloqueados(supabase, empresaId)) {
+    const digital = await esAlmacenDigital(supabase, almacenId);
+    const precios = await resolverPrecios(supabase, {
+      empresaId,
+      clienteId,
+      esDigital: digital,
+      productoIds: lineasConProducto.map((l) => l.producto_id),
+    });
+    lineasConPrecio = lineasConProducto.map((l) => ({
+      ...l,
+      precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
+    }));
+  }
+
+  const lineas = lineasConPrecio.map((l) => ({
+    ...l,
+    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
+  }));
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
@@ -130,11 +149,11 @@ export async function createPedido(formData: FormData) {
 // todavía no mueve stock.
 export async function updatePedido(id: string, formData: FormData) {
   const supabase = await createClient();
-  await getEmpresaSession(supabase);
+  const { empresaId } = await getEmpresaSession(supabase);
 
   const { data: pedido } = await supabase
     .from("pedidos")
-    .select("id, estado")
+    .select("id, estado, almacen_id")
     .eq("id", id)
     .single();
 
@@ -194,7 +213,22 @@ export async function updatePedido(id: string, formData: FormData) {
     );
   }
 
-  const lineas = lineasConProducto.map((l) => ({
+  let lineasConPrecio = lineasConProducto;
+  if (await preciosBloqueados(supabase, empresaId)) {
+    const digital = await esAlmacenDigital(supabase, pedido.almacen_id);
+    const precios = await resolverPrecios(supabase, {
+      empresaId,
+      clienteId,
+      esDigital: digital,
+      productoIds: lineasConProducto.map((l) => l.producto_id),
+    });
+    lineasConPrecio = lineasConProducto.map((l) => ({
+      ...l,
+      precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
+    }));
+  }
+
+  const lineas = lineasConPrecio.map((l) => ({
     ...l,
     subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
   }));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Lock } from "lucide-react";
 import { TIPOS_DEVOLUCION, TIPO_DEVOLUCION_LABEL } from "@/lib/devolucion-tipos";
 import SubmitButton from "./SubmitButton";
 
@@ -46,6 +47,7 @@ export default function VentaForm({
   clienteNombre,
   monedaPedido,
   lineasPedido,
+  preciosBloqueados,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -53,6 +55,9 @@ export default function VentaForm({
   clienteNombre: string;
   monedaPedido: string;
   lineasPedido: LineaPedido[];
+  // El precio viene fijado del pedido; esto solo controla si se puede
+  // corregir a mano al momento de facturar.
+  preciosBloqueados: boolean;
 }) {
   const [lineas, setLineas] = useState<LineaVenta[]>(
     lineasPedido.map((l) => ({
@@ -165,19 +170,31 @@ export default function VentaForm({
                     )}
                   </Field>
                   <Field label="Precio unitario">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="precio_unitario[]"
-                      value={linea.precio_unitario || ""}
-                      onChange={(e) =>
-                        updateLinea(linea.pedido_detalle_id, {
-                          precio_unitario: Number(e.target.value),
-                        })
-                      }
-                      className={inputClass}
-                    />
+                    {preciosBloqueados ? (
+                      <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                        <Lock size={12} className="shrink-0 text-gray-400" />
+                        {linea.precio_unitario.toFixed(2)}
+                        <input
+                          type="hidden"
+                          name="precio_unitario[]"
+                          value={linea.precio_unitario}
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="precio_unitario[]"
+                        value={linea.precio_unitario || ""}
+                        onChange={(e) =>
+                          updateLinea(linea.pedido_detalle_id, {
+                            precio_unitario: Number(e.target.value),
+                          })
+                        }
+                        className={inputClass}
+                      />
+                    )}
                   </Field>
                   <Field label="Subtotal">
                     <input

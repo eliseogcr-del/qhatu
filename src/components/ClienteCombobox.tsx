@@ -11,16 +11,24 @@ export default function ClienteCombobox({
   name = "cliente_id",
   defaultClienteId,
   placeholder = "Escribe el nombre del cliente...",
+  onChange,
 }: {
   clientes: Cliente[];
   name?: string;
   defaultClienteId?: string;
   placeholder?: string;
+  // Opcional: para cuando el formulario padre necesita reaccionar a la
+  // selección (ej. recalcular precios según el cliente elegido).
+  onChange?: (clienteId: string) => void;
 }) {
   const [clientesLocal, setClientesLocal] = useState(clientes);
   const clienteInicial = clientesLocal.find((c) => c.id === defaultClienteId);
   const [query, setQuery] = useState(clienteInicial?.nombre ?? "");
-  const [clienteId, setClienteId] = useState(defaultClienteId ?? "");
+  const [clienteId, setClienteIdState] = useState(defaultClienteId ?? "");
+  const setClienteId = (id: string) => {
+    setClienteIdState(id);
+    onChange?.(id);
+  };
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
+import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import EditarVentaForm from "@/components/EditarVentaForm";
 import { updateVentaDetalle } from "../actions";
 
@@ -16,10 +18,11 @@ export default async function EditarVentaPage({
   const { id } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
+  const { empresaId } = await getEmpresaSession(supabase);
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, descuento, moneda, estado, almacen_id, clientes(nombre)")
+    .select("id, total, descuento, moneda, estado, almacen_id, cliente_id, clientes(nombre)")
     .eq("id", id)
     .single();
 
@@ -40,8 +43,13 @@ export default async function EditarVentaPage({
 
   const cobrado = Math.round((venta.total - venta.descuento - saldo) * 100) / 100;
 
-  const [{ data: detalle }, { data: productos }, { data: inventario }, { data: unidadesMedida }] =
-    await Promise.all([
+  const [
+    { data: detalle },
+    { data: productos },
+    { data: inventario },
+    { data: unidadesMedida },
+    preciosBloqueados,
+  ] = await Promise.all([
       supabase
         .from("venta_detalle")
         .select(
@@ -50,7 +58,7 @@ export default async function EditarVentaPage({
         .eq("venta_id", id),
       supabase
         .from("productos")
-        .select("id, nombre, precio_venta, unidad_medida_id")
+        .select("id, nombre, unidad_medida_id")
         .eq("activo", true)
         .order("nombre"),
       supabase
@@ -62,6 +70,7 @@ export default async function EditarVentaPage({
         .select("id, descripcion, cantidad")
         .eq("activo", true)
         .order("descripcion"),
+      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   const stockPorProducto = Object.fromEntries(
@@ -114,6 +123,9 @@ export default async function EditarVentaPage({
             cobrado={cobrado}
             descuentoInicial={venta.descuento}
             moneda={venta.moneda}
+            clienteId={venta.cliente_id}
+            almacenId={venta.almacen_id}
+            preciosBloqueados={preciosBloqueados}
           />
         </div>
       </div>

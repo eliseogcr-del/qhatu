@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Lock } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ProductoCombobox from "./ProductoCombobox";
 import { TIPOS_AJUSTE_VENTA, TIPO_AJUSTE_VENTA_LABEL } from "@/lib/ajuste-venta-tipos";
+import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
 
 type Producto = {
   id: string;
   nombre: string;
-  precio_venta: number;
   unidad_medida_id: string | null;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
@@ -45,6 +45,9 @@ export default function EditarVentaForm({
   cobrado,
   descuentoInicial,
   moneda,
+  clienteId,
+  almacenId,
+  preciosBloqueados,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -66,6 +69,12 @@ export default function EditarVentaForm({
   cobrado: number;
   descuentoInicial: number;
   moneda: string;
+  clienteId: string;
+  almacenId: string;
+  // Configuración de Precios → Bloqueo de precios. Una línea ya existente
+  // conserva siempre su precio guardado; esto solo afecta si se puede
+  // editar a mano y qué precio se sugiere para una línea nueva.
+  preciosBloqueados: boolean;
 }) {
   const [descuento, setDescuento] = useState(descuentoInicial);
   const [lineas, setLineas] = useState<Linea[]>(
@@ -111,9 +120,13 @@ export default function EditarVentaForm({
     const producto = productos.find((p) => p.id === productoId);
     actualizarLinea(key, {
       producto_id: productoId,
-      precio_unitario: producto?.precio_venta ?? 0,
       unidad_medida_id: producto?.unidad_medida_id ?? "",
     });
+    if (preciosBloqueados) {
+      consultarPrecioLinea(clienteId || null, productoId, almacenId || null).then(
+        (precio) => actualizarLinea(key, { precio_unitario: precio }),
+      );
+    }
   };
 
   const agregarLinea = () => {
@@ -288,19 +301,31 @@ export default function EditarVentaForm({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Precio unitario
               </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="precio_unitario[]"
-                value={linea.precio_unitario || ""}
-                onChange={(e) =>
-                  actualizarLinea(linea.key, {
-                    precio_unitario: Number(e.target.value),
-                  })
-                }
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-              />
+              {preciosBloqueados ? (
+                <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  <Lock size={12} className="shrink-0 text-gray-400" />
+                  {linea.precio_unitario.toFixed(2)}
+                  <input
+                    type="hidden"
+                    name="precio_unitario[]"
+                    value={linea.precio_unitario}
+                  />
+                </div>
+              ) : (
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="precio_unitario[]"
+                  value={linea.precio_unitario || ""}
+                  onChange={(e) =>
+                    actualizarLinea(linea.key, {
+                      precio_unitario: Number(e.target.value),
+                    })
+                  }
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                />
+              )}
             </div>
 
             <div>

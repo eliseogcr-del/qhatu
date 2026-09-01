@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Trash2, Save, Lock } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
+import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
 
 type Producto = {
   id: string;
   nombre: string;
-  precio_venta: number;
-  precio_venta_moneda: string;
   unidad_medida_id: string | null;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
@@ -63,6 +62,7 @@ export default function CotizacionForm({
   unidadesMedida,
   porcentajeIgv,
   hoy,
+  preciosBloqueados,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -71,14 +71,37 @@ export default function CotizacionForm({
   unidadesMedida: UnidadMedida[];
   porcentajeIgv: number;
   hoy: string;
+  preciosBloqueados: boolean;
 }) {
   const [tipoCliente, setTipoCliente] = useState<"registrado" | "prospecto">("registrado");
+  const [clienteId, setClienteId] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   };
+
+  // Una cotización no tiene almacén propio — el precio se calcula siempre
+  // como canal campo (esDigital = false), salvo que el cliente tenga un
+  // precio especial configurado.
+  const resolverPrecioLinea = async (key: string, productoId: string) => {
+    if (!productoId) return;
+    const precio = await consultarPrecioLinea(
+      tipoCliente === "registrado" && clienteId ? clienteId : null,
+      productoId,
+      null,
+    );
+    updateLinea(key, { precio_unitario: precio });
+  };
+
+  useEffect(() => {
+    if (!preciosBloqueados) return;
+    lineas.forEach((l) => {
+      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId, tipoCliente, preciosBloqueados]);
 
   const seleccionarProducto = (key: string, productoId: string) => {
     const yaExiste =
@@ -96,9 +119,9 @@ export default function CotizacionForm({
     const producto = productos.find((p) => p.id === productoId);
     updateLinea(key, {
       producto_id: productoId,
-      precio_unitario: producto?.precio_venta ?? 0,
       unidad_medida_id: producto?.unidad_medida_id ?? "",
     });
+    resolverPrecioLinea(key, productoId);
   };
 
   // El precio unitario ya incluye el impuesto (igual que en Nota de
@@ -166,7 +189,7 @@ export default function CotizacionForm({
 
         {tipoCliente === "registrado" ? (
           <Field label="Cliente">
-            <ClienteCombobox clientes={clientes} />
+            <ClienteCombobox clientes={clientes} onChange={setClienteId} />
           </Field>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -260,17 +283,29 @@ export default function CotizacionForm({
                   </select>
                 </Field>
                 <Field label="Precio unitario">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    name="precio_unitario[]"
-                    value={linea.precio_unitario || ""}
-                    onChange={(e) =>
-                      updateLinea(linea.key, { precio_unitario: Number(e.target.value) })
-                    }
-                    className={inputClass}
-                  />
+                  {preciosBloqueados ? (
+                    <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                      <Lock size={12} className="shrink-0 text-gray-400" />
+                      {linea.precio_unitario.toFixed(2)}
+                      <input
+                        type="hidden"
+                        name="precio_unitario[]"
+                        value={linea.precio_unitario}
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      name="precio_unitario[]"
+                      value={linea.precio_unitario || ""}
+                      onChange={(e) =>
+                        updateLinea(linea.key, { precio_unitario: Number(e.target.value) })
+                      }
+                      className={inputClass}
+                    />
+                  )}
                 </Field>
                 <Field label="Subtotal">
                   <input
