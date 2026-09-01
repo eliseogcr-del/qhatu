@@ -13,9 +13,15 @@ import {
 export default async function ConfiguracionPreciosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; guardado?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    guardado?: string;
+    cliente_id?: string;
+    producto_id?: string;
+  }>;
 }) {
-  const { error, guardado } = await searchParams;
+  const { error, guardado, cliente_id: clienteIdPrevio, producto_id: productoIdPrevio } =
+    await searchParams;
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
 
@@ -108,7 +114,7 @@ export default async function ConfiguracionPreciosPage({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Cliente
               </label>
-              <ClienteCombobox clientes={clientes ?? []} />
+              <ClienteCombobox clientes={clientes ?? []} defaultClienteId={clienteIdPrevio} />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -117,6 +123,7 @@ export default async function ConfiguracionPreciosPage({
               <ProductoCombobox
                 productos={productos ?? []}
                 name="producto_id"
+                defaultValue={productoIdPrevio}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
