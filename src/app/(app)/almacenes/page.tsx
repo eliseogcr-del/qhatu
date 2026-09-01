@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import { createAlmacen, toggleActivoAlmacen } from "./actions";
@@ -83,14 +84,22 @@ export default async function AlmacenesPage({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <form action={toggleActivoAlmacen.bind(null, a.id, !a.activo)}>
-                      <button
-                        type="submit"
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/almacenes/${a.id}/editar`}
                         className="text-sm font-medium text-gray-500 hover:underline"
                       >
-                        {a.activo ? "Desactivar" : "Activar"}
-                      </button>
-                    </form>
+                        Editar
+                      </Link>
+                      <form action={toggleActivoAlmacen.bind(null, a.id, !a.activo)}>
+                        <button
+                          type="submit"
+                          className="text-sm font-medium text-gray-500 hover:underline"
+                        >
+                          {a.activo ? "Desactivar" : "Activar"}
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

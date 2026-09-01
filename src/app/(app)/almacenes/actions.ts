@@ -24,6 +24,26 @@ export async function createAlmacen(formData: FormData) {
   redirect("/almacenes");
 }
 
+export async function updateAlmacen(id: string, formData: FormData) {
+  const supabase = await createClient();
+  await requireAdmin(supabase);
+
+  const nombre = String(formData.get("nombre") ?? "");
+  const direccion = String(formData.get("direccion") ?? "") || null;
+
+  const { error } = await supabase
+    .from("almacenes")
+    .update({ nombre, direccion })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`/almacenes/${id}/editar?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/almacenes");
+  redirect("/almacenes");
+}
+
 export async function toggleActivoAlmacen(id: string, activo: boolean) {
   const supabase = await createClient();
   await requireAdmin(supabase);
