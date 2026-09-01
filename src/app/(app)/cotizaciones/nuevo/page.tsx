@@ -15,7 +15,7 @@ export default async function NuevaCotizacionPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const { empresaId } = await requireComercial(supabase);
+  const { empresaId, almacenId } = await requireComercial(supabase);
 
   const [
     { data: clientes },
@@ -67,6 +67,7 @@ export default async function NuevaCotizacionPage({
             porcentajeIgv={config?.porcentaje_igv ?? 10.5}
             hoy={hoyLima()}
             preciosBloqueados={preciosBloqueados}
+            almacenId={almacenId}
           />
         </div>
       </div>

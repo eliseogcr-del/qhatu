@@ -4,8 +4,9 @@ import { createClient } from "./server";
 // mismo orden: 1) precio especial pactado con ese cliente para ese
 // producto (si existe), 2) Precio Digital si el almacén es el canal
 // digital, 3) Precio Campo en cualquier otro caso (principal, móvil,
-// secundario, etc.). Cotizaciones no tienen almacén propio — se tratan
-// siempre como canal campo (esDigital = false).
+// secundario, etc.). Cotizaciones no tienen almacén propio — usan el
+// almacén fijo del vendedor que las crea (null para admin, que cae a
+// esDigital = false).
 //
 // Precio Campo/Digital son por la unidad de medida por defecto del
 // producto, y el precio especial es por la unidad que se negoció con ese
