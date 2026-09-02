@@ -21,6 +21,8 @@ export default async function ConfiguracionPreciosPage({
     guardado?: string;
     cliente_id?: string;
     producto_id?: string;
+    unidad_medida_id?: string;
+    precio?: string;
     q?: string;
   }>;
 }) {
@@ -29,6 +31,8 @@ export default async function ConfiguracionPreciosPage({
     guardado,
     cliente_id: clienteIdPrevio,
     producto_id: productoIdPrevio,
+    unidad_medida_id: unidadMedidaIdPrevia,
+    precio: precioPrevio,
     q,
   } = await searchParams;
   const supabase = await createClient();
@@ -150,7 +154,7 @@ export default async function ConfiguracionPreciosPage({
               <select
                 name="unidad_medida_id"
                 required
-                defaultValue=""
+                defaultValue={unidadMedidaIdPrevia ?? ""}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 <option value="" disabled>
@@ -172,6 +176,7 @@ export default async function ConfiguracionPreciosPage({
                 step="0.01"
                 min="0.01"
                 name="precio"
+                defaultValue={precioPrevio}
                 required
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />

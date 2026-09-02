@@ -35,14 +35,23 @@ export async function crearPrecioEspecial(formData: FormData) {
   const unidadMedidaId = String(formData.get("unidad_medida_id") ?? "");
   const precio = Number(formData.get("precio") ?? 0);
 
+  // El cliente, producto, unidad de medida y precio se llevan de vuelta al
+  // formulario tras cada intento (éxito o error) para no obligar a
+  // reescribirlos al cargar varios precios especiales seguidos.
+  const previo = new URLSearchParams();
+  if (clienteId) previo.set("cliente_id", clienteId);
+  if (productoId) previo.set("producto_id", productoId);
+  if (unidadMedidaId) previo.set("unidad_medida_id", unidadMedidaId);
+  if (formData.get("precio")) previo.set("precio", String(formData.get("precio")));
+
   if (!clienteId || !productoId || !unidadMedidaId) {
     redirect(
-      `/configuracion-precios?error=${encodeURIComponent("Selecciona un cliente, un producto y la unidad de medida.")}`,
+      `/configuracion-precios?error=${encodeURIComponent("Selecciona un cliente, un producto y la unidad de medida.")}&${previo}`,
     );
   }
   if (!(precio > 0)) {
     redirect(
-      `/configuracion-precios?error=${encodeURIComponent("El precio especial debe ser mayor a 0.")}&cliente_id=${clienteId}&producto_id=${productoId}`,
+      `/configuracion-precios?error=${encodeURIComponent("El precio especial debe ser mayor a 0.")}&${previo}`,
     );
   }
 
@@ -56,7 +65,7 @@ export async function crearPrecioEspecial(formData: FormData) {
 
   if (existente) {
     redirect(
-      `/configuracion-precios?error=${encodeURIComponent("Este cliente ya tiene un precio especial para ese producto. Quítalo primero si quieres cambiar el precio.")}&cliente_id=${clienteId}&producto_id=${productoId}`,
+      `/configuracion-precios?error=${encodeURIComponent("Este cliente ya tiene un precio especial para ese producto. Quítalo primero si quieres cambiar el precio.")}&${previo}`,
     );
   }
 
@@ -69,13 +78,11 @@ export async function crearPrecioEspecial(formData: FormData) {
   });
 
   if (error) {
-    redirect(
-      `/configuracion-precios?error=${encodeURIComponent(error.message)}&cliente_id=${clienteId}&producto_id=${productoId}`,
-    );
+    redirect(`/configuracion-precios?error=${encodeURIComponent(error.message)}&${previo}`);
   }
 
   revalidatePath("/configuracion-precios");
-  redirect(`/configuracion-precios?guardado=1&cliente_id=${clienteId}&producto_id=${productoId}`);
+  redirect(`/configuracion-precios?guardado=1&${previo}`);
 }
 
 export async function actualizarPrecioEspecial(id: string, formData: FormData) {
