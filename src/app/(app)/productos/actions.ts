@@ -48,14 +48,18 @@ export async function createProducto(formData: FormData) {
   const supabase = await createClient();
   const { empresaId: empresa_id } = await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
+  const q = String(formData.get("_q") ?? "");
+  const qs = q ? `&q=${encodeURIComponent(q)}` : "";
 
   if (!(producto.precio_campo > 0) || !(producto.precio_digital > 0)) {
     redirect(
-      `/productos/nuevo?error=${encodeURIComponent("El Precio Campo y el Precio Digital deben ser mayores a 0.")}`,
+      `/productos/nuevo?error=${encodeURIComponent("El Precio Campo y el Precio Digital deben ser mayores a 0.")}${qs}`,
     );
   }
   if (!producto.unidad_medida_id) {
-    redirect(`/productos/nuevo?error=${encodeURIComponent("Selecciona la unidad de medida.")}`);
+    redirect(
+      `/productos/nuevo?error=${encodeURIComponent("Selecciona la unidad de medida.")}${qs}`,
+    );
   }
 
   const { error } = await supabase
@@ -63,26 +67,28 @@ export async function createProducto(formData: FormData) {
     .insert({ ...producto, empresa_id });
 
   if (error) {
-    redirect(`/productos/nuevo?error=${encodeURIComponent(error.message)}`);
+    redirect(`/productos/nuevo?error=${encodeURIComponent(error.message)}${qs}`);
   }
 
   revalidatePath("/productos");
-  redirect("/productos");
+  redirect(`/productos${qs ? `?${qs.slice(1)}` : ""}`);
 }
 
 export async function updateProducto(id: string, formData: FormData) {
   const supabase = await createClient();
   await getEmpresaSession(supabase);
   const producto = productoFromForm(formData);
+  const q = String(formData.get("_q") ?? "");
+  const qs = q ? `&q=${encodeURIComponent(q)}` : "";
 
   if (!(producto.precio_campo > 0) || !(producto.precio_digital > 0)) {
     redirect(
-      `/productos/${id}/editar?error=${encodeURIComponent("El Precio Campo y el Precio Digital deben ser mayores a 0.")}`,
+      `/productos/${id}/editar?error=${encodeURIComponent("El Precio Campo y el Precio Digital deben ser mayores a 0.")}${qs}`,
     );
   }
   if (!producto.unidad_medida_id) {
     redirect(
-      `/productos/${id}/editar?error=${encodeURIComponent("Selecciona la unidad de medida.")}`,
+      `/productos/${id}/editar?error=${encodeURIComponent("Selecciona la unidad de medida.")}${qs}`,
     );
   }
 
@@ -93,12 +99,12 @@ export async function updateProducto(id: string, formData: FormData) {
 
   if (error) {
     redirect(
-      `/productos/${id}/editar?error=${encodeURIComponent(error.message)}`,
+      `/productos/${id}/editar?error=${encodeURIComponent(error.message)}${qs}`,
     );
   }
 
   revalidatePath("/productos");
-  redirect("/productos");
+  redirect(`/productos${qs ? `?${qs.slice(1)}` : ""}`);
 }
 
 export async function toggleActivoProducto(id: string, activo: boolean) {

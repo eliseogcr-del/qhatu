@@ -10,10 +10,10 @@ export default async function EditarProductoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, q } = await searchParams;
 
   const supabase = await createClient();
   const [{ data: producto }, { data: proveedores }, { data: unidadesMedida }] = await Promise.all([
@@ -40,7 +40,7 @@ export default async function EditarProductoPage({
             Editar producto
           </h1>
           <Link
-            href="/productos"
+            href={`/productos${q ? `?q=${encodeURIComponent(q)}` : ""}`}
             className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
             <ArrowLeft size={16} />
@@ -56,6 +56,7 @@ export default async function EditarProductoPage({
             submitLabel="Guardar cambios"
             proveedores={proveedores ?? []}
             unidadesMedida={unidadesMedida ?? []}
+            q={q}
           />
         </div>
       </div>

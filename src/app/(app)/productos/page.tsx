@@ -38,7 +38,7 @@ export default async function ProductosPage({
               Exportar a Excel
             </a>
             <Link
-              href="/productos/nuevo"
+              href={`/productos/nuevo${q ? `?q=${encodeURIComponent(q)}` : ""}`}
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
               <Plus size={16} />
@@ -109,7 +109,7 @@ export default async function ProductosPage({
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <Link
-                        href={`/productos/${producto.id}/editar`}
+                        href={`/productos/${producto.id}/editar${q ? `?q=${encodeURIComponent(q)}` : ""}`}
                         className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:underline"
                       >
                         <Pencil size={14} />
