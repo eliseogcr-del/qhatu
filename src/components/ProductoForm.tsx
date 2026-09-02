@@ -80,6 +80,7 @@ export default function ProductoForm({
   submitLabel,
   proveedores,
   unidadesMedida,
+  q,
 }: {
   action: (formData: FormData) => void;
   initialValues?: ProductoInitialValues;
@@ -87,11 +88,15 @@ export default function ProductoForm({
   submitLabel: string;
   proveedores: { id: string; nombre: string }[];
   unidadesMedida: { id: string; descripcion: string }[];
+  // Búsqueda activa en el listado de Productos al momento de entrar a este
+  // formulario — se reenvía para volver a ella tras guardar, sin perderla.
+  q?: string;
 }) {
   const values = initialValues ?? emptyValues;
 
   return (
     <form action={action} className="space-y-8">
+      <input type="hidden" name="_q" value={q ?? ""} />
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}

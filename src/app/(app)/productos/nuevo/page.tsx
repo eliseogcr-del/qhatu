@@ -7,9 +7,9 @@ import { createProducto } from "../actions";
 export default async function NuevoProductoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, q } = await searchParams;
 
   const supabase = await createClient();
   const [{ data: proveedores }, { data: unidadesMedida }] = await Promise.all([
@@ -29,7 +29,7 @@ export default async function NuevoProductoPage({
             Nuevo producto
           </h1>
           <Link
-            href="/productos"
+            href={`/productos${q ? `?q=${encodeURIComponent(q)}` : ""}`}
             className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
             <ArrowLeft size={16} />
@@ -44,6 +44,7 @@ export default async function NuevoProductoPage({
             submitLabel="Crear producto"
             proveedores={proveedores ?? []}
             unidadesMedida={unidadesMedida ?? []}
+            q={q}
           />
         </div>
       </div>
