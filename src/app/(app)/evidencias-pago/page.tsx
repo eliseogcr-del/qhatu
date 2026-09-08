@@ -148,9 +148,9 @@ export default async function EvidenciasPagoPage({
 
         <ResultadosCount count={adjuntos?.length ?? 0} />
 
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-0 z-10">
               <tr>
                 <th className="px-4 py-3 font-bold">Cliente</th>
                 <th className="px-4 py-3 font-bold">Fecha de pago</th>

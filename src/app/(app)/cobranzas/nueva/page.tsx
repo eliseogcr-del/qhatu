@@ -92,7 +92,7 @@ export default async function NuevaCobranzaPage({
             Selecciona el pedido o venta con saldo pendiente al que
             corresponde el cobro.
           </p>
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <ul>
               {filas.map((f) => (
                 <li key={f.id} className="border-b border-gray-100 last:border-0">
