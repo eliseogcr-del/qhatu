@@ -161,7 +161,7 @@ export default async function VentasPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
-            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
               <tr>
                 <th className="px-2 py-3" />
                 <th className="px-4 py-3 font-bold">Tipo de documento</th>

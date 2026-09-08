@@ -118,7 +118,7 @@ export default async function TrasladosPage({
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="tabla-imprimir w-full text-left text-sm">
-            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
               <tr>
                 <th className="px-4 py-3 font-bold">Fecha</th>
                 <th className="px-4 py-3 font-bold">Producto</th>
