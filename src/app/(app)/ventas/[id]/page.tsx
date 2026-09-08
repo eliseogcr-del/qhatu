@@ -201,7 +201,7 @@ export default async function VentaDetallePage({
             Productos entregados
           </h2>
           <table className="w-full text-left text-sm">
-            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+            <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
               <tr>
                 <th className="py-2 font-bold">Producto</th>
                 <th className="py-2 font-bold">Pedido</th>
@@ -519,7 +519,7 @@ export default async function VentaDetallePage({
 
           {cobranzas && cobranzas.length > 0 ? (
             <table className="w-full text-left text-sm">
-              <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+              <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
                 <tr>
                   <th className="py-2 font-bold">Fecha</th>
                   <th className="py-2 font-bold">Monto</th>

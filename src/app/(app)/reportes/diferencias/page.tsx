@@ -155,7 +155,7 @@ export default async function DiferenciasPedidoVentaPage({
                 </Link>
               </div>
               <table className="w-full text-left text-sm">
-                <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+                <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
                   <tr>
                     <th className="px-4 py-2 font-bold">Producto</th>
                     <th className="px-4 py-2 font-bold">Pedido</th>

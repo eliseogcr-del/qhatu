@@ -28,7 +28,7 @@ export default async function CotizacionesPage() {
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
+          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500 sticky top-14 z-10 md:top-0">
             <tr>
               <th className="px-4 py-3">N°</th>
               <th className="px-4 py-3">Fecha</th>
