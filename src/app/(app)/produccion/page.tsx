@@ -31,7 +31,7 @@ export default async function ProduccionPage({
   let query = supabase
     .from("producciones")
     .select(
-      "id, fecha, almacenes(nombre), usuarios(nombre), produccion_detalle(id, cantidad, producto_id, productos(nombre))",
+      "id, fecha, nota, almacenes(nombre), usuarios(nombre), produccion_detalle(id, cantidad, producto_id, productos(nombre))",
     )
     .order("fecha", { ascending: false })
     .limit(100);
@@ -63,6 +63,7 @@ export default async function ProduccionPage({
         productoNombre: l.productos?.nombre ?? "—",
         cantidad: l.cantidad,
         usuarioNombre: usuario?.nombre ?? "—",
+        nota: p.nota,
       }));
   });
 
@@ -109,6 +110,7 @@ export default async function ProduccionPage({
                 <th className="px-4 py-3 font-bold">Cantidad</th>
                 <th className="px-4 py-3 font-bold">Almacén</th>
                 <th className="px-4 py-3 font-bold">Usuario responsable</th>
+                <th className="px-4 py-3 font-bold">Nota</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -120,6 +122,7 @@ export default async function ProduccionPage({
                   <td className="px-4 py-3 text-gray-600">{f.cantidad}</td>
                   <td className="px-4 py-3 text-gray-600">{f.almacenNombre}</td>
                   <td className="px-4 py-3 text-gray-600">{f.usuarioNombre}</td>
+                  <td className="px-4 py-3 text-gray-600">{f.nota ?? "—"}</td>
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/produccion/${f.produccionId}/editar`}
@@ -133,7 +136,7 @@ export default async function ProduccionPage({
               ))}
               {filas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ninguna producción coincide con los filtros."
                       : "Aún no hay producción registrada."}
