@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, Save, Paperclip, Lock } from "lucide-react";
 import SubmitButton from "./SubmitButton";
+import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
 import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
 
@@ -268,20 +269,11 @@ export default function PedidoForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Cliente">
-            <select
-              name="cliente_id"
-              required
-              value={clienteId}
-              onChange={(e) => setClienteId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Selecciona un cliente</option>
-              {clientes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
+            <ClienteCombobox
+              clientes={clientes}
+              defaultClienteId={clienteId}
+              onChange={setClienteId}
+            />
           </Field>
           <Field label="Canal del pedido">
             <select

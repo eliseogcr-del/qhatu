@@ -24,6 +24,10 @@ export async function createPedido(formData: FormData) {
   const fechaEntrega = formData.get("fecha_entrega_requerida");
   const moneda = String(formData.get("moneda") ?? "PEN");
 
+  if (!clienteId) {
+    redirect(`/pedidos/nuevo?error=${encodeURIComponent("Selecciona un cliente.")}`);
+  }
+
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const precios = formData.getAll("precio_unitario[]").map(Number);
@@ -176,6 +180,10 @@ export async function updatePedido(id: string, formData: FormData) {
   const canalPedido = String(formData.get("canal_pedido") ?? "telefono");
   const fechaEntrega = formData.get("fecha_entrega_requerida");
   const moneda = String(formData.get("moneda") ?? "PEN");
+
+  if (!clienteId) {
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent("Selecciona un cliente.")}`);
+  }
 
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
