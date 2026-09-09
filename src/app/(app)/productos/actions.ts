@@ -41,6 +41,7 @@ function productoFromForm(formData: FormData) {
     costo_referencial: num("costo_referencial"),
     unidad_medida_id: text("unidad_medida_id"),
     unidad_venta_defecto_id: text("unidad_venta_defecto_id"),
+    precio_editable: formData.get("precio_editable") === "on",
     activo: formData.get("activo") === "on",
   };
 }

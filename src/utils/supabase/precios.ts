@@ -29,7 +29,7 @@ export async function resolverPrecios(
   const [{ data: productos }, { data: especiales }] = await Promise.all([
     supabase
       .from("productos")
-      .select("id, precio_campo, precio_digital, unidad_medida_id")
+      .select("id, precio_campo, precio_digital, unidad_medida_id, precio_editable")
       .in("id", productoIds),
     clienteId
       ? supabase
@@ -65,6 +65,12 @@ export async function resolverPrecios(
 
   const resultado = new Map<string, number>();
   for (const linea of lineas) {
+    // Excepción: productos como "DELIVERY" siempre se dejan a criterio de
+    // quien vende, sin importar el bloqueo global ni precios especiales —
+    // no se les asigna precio calculado, así el que se haya escrito a
+    // mano en la línea queda tal cual.
+    if (productoPorId.get(linea.productoId)?.precio_editable) continue;
+
     const factorLinea = factorDe(linea.unidadMedidaId);
     const especial = especialPorProducto.get(linea.productoId);
 

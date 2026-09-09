@@ -14,6 +14,7 @@ type Producto = {
   control_inventario: boolean;
   unidad_medida_id: string | null;
   unidad_venta_defecto_id: string | null;
+  precio_editable: boolean;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -334,7 +335,7 @@ export default function VentaDirectaForm({
                 </select>
               </Field>
               <Field label="Precio unitario">
-                {preciosBloqueados ? (
+                {preciosBloqueados && !productoElegido?.precio_editable ? (
                   <div className={`${inputBloqueadoClass} flex items-center gap-1.5`}>
                     <Lock size={12} className="shrink-0 text-gray-400" />
                     {linea.precio_unitario.toFixed(2)}
@@ -354,7 +355,7 @@ export default function VentaDirectaForm({
                     className={inputClass}
                   />
                 )}
-                {preciosBloqueados && (
+                {preciosBloqueados && !productoElegido?.precio_editable && (
                   <input
                     type="hidden"
                     name="precio_unitario[]"

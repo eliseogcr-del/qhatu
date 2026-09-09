@@ -25,6 +25,7 @@ export type ProductoInitialValues = {
   costo_referencial: number | null;
   unidad_medida_id: string | null;
   unidad_venta_defecto_id: string | null;
+  precio_editable: boolean;
   activo: boolean;
 };
 
@@ -52,6 +53,7 @@ const emptyValues: ProductoInitialValues = {
   costo_referencial: null,
   unidad_medida_id: null,
   unidad_venta_defecto_id: null,
+  precio_editable: false,
   activo: true,
 };
 
@@ -267,6 +269,20 @@ export default function ProductoForm({
             </select>
           </Field>
         </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            name="precio_editable"
+            defaultChecked={values.precio_editable}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          Permitir editar el precio a mano siempre (excepción al bloqueo de precios)
+        </label>
+        <p className="-mt-2 text-xs text-gray-400">
+          Para líneas tipo &quot;DELIVERY&quot;, sin precio de lista fijo:
+          se puede escribir el precio a mano en Pedidos, Ventas y
+          Cotizaciones aunque el bloqueo global de precios esté activado.
+        </p>
       </section>
 
       <section className="space-y-4">

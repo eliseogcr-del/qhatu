@@ -52,7 +52,7 @@ export default async function EditarPedidoPage({
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id")
+        .select("id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable")
         .eq("activo", true)
         .order("nombre"),
       supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
