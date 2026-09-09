@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal, X } from "lucide-react";
 
 type Opcion = { id: string; nombre: string };
 
@@ -29,6 +30,11 @@ export default function InventarioFiltroForm({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // Cerrado por defecto en cuanto hay un filtro aplicado (el caso típico
+  // en celular: ya elegiste qué ver, ahora hace falta el espacio para la
+  // grilla) — se recalcula solo al recargar tras cambiar un filtro, ya
+  // que ese cambio siempre trae un round-trip al servidor.
+  const [abierto, setAbierto] = useState(!hayFiltros);
 
   const navegar = (params: {
     producto_id: string;
@@ -47,127 +53,152 @@ export default function InventarioFiltroForm({
   };
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
-        <select
-          value={productoId}
-          onChange={(e) =>
-            navegar({
-              producto_id: e.target.value,
-              almacen_id: almacenId,
-              bajo_minimo: bajoMinimo ? "1" : "",
-              sobre_maximo: sobreMaximo ? "1" : "",
-              con_stock: conStock ? "1" : "",
-            })
-          }
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">Todos</option>
-          {productos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
-        {almacenFijoNombre ? (
-          <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-            {almacenFijoNombre}
-          </p>
+    <div className="mb-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-700"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal size={16} className="text-gray-500" />
+          Filtros
+          {hayFiltros && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              Activos
+            </span>
+          )}
+        </span>
+        {abierto ? (
+          <ChevronUp size={16} className="text-gray-500" />
         ) : (
-          <select
-            value={almacenId}
-            onChange={(e) =>
-              navegar({
-                producto_id: productoId,
-                almacen_id: e.target.value,
-                bajo_minimo: bajoMinimo ? "1" : "",
-                sobre_maximo: sobreMaximo ? "1" : "",
-                con_stock: conStock ? "1" : "",
-              })
-            }
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="">Todos</option>
-            {almacenes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
-              </option>
-            ))}
-          </select>
+          <ChevronDown size={16} className="text-gray-500" />
         )}
-      </div>
-      <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          checked={bajoMinimo}
-          onChange={(e) =>
-            navegar({
-              producto_id: productoId,
-              almacen_id: almacenId,
-              bajo_minimo: e.target.checked ? "1" : "",
-              sobre_maximo: sobreMaximo ? "1" : "",
-              con_stock: conStock ? "1" : "",
-            })
-          }
-          className="h-4 w-4 rounded border-gray-300"
-        />
-        Bajo mínimo
-      </label>
-      <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          checked={sobreMaximo}
-          onChange={(e) =>
-            navegar({
-              producto_id: productoId,
-              almacen_id: almacenId,
-              bajo_minimo: bajoMinimo ? "1" : "",
-              sobre_maximo: e.target.checked ? "1" : "",
-              con_stock: conStock ? "1" : "",
-            })
-          }
-          className="h-4 w-4 rounded border-gray-300"
-        />
-        Sobre máximo
-      </label>
-      <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          checked={conStock}
-          onChange={(e) =>
-            navegar({
-              producto_id: productoId,
-              almacen_id: almacenId,
-              bajo_minimo: bajoMinimo ? "1" : "",
-              sobre_maximo: sobreMaximo ? "1" : "",
-              con_stock: e.target.checked ? "1" : "",
-            })
-          }
-          className="h-4 w-4 rounded border-gray-300"
-        />
-        Con stock (mayor a 0)
-      </label>
-      {hayFiltros && (
-        <button
-          type="button"
-          onClick={() =>
-            navegar({
-              producto_id: "",
-              almacen_id: "",
-              bajo_minimo: "",
-              sobre_maximo: "",
-              con_stock: "",
-            })
-          }
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-        >
-          <X size={14} />
-          Limpiar
-        </button>
+      </button>
+
+      {abierto && (
+        <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 p-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
+            <select
+              value={productoId}
+              onChange={(e) =>
+                navegar({
+                  producto_id: e.target.value,
+                  almacen_id: almacenId,
+                  bajo_minimo: bajoMinimo ? "1" : "",
+                  sobre_maximo: sobreMaximo ? "1" : "",
+                  con_stock: conStock ? "1" : "",
+                })
+              }
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Todos</option>
+              {productos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Almacén</label>
+            {almacenFijoNombre ? (
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                {almacenFijoNombre}
+              </p>
+            ) : (
+              <select
+                value={almacenId}
+                onChange={(e) =>
+                  navegar({
+                    producto_id: productoId,
+                    almacen_id: e.target.value,
+                    bajo_minimo: bajoMinimo ? "1" : "",
+                    sobre_maximo: sobreMaximo ? "1" : "",
+                    con_stock: conStock ? "1" : "",
+                  })
+                }
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {almacenes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={bajoMinimo}
+              onChange={(e) =>
+                navegar({
+                  producto_id: productoId,
+                  almacen_id: almacenId,
+                  bajo_minimo: e.target.checked ? "1" : "",
+                  sobre_maximo: sobreMaximo ? "1" : "",
+                  con_stock: conStock ? "1" : "",
+                })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            Bajo mínimo
+          </label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={sobreMaximo}
+              onChange={(e) =>
+                navegar({
+                  producto_id: productoId,
+                  almacen_id: almacenId,
+                  bajo_minimo: bajoMinimo ? "1" : "",
+                  sobre_maximo: e.target.checked ? "1" : "",
+                  con_stock: conStock ? "1" : "",
+                })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            Sobre máximo
+          </label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={conStock}
+              onChange={(e) =>
+                navegar({
+                  producto_id: productoId,
+                  almacen_id: almacenId,
+                  bajo_minimo: bajoMinimo ? "1" : "",
+                  sobre_maximo: sobreMaximo ? "1" : "",
+                  con_stock: e.target.checked ? "1" : "",
+                })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            Con stock (mayor a 0)
+          </label>
+          {hayFiltros && (
+            <button
+              type="button"
+              onClick={() =>
+                navegar({
+                  producto_id: "",
+                  almacen_id: "",
+                  bajo_minimo: "",
+                  sobre_maximo: "",
+                  con_stock: "",
+                })
+              }
+              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
+            >
+              <X size={14} />
+              Limpiar
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
