@@ -23,11 +23,12 @@ export default async function ClientesPage({
     )
     .order("nombre");
 
-  // Un vendedor solo ve los clientes de su mismo canal: si opera desde el
-  // almacén digital, solo clientes digitales; si no, solo los de campo.
-  // Admin y logística siguen viendo la cartera completa.
-  if (rol === "vendedor") {
-    query = query.eq("es_digital", await esAlmacenDigital(supabase, almacenId));
+  // El vendedor del almacén digital tiene acceso completo a la cartera de
+  // clientes (igual que admin/logística). El resto de vendedores (que hoy
+  // no tienen "Clientes" en su menú) se quedan acotados a los de su canal
+  // por si acceden directo a la URL.
+  if (rol === "vendedor" && !(await esAlmacenDigital(supabase, almacenId))) {
+    query = query.eq("es_digital", false);
   }
 
   if (q) query = query.ilike("nombre", `%${q}%`);
