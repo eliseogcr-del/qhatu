@@ -37,7 +37,9 @@ export default async function InventarioPage({
   // en vez de desaparecer del listado.
   let productosQuery = supabase
     .from("productos")
-    .select("id, nombre, stock_minimo, stock_maximo, unidades_medida(descripcion)")
+    .select(
+      "id, nombre, stock_minimo, stock_maximo, unidades_medida!productos_unidad_medida_id_fkey(descripcion)",
+    )
     .eq("activo", true)
     .eq("control_inventario", true)
     .order("nombre");

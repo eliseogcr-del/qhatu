@@ -146,7 +146,7 @@ export async function createAbastecimientoCampo(formData: FormData) {
     try {
       const { data: productosCosto } = await supabase
         .from("productos")
-        .select("id, costo_referencial, unidades_medida(cantidad)")
+        .select("id, costo_referencial, unidades_medida!productos_unidad_medida_id_fkey(cantidad)")
         .in("id", [...productoIdsUnicos]);
 
       const lineasCompra = detalleRows.map((row) => {
@@ -395,7 +395,7 @@ export async function updateAbastecimientoCampo(id: string, formData: FormData) 
     try {
       const { data: productosCosto } = await supabase
         .from("productos")
-        .select("id, costo_referencial, unidades_medida(cantidad)")
+        .select("id, costo_referencial, unidades_medida!productos_unidad_medida_id_fkey(cantidad)")
         .in("id", [...productoIdsUnicos]);
 
       const lineasCompra = lineasNuevas.map((l) => {
