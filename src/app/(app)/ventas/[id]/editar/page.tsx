@@ -58,7 +58,7 @@ export default async function EditarVentaPage({
         .eq("venta_id", id),
       supabase
         .from("productos")
-        .select("id, nombre, unidad_medida_id")
+        .select("id, nombre, unidad_medida_id, unidad_venta_defecto_id")
         .eq("activo", true)
         .order("nombre"),
       supabase
