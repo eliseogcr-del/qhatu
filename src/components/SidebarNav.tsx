@@ -156,11 +156,21 @@ function gruposPorRol(rol: string, almacenEsDigital: boolean) {
         ],
       }
     : COMERCIAL_VENDEDOR;
+  // Abastecimiento en campo es para registrar lo que un vendedor recoge
+  // físicamente en ruta — no aplica al almacén digital.
+  const logisticaVendedor = almacenEsDigital
+    ? {
+        ...LOGISTICA_VENDEDOR,
+        items: LOGISTICA_VENDEDOR.items.filter(
+          (item) => item.href !== "/abastecimiento-campo",
+        ),
+      }
+    : LOGISTICA_VENDEDOR;
   return [
     GENERAL,
     ACCESO_RAPIDO_VENDEDOR,
     comercialVendedor,
-    LOGISTICA_VENDEDOR,
+    logisticaVendedor,
     FINANZAS_VENDEDOR,
   ];
 }
