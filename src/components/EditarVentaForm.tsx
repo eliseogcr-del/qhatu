@@ -12,6 +12,7 @@ type Producto = {
   nombre: string;
   unidad_medida_id: string | null;
   unidad_venta_defecto_id: string | null;
+  precio_editable: boolean;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -226,6 +227,7 @@ export default function EditarVentaForm({
 
       <div className="space-y-3">
         {lineas.map((linea) => {
+          const productoElegido = productos.find((p) => p.id === linea.producto_id);
           const unidadSeleccionada = unidadesMedida.find(
             (u) => u.id === linea.unidad_medida_id,
           );
@@ -311,7 +313,7 @@ export default function EditarVentaForm({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Precio unitario
               </label>
-              {preciosBloqueados ? (
+              {preciosBloqueados && !productoElegido?.precio_editable ? (
                 <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                   <Lock size={12} className="shrink-0 text-gray-400" />
                   {linea.precio_unitario.toFixed(2)}

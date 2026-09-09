@@ -27,7 +27,7 @@ export default async function NuevaCotizacionPage({
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, unidad_medida_id, unidad_venta_defecto_id")
+        .select("id, nombre, unidad_medida_id, unidad_venta_defecto_id, precio_editable")
         .eq("activo", true)
         .order("nombre"),
       supabase
