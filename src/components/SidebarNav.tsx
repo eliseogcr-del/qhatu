@@ -28,6 +28,7 @@ import {
   Ruler,
   FileSpreadsheet,
   Tags,
+  Zap,
 } from "lucide-react";
 
 const GENERAL = {
@@ -103,6 +104,14 @@ const MIS_REPARTOS = {
   items: [{ href: "/mis-repartos", label: "Mis repartos", icon: Route }],
 };
 
+// Acceso directo al formulario de "Venta directa" (sin pedido previo),
+// para que un vendedor en ruta (ej. almacén móvil) registre la venta en un
+// solo paso sin pasar por el listado de Ventas ni por "Nueva venta".
+const ACCESO_RAPIDO_VENDEDOR = {
+  label: "Acceso rápido",
+  items: [{ href: "/ventas/directa", label: "Venta directa", icon: Zap }],
+};
+
 const COMERCIAL_VENDEDOR = {
   label: "Comercial",
   items: [
@@ -135,8 +144,15 @@ function gruposPorRol(rol: string) {
     return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA, FINANZAS_LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
   // vendedor (y cualquier valor no reconocido): solo Pedidos, Abastecimiento
-  // en campo (para registrar lo que recibe en ruta) y Ventas.
-  return [GENERAL, COMERCIAL_VENDEDOR, LOGISTICA_VENDEDOR, FINANZAS_VENDEDOR];
+  // en campo (para registrar lo que recibe en ruta) y Ventas, más un acceso
+  // rápido a Venta directa arriba de todo.
+  return [
+    GENERAL,
+    ACCESO_RAPIDO_VENDEDOR,
+    COMERCIAL_VENDEDOR,
+    LOGISTICA_VENDEDOR,
+    FINANZAS_VENDEDOR,
+  ];
 }
 
 export default function SidebarNav({
