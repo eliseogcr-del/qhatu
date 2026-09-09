@@ -35,6 +35,7 @@ export type ClienteInitialValues = {
   grupo: string | null;
   linea_credito: number | null;
   codigo_interno: string | null;
+  es_digital: boolean;
   activo: boolean;
 };
 
@@ -57,6 +58,7 @@ const emptyValues: ClienteInitialValues = {
   grupo: null,
   linea_credito: 0,
   codigo_interno: null,
+  es_digital: false,
   activo: true,
 };
 
@@ -482,6 +484,19 @@ export default function ClienteForm({
             />
           </Field>
         </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            name="es_digital"
+            defaultChecked={values.es_digital}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          Cliente digital
+        </label>
+        <p className="-mt-2 text-xs text-gray-400">
+          Marca esto si el cliente compra por el canal digital — le da
+          acceso a este cliente a los vendedores del almacén digital.
+        </p>
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input
             type="checkbox"

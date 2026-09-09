@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Plus, FileDown, Pencil, Power } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
+import { esAlmacenDigital } from "@/utils/supabase/precios";
 import { toggleActivo } from "./actions";
 import ClientesFiltroForm from "@/components/ClientesFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
@@ -12,13 +14,21 @@ export default async function ClientesPage({
 }) {
   const { q } = await searchParams;
   const supabase = await createClient();
+  const { rol, almacenId } = await getEmpresaSession(supabase);
 
   let query = supabase
     .from("clientes")
     .select(
-      "id, tipo_documento, numero_documento, nombre, telefono, distrito, zona, activo",
+      "id, tipo_documento, numero_documento, nombre, telefono, distrito, zona, es_digital, activo",
     )
     .order("nombre");
+
+  // Un vendedor solo ve los clientes de su mismo canal: si opera desde el
+  // almacén digital, solo clientes digitales; si no, solo los de campo.
+  // Admin y logística siguen viendo la cartera completa.
+  if (rol === "vendedor") {
+    query = query.eq("es_digital", await esAlmacenDigital(supabase, almacenId));
+  }
 
   if (q) query = query.ilike("nombre", `%${q}%`);
 
@@ -78,6 +88,11 @@ export default async function ClientesPage({
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {cliente.nombre}
+                    {cliente.es_digital && (
+                      <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+                        Digital
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {cliente.telefono ?? "—"}

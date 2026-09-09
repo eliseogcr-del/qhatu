@@ -17,18 +17,21 @@ export default async function AppLayout({
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("nombre, rol, almacenes(nombre)")
+    .select("nombre, rol, almacenes(nombre, es_digital)")
     .eq("id", user.id)
     .maybeSingle();
 
-  const almacenNombre =
-    (usuario?.almacenes as unknown as { nombre: string } | null)?.nombre ?? null;
+  const almacen = usuario?.almacenes as unknown as {
+    nombre: string;
+    es_digital: boolean;
+  } | null;
 
   return (
     <AppShell
       nombre={usuario?.nombre ?? ""}
       rol={usuario?.rol ?? "vendedor"}
-      almacenNombre={almacenNombre}
+      almacenNombre={almacen?.nombre ?? null}
+      almacenEsDigital={almacen?.es_digital ?? false}
       userEmail={user.email ?? ""}
       signOutAction={signOut}
     >
