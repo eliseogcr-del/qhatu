@@ -24,6 +24,7 @@ export type ProductoInitialValues = {
   precio_venta_moneda: string;
   costo_referencial: number | null;
   unidad_medida_id: string | null;
+  unidad_venta_defecto_id: string | null;
   activo: boolean;
 };
 
@@ -50,6 +51,7 @@ const emptyValues: ProductoInitialValues = {
   precio_venta_moneda: "PEN",
   costo_referencial: null,
   unidad_medida_id: null,
+  unidad_venta_defecto_id: null,
   activo: true,
 };
 
@@ -304,7 +306,30 @@ export default function ProductoForm({
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-400">
-              La que se preselecciona al pedir/vender este producto.
+              La unidad base del producto: en qué se almacena y por
+              cuánto está el Precio Campo/Digital. Cambiarla cambia el
+              precio efectivo por unidad — no la toques solo para
+              acelerar el ingreso de ventas, usa el campo de abajo.
+            </p>
+          </Field>
+          <Field label="Unidad de venta por defecto (opcional)">
+            <select
+              name="unidad_venta_defecto_id"
+              defaultValue={values.unidad_venta_defecto_id ?? ""}
+              className={inputClass}
+            >
+              <option value="">Usar la unidad de medida del producto</option>
+              {unidadesMedida.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.descripcion}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-400">
+              Solo para agilizar el ingreso: la unidad que se
+              preselecciona al agregar este producto en Pedidos, Ventas y
+              Cotizaciones (se puede cambiar igual en cada línea). No
+              afecta el precio ni el inventario.
             </p>
           </Field>
           <Field label="Cualidad">

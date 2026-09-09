@@ -29,7 +29,7 @@ export default async function VentaDirectaPage({
         .order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, control_inventario, unidad_medida_id")
+        .select("id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id")
         .eq("activo", true)
         .order("nombre"),
       almacenId

@@ -40,6 +40,7 @@ function productoFromForm(formData: FormData) {
     precio_venta_moneda: String(formData.get("precio_venta_moneda") ?? "PEN"),
     costo_referencial: num("costo_referencial"),
     unidad_medida_id: text("unidad_medida_id"),
+    unidad_venta_defecto_id: text("unidad_venta_defecto_id"),
     activo: formData.get("activo") === "on",
   };
 }

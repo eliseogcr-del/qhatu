@@ -18,6 +18,7 @@ type Producto = {
   nombre: string;
   control_inventario: boolean;
   unidad_medida_id: string | null;
+  unidad_venta_defecto_id: string | null;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -204,7 +205,7 @@ export default function PedidoForm({
 
     setAvisoDuplicado(null);
     const producto = productos.find((p) => p.id === productoId);
-    const unidadMedidaId = producto?.unidad_medida_id ?? "";
+    const unidadMedidaId = producto?.unidad_venta_defecto_id ?? producto?.unidad_medida_id ?? "";
     updateLinea(key, {
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
