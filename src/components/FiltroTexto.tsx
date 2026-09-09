@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
 
-export default function PreciosEspecialesFiltro({ q }: { q: string }) {
+export default function FiltroTexto({
+  q,
+  label,
+  placeholder,
+}: {
+  q: string;
+  label: string;
+  placeholder: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState(q);
@@ -26,9 +34,7 @@ export default function PreciosEspecialesFiltro({ q }: { q: string }) {
 
   return (
     <div className="max-w-xs">
-      <label className="mb-1 block text-sm font-medium text-gray-700">
-        Filtrar por cliente
-      </label>
+      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
       <div className="relative">
         <Search
           size={16}
@@ -38,7 +44,7 @@ export default function PreciosEspecialesFiltro({ q }: { q: string }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por cliente..."
+          placeholder={placeholder}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-8 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         />
         {query && (

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/utils/supabase/session";
 import SubmitButton from "@/components/SubmitButton";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import ProductoCombobox from "@/components/ProductoCombobox";
-import PreciosEspecialesFiltro from "@/components/PreciosEspecialesFiltro";
+import FiltroTexto from "@/components/FiltroTexto";
 import PrecioEspecialRow from "@/components/PrecioEspecialRow";
 import {
   actualizarBloqueoPrecios,
@@ -190,7 +190,7 @@ export default async function ConfiguracionPreciosPage({
           </p>
         </div>
 
-        <PreciosEspecialesFiltro q={q ?? ""} />
+        <FiltroTexto q={q ?? ""} label="Filtrar por cliente" placeholder="Buscar por cliente..." />
 
         <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
