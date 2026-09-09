@@ -37,6 +37,7 @@ function clienteFromForm(formData: FormData) {
     grupo: text("grupo"),
     linea_credito: num("linea_credito") ?? 0,
     codigo_interno: text("codigo_interno"),
+    es_digital: formData.get("es_digital") === "on",
     activo: formData.get("activo") === "on",
   };
 }

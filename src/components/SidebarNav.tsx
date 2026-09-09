@@ -138,18 +138,28 @@ const FINANZAS_VENDEDOR = {
   ],
 };
 
-function gruposPorRol(rol: string) {
+function gruposPorRol(rol: string, almacenEsDigital: boolean) {
   if (rol === "admin") return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS, ADMINISTRACION];
   if (rol === "logistica")
     return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA, FINANZAS_LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
   // vendedor (y cualquier valor no reconocido): solo Pedidos, Abastecimiento
   // en campo (para registrar lo que recibe en ruta) y Ventas, más un acceso
-  // rápido a Venta directa arriba de todo.
+  // rápido a Venta directa arriba de todo. El del almacén digital además ve
+  // Clientes, filtrado a solo los clientes digitales.
+  const comercialVendedor = almacenEsDigital
+    ? {
+        ...COMERCIAL_VENDEDOR,
+        items: [
+          { href: "/clientes", label: "Clientes", icon: Users },
+          ...COMERCIAL_VENDEDOR.items,
+        ],
+      }
+    : COMERCIAL_VENDEDOR;
   return [
     GENERAL,
     ACCESO_RAPIDO_VENDEDOR,
-    COMERCIAL_VENDEDOR,
+    comercialVendedor,
     LOGISTICA_VENDEDOR,
     FINANZAS_VENDEDOR,
   ];
@@ -157,13 +167,15 @@ function gruposPorRol(rol: string) {
 
 export default function SidebarNav({
   rol = "vendedor",
+  almacenEsDigital = false,
   onNavigate,
 }: {
   rol?: string;
+  almacenEsDigital?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const groups = gruposPorRol(rol);
+  const groups = gruposPorRol(rol, almacenEsDigital);
 
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
