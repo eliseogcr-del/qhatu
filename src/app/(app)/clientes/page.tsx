@@ -10,9 +10,9 @@ import ResultadosCount from "@/components/ResultadosCount";
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; canal?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, canal } = await searchParams;
   const supabase = await createClient();
   const { rol, almacenId } = await getEmpresaSession(supabase);
 
@@ -31,9 +31,17 @@ export default async function ClientesPage({
     query = query.eq("es_digital", false);
   }
 
+  if (canal === "digital") query = query.eq("es_digital", true);
+  if (canal === "campo") query = query.eq("es_digital", false);
+
   if (q) query = query.ilike("nombre", `%${q}%`);
 
   const { data: clientes, error } = await query;
+
+  const exportParams = new URLSearchParams();
+  if (q) exportParams.set("q", q);
+  if (canal) exportParams.set("canal", canal);
+  const exportQs = exportParams.toString();
 
   return (
     <div className="p-8">
@@ -42,7 +50,7 @@ export default async function ClientesPage({
           <h1 className="text-2xl font-semibold text-gray-900">Clientes</h1>
           <div className="flex items-center gap-3">
             <a
-              href={`/clientes/export${q ? `?q=${encodeURIComponent(q)}` : ""}`}
+              href={`/clientes/export${exportQs ? `?${exportQs}` : ""}`}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <FileDown size={16} />
@@ -58,7 +66,7 @@ export default async function ClientesPage({
           </div>
         </div>
 
-        <ClientesFiltroForm q={q ?? ""} />
+        <ClientesFiltroForm q={q ?? ""} canal={canal ?? ""} />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

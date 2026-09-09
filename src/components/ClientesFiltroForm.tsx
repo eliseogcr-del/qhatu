@@ -4,15 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
 
-export default function ClientesFiltroForm({ q }: { q: string }) {
+export default function ClientesFiltroForm({ q, canal }: { q: string; canal: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState(q);
   const primerRender = useRef(true);
 
-  const navegar = (nuevoQuery: string) => {
+  const navegar = (params: { q: string; canal: string }) => {
     const usp = new URLSearchParams();
-    if (nuevoQuery) usp.set("q", nuevoQuery);
+    if (params.q) usp.set("q", params.q);
+    if (params.canal) usp.set("canal", params.canal);
     router.push(`${pathname}?${usp.toString()}`);
   };
 
@@ -24,11 +25,13 @@ export default function ClientesFiltroForm({ q }: { q: string }) {
       return;
     }
     const timeout = setTimeout(() => {
-      navegar(query);
+      navegar({ q: query, canal });
     }, 400);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
+
+  const hayFiltros = !!(q || canal);
 
   return (
     <div className="mb-4 flex items-center gap-2">
@@ -45,12 +48,21 @@ export default function ClientesFiltroForm({ q }: { q: string }) {
           className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         />
       </div>
-      {q && (
+      <select
+        value={canal}
+        onChange={(e) => navegar({ q: query, canal: e.target.value })}
+        className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+      >
+        <option value="">Todos los canales</option>
+        <option value="digital">Solo digitales</option>
+        <option value="campo">Solo campo</option>
+      </select>
+      {hayFiltros && (
         <button
           type="button"
           onClick={() => {
             setQuery("");
-            navegar("");
+            navegar({ q: "", canal: "" });
           }}
           className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
         >

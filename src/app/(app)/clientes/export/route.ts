@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
   }
 
   const q = request.nextUrl.searchParams.get("q");
+  const canal = request.nextUrl.searchParams.get("canal");
 
   let query = supabase
     .from("clientes")
@@ -59,6 +60,8 @@ export async function GET(request: NextRequest) {
     )
     .order("nombre");
   if (q) query = query.ilike("nombre", `%${q}%`);
+  if (canal === "digital") query = query.eq("es_digital", true);
+  if (canal === "campo") query = query.eq("es_digital", false);
 
   const { data: clientes } = await query;
 
