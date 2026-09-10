@@ -6,7 +6,6 @@ import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
 import { hoyLima } from "@/lib/fecha";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
 import VentasFiltroForm from "@/components/VentasFiltroForm";
-import ResultadosCount from "@/components/ResultadosCount";
 
 function buildExportHref(
   base: "/ventas/export" | "/ventas/export-detalle",
@@ -94,6 +93,17 @@ export default async function VentasPage({
     vendedorId
   );
 
+  // Resumen (total vendido / pagado / adeudado) sobre lo ya filtrado
+  // arriba, excluyendo anuladas — igual criterio que Reportes y Cobranzas.
+  const ventasActivas = ventas.filter((v) => v.estado !== "anulada");
+  const monedaResumen = ventasActivas[0]?.moneda ?? "PEN";
+  const totalVentasResumen =
+    Math.round(ventasActivas.reduce((acc, v) => acc + (v.total - v.descuento), 0) * 100) / 100;
+  const totalPagadoResumen =
+    Math.round(ventasActivas.reduce((acc, v) => acc + v.cobrado, 0) * 100) / 100;
+  const totalAdeudadoResumen =
+    Math.round(ventasActivas.reduce((acc, v) => acc + v.saldo, 0) * 100) / 100;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-6xl">
@@ -157,7 +167,24 @@ export default async function VentasPage({
           </p>
         )}
 
-        <ResultadosCount count={ventas.length} />
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-gray-500">
+            {ventas.length} {ventas.length === 1 ? "registro encontrado" : "registros encontrados"}
+          </p>
+          {ventasActivas.length > 0 && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+              <span>
+                Total: <span className="font-semibold text-gray-900">{monedaResumen} {totalVentasResumen.toFixed(2)}</span>
+              </span>
+              <span>
+                Pagado: <span className="font-semibold text-emerald-700">{monedaResumen} {totalPagadoResumen.toFixed(2)}</span>
+              </span>
+              <span>
+                Adeudado: <span className="font-semibold text-red-600">{monedaResumen} {totalAdeudadoResumen.toFixed(2)}</span>
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
