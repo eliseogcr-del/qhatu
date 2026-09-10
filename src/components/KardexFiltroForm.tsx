@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { X } from "lucide-react";
+import ProductoCombobox from "./ProductoCombobox";
 
 type Opcion = { id: string; nombre: string };
 
@@ -49,20 +50,13 @@ export default function KardexFiltroForm({
     <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="min-w-[200px] flex-1">
         <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
-        <select
+        <ProductoCombobox
+          productos={productos}
           value={productoId}
-          onChange={(e) =>
-            navegar({ desde, hasta, producto_id: e.target.value, almacen_id: almacenId })
-          }
+          onChange={(producto_id) => navegar({ desde, hasta, producto_id, almacen_id: almacenId })}
+          placeholder="Todos"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">Todos</option>
-          {productos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
+        />
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
