@@ -11,7 +11,7 @@ export default async function ReportesPage({
   const { desde, hasta } = await searchParams;
   const supabase = await createClient();
 
-  let ventasQuery = supabase.from("ventas").select("id, total, fecha");
+  let ventasQuery = supabase.from("ventas").select("id, total, fecha").neq("estado", "anulada");
   if (desde) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(desde));
   if (hasta) ventasQuery = ventasQuery.lte("fecha", finDiaLima(hasta));
   const { data: ventas } = await ventasQuery;
