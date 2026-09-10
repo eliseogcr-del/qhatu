@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 import { formatFecha, hoyLima } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
@@ -12,13 +12,14 @@ export default async function VentasProductosVendidosPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    q?: string;
     desde?: string;
     hasta?: string;
     producto_id?: string;
     almacen_id?: string;
   }>;
 }) {
-  const { desde, hasta, producto_id, almacen_id: almacenIdParam } = await searchParams;
+  const { q, desde, hasta, producto_id, almacen_id: almacenIdParam } = await searchParams;
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
 
@@ -44,6 +45,7 @@ export default async function VentasProductosVendidosPage({
     supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
     almacenesQuery,
     fetchDetalleProductosVendidos(supabase, {
+      clienteNombre: q,
       productoId: producto_id,
       fechaDesde: desdeEfectivo,
       fechaHasta: hastaEfectivo,
@@ -52,30 +54,49 @@ export default async function VentasProductosVendidosPage({
   ]);
 
   const hayFiltros = !!(
+    q ||
     desde !== undefined ||
     hasta !== undefined ||
     producto_id ||
     (!session.almacenId && almacenId)
   );
 
+  const exportParams = new URLSearchParams();
+  if (q) exportParams.set("q", q);
+  exportParams.set("desde", desdeEfectivo);
+  exportParams.set("hasta", hastaEfectivo);
+  if (producto_id) exportParams.set("producto_id", producto_id);
+  if (almacenId) exportParams.set("almacen_id", almacenId);
+  const exportQs = exportParams.toString();
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Productos vendidos</h1>
-          <Link
-            href="/ventas"
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
-          >
-            <ArrowLeft size={16} />
-            Volver a Ventas
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href={`/ventas/productos-vendidos/export${exportQs ? `?${exportQs}` : ""}`}
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <FileDown size={16} />
+              Exportar a Excel
+            </a>
+            <Link
+              href="/ventas"
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
+            >
+              <ArrowLeft size={16} />
+              Volver a Ventas
+            </Link>
+          </div>
         </div>
         <p className="mb-4 text-sm text-gray-500">
           Detalle línea por línea de todos los productos vendidos.
         </p>
 
         <VentasProductosFiltroForm
+          q={q ?? ""}
           desde={desdeEfectivo}
           hasta={hastaEfectivo}
           productoId={producto_id ?? ""}
@@ -98,6 +119,7 @@ export default async function VentasProductosVendidosPage({
           <table className="w-full text-left text-sm">
             <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-0 z-10">
               <tr>
+                <th className="px-4 py-3 font-bold">Cliente</th>
                 <th className="px-4 py-3 font-bold">Tipo de documento</th>
                 <th className="px-4 py-3 font-bold">N° de documento</th>
                 <th className="px-4 py-3 font-bold">Fecha</th>
@@ -112,6 +134,9 @@ export default async function VentasProductosVendidosPage({
             <tbody>
               {filas.map((f) => (
                 <tr key={f.id} className="border-b-2 border-gray-200 last:border-0">
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {f.clienteNombre ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">
                     {f.comprobanteTipo != null
                       ? (TIPO_COMPROBANTE_LABEL[f.comprobanteTipo] ?? "—")
@@ -119,7 +144,7 @@ export default async function VentasProductosVendidosPage({
                   </td>
                   <td className="px-4 py-3 text-gray-600">{f.comprobanteNumero ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-600">{formatFecha(f.fecha)}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{f.productoNombre}</td>
+                  <td className="px-4 py-3 text-gray-600">{f.productoNombre}</td>
                   <td className="px-4 py-3 text-gray-600">{f.unidadMedida ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-600">{f.cantidad}</td>
                   <td className="px-4 py-3 text-gray-600">
@@ -134,7 +159,7 @@ export default async function VentasProductosVendidosPage({
 
               {filas.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={10} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ningún producto vendido coincide con los filtros."
                       : "Aún no hay productos vendidos registrados."}

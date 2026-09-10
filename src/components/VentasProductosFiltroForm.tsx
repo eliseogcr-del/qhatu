@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import ProductoCombobox from "./ProductoCombobox";
 
 type Opcion = { id: string; nombre: string };
 
 export default function VentasProductosFiltroForm({
+  q,
   desde,
   hasta,
   productoId,
@@ -16,6 +18,7 @@ export default function VentasProductosFiltroForm({
   almacenFijoNombre,
   hayFiltros,
 }: {
+  q: string;
   desde: string;
   hasta: string;
   productoId: string;
@@ -28,14 +31,18 @@ export default function VentasProductosFiltroForm({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [query, setQuery] = useState(q);
+  const primerRender = useRef(true);
 
   const navegar = (params: {
+    q: string;
     desde: string;
     hasta: string;
     producto_id: string;
     almacen_id: string;
   }) => {
     const usp = new URLSearchParams();
+    if (params.q) usp.set("q", params.q);
     // desde/hasta: se mandan siempre (incluso vacíos) para distinguir
     // "sin filtro explícito" (usa el día de hoy por defecto) de
     // "el usuario los vació a propósito" — igual que en Ventas y Kardex.
@@ -46,14 +53,46 @@ export default function VentasProductosFiltroForm({
     router.push(`${pathname}?${usp.toString()}`);
   };
 
+  // Búsqueda por nombre de cliente: se espera una pausa al escribir antes
+  // de filtrar, igual que en el listado de Ventas.
+  useEffect(() => {
+    if (primerRender.current) {
+      primerRender.current = false;
+      return;
+    }
+    const timeout = setTimeout(() => {
+      navegar({ q: query, desde, hasta, producto_id: productoId, almacen_id: almacenId });
+    }, 400);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
   return (
     <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="min-w-[200px] flex-1">
+      <div className="min-w-[180px] flex-1">
+        <label className="mb-1 block text-sm font-medium text-gray-700">Cliente</label>
+        <div className="relative">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nombre..."
+            className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+      </div>
+      <div className="min-w-[180px] flex-1">
         <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
         <ProductoCombobox
           productos={productos}
           value={productoId}
-          onChange={(producto_id) => navegar({ desde, hasta, producto_id, almacen_id: almacenId })}
+          onChange={(producto_id) =>
+            navegar({ q: query, desde, hasta, producto_id, almacen_id: almacenId })
+          }
           placeholder="Todos"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
@@ -64,7 +103,13 @@ export default function VentasProductosFiltroForm({
           type="date"
           value={desde}
           onChange={(e) =>
-            navegar({ desde: e.target.value, hasta, producto_id: productoId, almacen_id: almacenId })
+            navegar({
+              q: query,
+              desde: e.target.value,
+              hasta,
+              producto_id: productoId,
+              almacen_id: almacenId,
+            })
           }
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
@@ -75,7 +120,13 @@ export default function VentasProductosFiltroForm({
           type="date"
           value={hasta}
           onChange={(e) =>
-            navegar({ desde, hasta: e.target.value, producto_id: productoId, almacen_id: almacenId })
+            navegar({
+              q: query,
+              desde,
+              hasta: e.target.value,
+              producto_id: productoId,
+              almacen_id: almacenId,
+            })
           }
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
@@ -90,7 +141,13 @@ export default function VentasProductosFiltroForm({
           <select
             value={almacenId}
             onChange={(e) =>
-              navegar({ desde, hasta, producto_id: productoId, almacen_id: e.target.value })
+              navegar({
+                q: query,
+                desde,
+                hasta,
+                producto_id: productoId,
+                almacen_id: e.target.value,
+              })
             }
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
@@ -106,7 +163,10 @@ export default function VentasProductosFiltroForm({
       {hayFiltros && (
         <button
           type="button"
-          onClick={() => navegar({ desde: "", hasta: "", producto_id: "", almacen_id: "" })}
+          onClick={() => {
+            setQuery("");
+            navegar({ q: "", desde: "", hasta: "", producto_id: "", almacen_id: "" });
+          }}
           className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
         >
           <X size={14} />

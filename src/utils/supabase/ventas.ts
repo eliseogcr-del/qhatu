@@ -168,6 +168,7 @@ export type DetalleProductoVendido = {
   ventaId: string;
   fecha: string;
   moneda: string;
+  clienteNombre: string | null;
   comprobanteTipo: number | null;
   comprobanteNumero: string | null;
   productoNombre: string;
@@ -183,6 +184,7 @@ export type DetalleProductosFiltro = {
   fechaDesde?: string | null;
   fechaHasta?: string | null;
   almacenId?: string | null;
+  clienteNombre?: string | null;
 };
 
 // Una fila por línea de producto vendido (no por venta), para el reporte
@@ -190,15 +192,20 @@ export type DetalleProductosFiltro = {
 // (factura/boleta manda sobre la nota de venta) que fetchVentasConSaldo.
 export async function fetchDetalleProductosVendidos(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  { productoId, fechaDesde, fechaHasta, almacenId }: DetalleProductosFiltro,
+  { productoId, fechaDesde, fechaHasta, almacenId, clienteNombre }: DetalleProductosFiltro,
 ): Promise<{ filas: DetalleProductoVendido[]; error: string | null }> {
   let ventasQuery = supabase
     .from("ventas")
-    .select("id, fecha, moneda, almacenes(nombre)")
+    .select(
+      clienteNombre
+        ? "id, fecha, moneda, clientes!inner(nombre), almacenes(nombre)"
+        : "id, fecha, moneda, clientes(nombre), almacenes(nombre)",
+    )
     .neq("estado", "anulada");
   if (fechaDesde) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(fechaDesde));
   if (fechaHasta) ventasQuery = ventasQuery.lte("fecha", finDiaLima(fechaHasta));
   if (almacenId) ventasQuery = ventasQuery.eq("almacen_id", almacenId);
+  if (clienteNombre) ventasQuery = ventasQuery.ilike("clientes.nombre", `%${clienteNombre}%`);
 
   const { data: ventas, error } = await ventasQuery;
   if (error || !ventas) {
@@ -214,6 +221,7 @@ export async function fetchDetalleProductosVendidos(
       {
         fecha: v.fecha,
         moneda: v.moneda,
+        clienteNombre: (v.clientes as unknown as { nombre: string } | null)?.nombre ?? null,
         almacenNombre: (v.almacenes as unknown as { nombre: string } | null)?.nombre ?? null,
       },
     ]),
@@ -260,6 +268,7 @@ export async function fetchDetalleProductosVendidos(
         ventaId: d.venta_id,
         fecha: venta?.fecha ?? "",
         moneda: venta?.moneda ?? "PEN",
+        clienteNombre: venta?.clienteNombre ?? null,
         comprobanteTipo: comprobante?.tipo ?? null,
         comprobanteNumero: comprobante
           ? `${comprobante.serie}-${String(comprobante.numero).padStart(6, "0")}`
