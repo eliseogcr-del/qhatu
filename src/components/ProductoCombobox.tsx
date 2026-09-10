@@ -131,7 +131,7 @@ export default function ProductoCombobox({
         className={className}
       />
       {open && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
           {filtrados.length > 0 ? (
             <ul className="max-h-56 overflow-auto">
               {filtrados.map((p) => (
