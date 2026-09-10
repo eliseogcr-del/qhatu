@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { XCircle } from "lucide-react";
+import { FileDown, XCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import {
@@ -69,17 +69,35 @@ export default async function CobranzasPage({
   })).filter((r) => r.monto > 0);
   const totalResumen = Math.round(resumenPorMetodo.reduce((acc, r) => acc + r.monto, 0) * 100) / 100;
 
+  const exportParams = new URLSearchParams();
+  if (q) exportParams.set("q", q);
+  if (desde) exportParams.set("desde", desde);
+  if (hasta) exportParams.set("hasta", hasta);
+  if (metodoPago) exportParams.set("metodo_pago", metodoPago);
+  if (tipoPago) exportParams.set("tipo_pago", tipoPago);
+  if (estado) exportParams.set("estado", estado);
+  const exportQs = exportParams.toString();
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Cobranzas</h1>
-          <Link
-            href="/cobranzas/nueva"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-          >
-            + Registrar cobro
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href={`/cobranzas/export${exportQs ? `?${exportQs}` : ""}`}
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <FileDown size={16} />
+              Exportar a Excel
+            </a>
+            <Link
+              href="/cobranzas/nueva"
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              + Registrar cobro
+            </Link>
+          </div>
         </div>
 
         <CobranzasFiltroForm
