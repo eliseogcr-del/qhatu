@@ -67,19 +67,38 @@ export default function ProductoCombobox({
 
   const filtrados = useMemo(() => filtrarProductos(productos, query), [query, productos]);
 
+  // Se llama al salir del campo sin haber hecho click/Enter sobre una
+  // opción (Tab, click afuera, etc.) — antes esto dejaba el texto tipeado
+  // visible pero sin producto real seleccionado detrás, y esa línea
+  // desaparecía en silencio al guardar. Si lo tipeado matchea un solo
+  // producto se asume que es ese (evita perder el tipeo cuando el nombre
+  // era exacto); si es ambiguo o no hay nada, se descarta para que quede
+  // claro que la línea quedó sin producto.
+  function resolverAlSalir() {
+    const yaConfirmado = productos.find((pr) => pr.id === valorActual);
+    if (yaConfirmado) {
+      setQuery(yaConfirmado.nombre);
+      return;
+    }
+    if (filtrados.length === 1) {
+      elegir(filtrados[0].id);
+      setQuery(filtrados[0].nombre);
+    } else {
+      setQuery("");
+    }
+  }
+
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
-        // Si cerró sin elegir nada, se descarta lo tipeado y vuelve a
-        // mostrar el producto realmente seleccionado (o vacío).
-        const p = productos.find((pr) => pr.id === valorActual);
-        setQuery(p?.nombre ?? "");
+        resolverAlSalir();
       }
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [valorActual, productos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valorActual, productos, filtrados]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -92,6 +111,14 @@ export default function ProductoCombobox({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
+        onBlur={() => {
+          // Los clicks en una opción de la lista no llegan a disparar este
+          // blur (ver onMouseDown de esas opciones más abajo), así que
+          // acá solo cae el caso de salir sin elegir (Tab, foco a otro
+          // campo, etc.).
+          setOpen(false);
+          resolverAlSalir();
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && filtrados.length > 0) {
             e.preventDefault();
@@ -111,6 +138,11 @@ export default function ProductoCombobox({
                 <li key={p.id}>
                   <button
                     type="button"
+                    // Evita que el click le quite el foco al input antes de
+                    // que este onClick corra — si lo hiciera, el onBlur del
+                    // input (que resuelve/descarta la selección) se
+                    // adelantaría y podría pisar este click.
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       elegir(p.id);
                       setOpen(false);
