@@ -108,7 +108,15 @@ export default async function VentasPage({
     <div className="p-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Ventas</h1>
+          <div className="flex items-baseline gap-4">
+            <h1 className="text-2xl font-semibold text-gray-900">Ventas</h1>
+            <Link
+              href="/ventas/productos-vendidos"
+              className="text-sm font-medium text-emerald-700 hover:underline"
+            >
+              Productos vendidos
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <a
               href={buildExportHref("/ventas/export", {

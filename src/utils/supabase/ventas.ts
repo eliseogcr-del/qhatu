@@ -163,6 +163,120 @@ export async function fetchVentasConSaldo(
   };
 }
 
+export type DetalleProductoVendido = {
+  id: string;
+  ventaId: string;
+  fecha: string;
+  moneda: string;
+  comprobanteTipo: number | null;
+  comprobanteNumero: string | null;
+  productoNombre: string;
+  unidadMedida: string | null;
+  cantidad: number;
+  precioUnitario: number;
+  importe: number;
+  almacenNombre: string | null;
+};
+
+export type DetalleProductosFiltro = {
+  productoId?: string | null;
+  fechaDesde?: string | null;
+  fechaHasta?: string | null;
+  almacenId?: string | null;
+};
+
+// Una fila por línea de producto vendido (no por venta), para el reporte
+// "Productos vendidos" — misma lógica de precedencia de comprobante
+// (factura/boleta manda sobre la nota de venta) que fetchVentasConSaldo.
+export async function fetchDetalleProductosVendidos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  { productoId, fechaDesde, fechaHasta, almacenId }: DetalleProductosFiltro,
+): Promise<{ filas: DetalleProductoVendido[]; error: string | null }> {
+  let ventasQuery = supabase
+    .from("ventas")
+    .select("id, fecha, moneda, almacenes(nombre)")
+    .neq("estado", "anulada");
+  if (fechaDesde) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(fechaDesde));
+  if (fechaHasta) ventasQuery = ventasQuery.lte("fecha", finDiaLima(fechaHasta));
+  if (almacenId) ventasQuery = ventasQuery.eq("almacen_id", almacenId);
+
+  const { data: ventas, error } = await ventasQuery;
+  if (error || !ventas) {
+    return { filas: [], error: error?.message ?? null };
+  }
+
+  const ventaIds = ventas.map((v) => v.id);
+  if (ventaIds.length === 0) return { filas: [], error: null };
+
+  const ventaPorId = new Map(
+    ventas.map((v) => [
+      v.id,
+      {
+        fecha: v.fecha,
+        moneda: v.moneda,
+        almacenNombre: (v.almacenes as unknown as { nombre: string } | null)?.nombre ?? null,
+      },
+    ]),
+  );
+
+  let detalleQuery = supabase
+    .from("venta_detalle")
+    .select(
+      "id, venta_id, cantidad_entregada, precio_unitario, subtotal, productos(nombre), unidades_medida(descripcion)",
+    )
+    .in("venta_id", ventaIds)
+    .gt("cantidad_entregada", 0);
+  if (productoId) detalleQuery = detalleQuery.eq("producto_id", productoId);
+
+  const [{ data: detalle }, { data: comprobantes }] = await Promise.all([
+    detalleQuery,
+    supabase
+      .from("comprobantes")
+      .select("venta_id, tipo_comprobante, serie, numero")
+      .in("venta_id", ventaIds)
+      .eq("estado", "emitido"),
+  ]);
+
+  const comprobantePorVenta = new Map<string, { tipo: number; serie: string; numero: number }>();
+  for (const c of comprobantes ?? []) {
+    const actual = comprobantePorVenta.get(c.venta_id);
+    if (!actual || (actual.tipo === TIPO_NOTA_VENTA && c.tipo_comprobante !== TIPO_NOTA_VENTA)) {
+      comprobantePorVenta.set(c.venta_id, {
+        tipo: c.tipo_comprobante,
+        serie: c.serie,
+        numero: c.numero,
+      });
+    }
+  }
+
+  const filas = (detalle ?? [])
+    .map((d) => {
+      const venta = ventaPorId.get(d.venta_id);
+      const comprobante = comprobantePorVenta.get(d.venta_id);
+      const producto = d.productos as unknown as { nombre: string } | null;
+      const unidad = d.unidades_medida as unknown as { descripcion: string } | null;
+      return {
+        id: d.id,
+        ventaId: d.venta_id,
+        fecha: venta?.fecha ?? "",
+        moneda: venta?.moneda ?? "PEN",
+        comprobanteTipo: comprobante?.tipo ?? null,
+        comprobanteNumero: comprobante
+          ? `${comprobante.serie}-${String(comprobante.numero).padStart(6, "0")}`
+          : null,
+        productoNombre: producto?.nombre ?? "—",
+        unidadMedida: unidad?.descripcion ?? null,
+        cantidad: d.cantidad_entregada,
+        precioUnitario: d.precio_unitario,
+        importe: d.subtotal,
+        almacenNombre: venta?.almacenNombre ?? null,
+      };
+    })
+    .sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+
+  return { filas, error: null };
+}
+
 // Saldo pendiente de una venta puntual (solo cobranzas activas cuentan).
 export async function getSaldoVenta(
   supabase: Awaited<ReturnType<typeof createClient>>,
