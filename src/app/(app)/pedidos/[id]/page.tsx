@@ -293,27 +293,35 @@ export default async function PedidoDetallePage({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
               Cobranzas
             </h2>
-            <Link
-              href={`/cobranzas/nueva?pedido_id=${id}&volver=${encodeURIComponent(`/pedidos/${id}`)}`}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              <Wallet size={16} />
-              Registrar cobro
-            </Link>
+            {venta && (
+              <Link
+                href={`/cobranzas/nueva?venta_id=${venta.id}&volver=${encodeURIComponent(`/pedidos/${id}`)}`}
+                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                <Wallet size={16} />
+                Registrar cobro
+              </Link>
+            )}
           </div>
 
-          <p className="mb-4 text-sm">
-            Saldo pendiente:{" "}
-            <span
-              className={`font-semibold ${saldoPendiente > 0 ? "text-red-600" : "text-green-600"}`}
-            >
-              {monedaReferencia} {saldoPendiente.toFixed(2)}
-            </span>{" "}
-            <span className="text-gray-500">
-              (sobre {venta ? "la venta" : "el pedido"}: {monedaReferencia}{" "}
-              {totalReferencia})
-            </span>
-          </p>
+          {venta ? (
+            <p className="mb-4 text-sm">
+              Saldo pendiente:{" "}
+              <span
+                className={`font-semibold ${saldoPendiente > 0 ? "text-red-600" : "text-green-600"}`}
+              >
+                {monedaReferencia} {saldoPendiente.toFixed(2)}
+              </span>{" "}
+              <span className="text-gray-500">
+                (sobre la venta: {monedaReferencia} {totalReferencia})
+              </span>
+            </p>
+          ) : (
+            <p className="mb-4 text-sm text-gray-500">
+              Este pedido todavía no se registró como venta — no genera un
+              cobro pendiente hasta entonces.
+            </p>
+          )}
 
           {cobranzas && cobranzas.length > 0 ? (
             <table className="w-full text-left text-sm">

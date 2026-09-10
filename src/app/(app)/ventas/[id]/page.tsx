@@ -493,16 +493,14 @@ export default async function VentaDetallePage({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
               Cobros
             </h2>
-            {pedido && (
-              <Link
-                href={`/cobranzas/nueva?pedido_id=${pedido.id}&volver=${encodeURIComponent(
-                  `/ventas/${id}${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`,
-                )}`}
-                className="text-sm font-medium text-emerald-700 hover:underline"
-              >
-                Registrar cobro
-              </Link>
-            )}
+            <Link
+              href={`/cobranzas/nueva?venta_id=${id}&volver=${encodeURIComponent(
+                `/ventas/${id}${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`,
+              )}`}
+              className="text-sm font-medium text-emerald-700 hover:underline"
+            >
+              Registrar cobro
+            </Link>
           </div>
 
           <p className="mb-4 text-sm">

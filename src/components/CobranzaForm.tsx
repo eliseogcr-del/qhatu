@@ -25,7 +25,7 @@ function Field({
 export default function CobranzaForm({
   action,
   error,
-  pedidoId,
+  ventaId,
   clienteNombre,
   monedaSugerida,
   saldoPendiente,
@@ -35,7 +35,7 @@ export default function CobranzaForm({
 }: {
   action: (formData: FormData) => void;
   error?: string;
-  pedidoId: string;
+  ventaId: string;
   clienteNombre: string;
   monedaSugerida: string;
   saldoPendiente: number | null;
@@ -54,7 +54,7 @@ export default function CobranzaForm({
         </p>
       )}
 
-      <input type="hidden" name="pedido_id" value={pedidoId} />
+      <input type="hidden" name="venta_id" value={ventaId} />
       {redirectTo && <input type="hidden" name="redirect_to" value={redirectTo} />}
 
       <div>
