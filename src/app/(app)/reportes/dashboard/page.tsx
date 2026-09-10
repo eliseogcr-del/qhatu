@@ -7,6 +7,7 @@ import ReportesDashboardVendedores, {
   type VendedorResumen,
   type ProductoDetalle,
 } from "@/components/ReportesDashboardVendedores";
+import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 
 type ClienteResumen = {
   clienteId: string;
@@ -56,10 +57,12 @@ export default async function ReportesDashboardPage({
     ventaIds.length > 0
       ? supabase
           .from("cobranzas")
-          .select("venta_id, monto")
+          .select("venta_id, monto, metodo_pago")
           .in("venta_id", ventaIds)
           .eq("estado", "activa")
-      : Promise.resolve({ data: [] as { venta_id: string | null; monto: number }[] }),
+      : Promise.resolve({
+          data: [] as { venta_id: string | null; monto: number; metodo_pago: string }[],
+        }),
     ventaIds.length > 0
       ? supabase
           .from("venta_detalle")
@@ -82,6 +85,27 @@ export default async function ReportesDashboardPage({
     if (!c.venta_id) continue;
     cobradoPorVenta.set(c.venta_id, (cobradoPorVenta.get(c.venta_id) ?? 0) + c.monto);
   }
+
+  // Ingresos por método de pago — mismas cobranzas ya acotadas arriba por
+  // el rango de fechas (vía las ventas a las que pertenecen) y por estado
+  // activa, así que respeta el filtro del dashboard sin ninguna consulta
+  // extra.
+  const ingresosPorMetodoMap = new Map<string, number>();
+  for (const c of cobranzas ?? []) {
+    ingresosPorMetodoMap.set(
+      c.metodo_pago,
+      Math.round(((ingresosPorMetodoMap.get(c.metodo_pago) ?? 0) + c.monto) * 100) / 100,
+    );
+  }
+  const ingresosPorMetodo = [...ingresosPorMetodoMap.entries()]
+    .map(([metodoPago, monto]) => ({
+      metodoPago,
+      label: METODO_PAGO_LABEL[metodoPago as MetodoPago] ?? metodoPago,
+      monto,
+    }))
+    .sort((a, b) => b.monto - a.monto);
+  const totalIngresos =
+    Math.round(ingresosPorMetodo.reduce((acc, i) => acc + i.monto, 0) * 100) / 100;
 
   // Snapshot por venta: quién la vendió, a qué cliente, y qué fracción de
   // su neto ya está cobrada — esa fracción se usa después para prorratear
@@ -303,6 +327,49 @@ export default async function ReportesDashboardPage({
                       </tr>
                     )}
                   </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Ingresos por tipo de pago
+              </h2>
+              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 font-bold">Tipo de pago</th>
+                      <th className="px-4 py-3 text-right font-bold">Monto cobrado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ingresosPorMetodo.map((i) => (
+                      <tr key={i.metodoPago} className="border-b-2 border-gray-200 last:border-0">
+                        <td className="px-4 py-3 font-medium text-gray-900">{i.label}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">
+                          {MONEDA} {i.monto.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                    {ingresosPorMetodo.length === 0 && (
+                      <tr>
+                        <td colSpan={2} className="px-4 py-10 text-center text-gray-400">
+                          Sin cobros en este rango.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {ingresosPorMetodo.length > 0 && (
+                    <tfoot>
+                      <tr className="border-t-2 border-gray-200 font-semibold">
+                        <td className="px-4 py-3 text-gray-900">Total</td>
+                        <td className="px-4 py-3 text-right text-gray-900">
+                          {MONEDA} {totalIngresos.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
             </div>
