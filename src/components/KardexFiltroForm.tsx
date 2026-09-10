@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import ProductoCombobox from "./ProductoCombobox";
+import { TIPOS_MOVIMIENTO, TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
 
 type Opcion = { id: string; nombre: string };
 
@@ -11,6 +12,7 @@ export default function KardexFiltroForm({
   hasta,
   productoId,
   almacenId,
+  tipo,
   productos,
   almacenes,
   almacenFijoNombre,
@@ -20,6 +22,7 @@ export default function KardexFiltroForm({
   hasta: string;
   productoId: string;
   almacenId: string;
+  tipo: string;
   productos: Opcion[];
   almacenes: Opcion[];
   // Un vendedor tiene almacén fijo — se muestra como texto, no como select.
@@ -34,6 +37,7 @@ export default function KardexFiltroForm({
     hasta: string;
     producto_id: string;
     almacen_id: string;
+    tipo: string;
   }) => {
     const usp = new URLSearchParams();
     // desde/hasta: se mandan siempre (incluso vacíos) para distinguir
@@ -43,6 +47,7 @@ export default function KardexFiltroForm({
     usp.set("hasta", params.hasta);
     if (params.producto_id) usp.set("producto_id", params.producto_id);
     if (params.almacen_id) usp.set("almacen_id", params.almacen_id);
+    if (params.tipo) usp.set("tipo", params.tipo);
     router.push(`${pathname}?${usp.toString()}`);
   };
 
@@ -53,7 +58,9 @@ export default function KardexFiltroForm({
         <ProductoCombobox
           productos={productos}
           value={productoId}
-          onChange={(producto_id) => navegar({ desde, hasta, producto_id, almacen_id: almacenId })}
+          onChange={(producto_id) =>
+            navegar({ desde, hasta, producto_id, almacen_id: almacenId, tipo })
+          }
           placeholder="Todos"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
@@ -64,7 +71,13 @@ export default function KardexFiltroForm({
           type="date"
           value={desde}
           onChange={(e) =>
-            navegar({ desde: e.target.value, hasta, producto_id: productoId, almacen_id: almacenId })
+            navegar({
+              desde: e.target.value,
+              hasta,
+              producto_id: productoId,
+              almacen_id: almacenId,
+              tipo,
+            })
           }
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
@@ -75,7 +88,13 @@ export default function KardexFiltroForm({
           type="date"
           value={hasta}
           onChange={(e) =>
-            navegar({ desde, hasta: e.target.value, producto_id: productoId, almacen_id: almacenId })
+            navegar({
+              desde,
+              hasta: e.target.value,
+              producto_id: productoId,
+              almacen_id: almacenId,
+              tipo,
+            })
           }
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
@@ -90,7 +109,13 @@ export default function KardexFiltroForm({
           <select
             value={almacenId}
             onChange={(e) =>
-              navegar({ desde, hasta, producto_id: productoId, almacen_id: e.target.value })
+              navegar({
+                desde,
+                hasta,
+                producto_id: productoId,
+                almacen_id: e.target.value,
+                tipo,
+              })
             }
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
@@ -103,10 +128,35 @@ export default function KardexFiltroForm({
           </select>
         )}
       </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Tipo</label>
+        <select
+          value={tipo}
+          onChange={(e) =>
+            navegar({
+              desde,
+              hasta,
+              producto_id: productoId,
+              almacen_id: almacenId,
+              tipo: e.target.value,
+            })
+          }
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        >
+          <option value="">Todos</option>
+          {TIPOS_MOVIMIENTO.map((t) => (
+            <option key={t} value={t}>
+              {TIPO_MOVIMIENTO_LABEL[t as TipoMovimiento]}
+            </option>
+          ))}
+        </select>
+      </div>
       {hayFiltros && (
         <button
           type="button"
-          onClick={() => navegar({ desde: "", hasta: "", producto_id: "", almacen_id: "" })}
+          onClick={() =>
+            navegar({ desde: "", hasta: "", producto_id: "", almacen_id: "", tipo: "" })
+          }
           className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
         >
           <X size={14} />
