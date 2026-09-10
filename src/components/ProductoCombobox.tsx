@@ -72,17 +72,23 @@ export default function ProductoCombobox({
   // visible pero sin producto real seleccionado detrás, y esa línea
   // desaparecía en silencio al guardar. Si lo tipeado matchea un solo
   // producto se asume que es ese (evita perder el tipeo cuando el nombre
-  // era exacto); si es ambiguo o no hay nada, se descarta para que quede
-  // claro que la línea quedó sin producto.
+  // era exacto); si es ambiguo, se mantiene lo ya confirmado (si había) en
+  // vez de perderlo por texto basura; si el campo se dejó vacío a
+  // propósito (el usuario borró todo), eso sí se respeta como "sin
+  // producto" — antes revertía al valor anterior y el borrado manual
+  // parecía no responder.
   function resolverAlSalir() {
-    const yaConfirmado = productos.find((pr) => pr.id === valorActual);
-    if (yaConfirmado) {
-      setQuery(yaConfirmado.nombre);
+    if (!query.trim()) {
+      if (valorActual) elegir("");
       return;
     }
+    const yaConfirmado = productos.find((pr) => pr.id === valorActual);
+    if (yaConfirmado && yaConfirmado.nombre === query) return;
     if (filtrados.length === 1) {
       elegir(filtrados[0].id);
       setQuery(filtrados[0].nombre);
+    } else if (yaConfirmado) {
+      setQuery(yaConfirmado.nombre);
     } else {
       setQuery("");
     }
@@ -120,7 +126,10 @@ export default function ProductoCombobox({
           resolverAlSalir();
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && filtrados.length > 0) {
+          // El guard de query.trim() evita que Enter con el campo vacío
+          // elija "el primero de la lista" al azar — sin texto escrito no
+          // hay una intención real de elegir nada.
+          if (e.key === "Enter" && query.trim() && filtrados.length > 0) {
             e.preventDefault();
             elegir(filtrados[0].id);
             setOpen(false);
