@@ -52,10 +52,22 @@ export default async function CobranzasPage({
 
   const hayFiltros = !!(q || desde || hasta || metodoPago || tipoPago || estado);
 
-  const sumaActiva =
-    cobranzas
-      ?.filter((c) => c.estado === "activa")
-      .reduce((acc, c) => acc + c.monto, 0) ?? 0;
+  // Resumen de lo cobrado (solo cobros activos) agrupado por método de
+  // pago, sobre el mismo conjunto ya filtrado arriba — se recalcula solo
+  // con cambiar cualquiera de los filtros existentes.
+  const cobranzasActivas = cobranzas?.filter((c) => c.estado === "activa") ?? [];
+  const monedaResumen = cobranzas?.[0]?.moneda ?? "PEN";
+  const resumenPorMetodo = METODOS_PAGO.map((m) => ({
+    metodo: m,
+    label: METODO_PAGO_LABEL[m],
+    monto:
+      Math.round(
+        cobranzasActivas
+          .filter((c) => c.metodo_pago === m)
+          .reduce((acc, c) => acc + c.monto, 0) * 100,
+      ) / 100,
+  })).filter((r) => r.monto > 0);
+  const totalResumen = Math.round(resumenPorMetodo.reduce((acc, r) => acc + r.monto, 0) * 100) / 100;
 
   return (
     <div className="p-8">
@@ -81,14 +93,36 @@ export default async function CobranzasPage({
           hayFiltros={hayFiltros}
         />
 
-        {hayFiltros && rol === "admin" && (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
-            <p className="text-emerald-800">
-              Suma cobrada (cobros activos, según filtros aplicados):{" "}
-              <span className="font-semibold">
-                {cobranzas?.[0]?.moneda ?? "PEN"} {sumaActiva.toFixed(2)}
-              </span>
-            </p>
+        {rol === "admin" && resumenPorMetodo.length > 0 && (
+          <div className="mb-4 overflow-x-auto rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-emerald-200 text-emerald-900">
+                <tr>
+                  <th className="px-4 py-2 font-bold">
+                    Resumen de lo cobrado{hayFiltros ? " (según filtros aplicados)" : ""}
+                  </th>
+                  <th className="px-4 py-2 text-right font-bold">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumenPorMetodo.map((r) => (
+                  <tr key={r.metodo} className="border-b border-emerald-100 last:border-0">
+                    <td className="px-4 py-2 text-emerald-800">{r.label}</td>
+                    <td className="px-4 py-2 text-right text-emerald-800">
+                      {monedaResumen} {r.monto.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-emerald-200 font-semibold text-emerald-900">
+                  <td className="px-4 py-2">Total</td>
+                  <td className="px-4 py-2 text-right">
+                    {monedaResumen} {totalResumen.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
 
