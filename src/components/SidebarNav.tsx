@@ -132,10 +132,7 @@ const LOGISTICA_VENDEDOR = {
 
 const FINANZAS_VENDEDOR = {
   label: "Finanzas",
-  items: [
-    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
-    { href: "/reportes", label: "Reportes", icon: BarChart3 },
-  ],
+  items: [{ href: "/ventas", label: "Ventas", icon: ShoppingCart }],
 };
 
 function gruposPorRol(rol: string, almacenEsDigital: boolean) {
