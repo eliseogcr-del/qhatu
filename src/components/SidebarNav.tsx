@@ -77,7 +77,10 @@ const FINANZAS = {
 
 const FINANZAS_LOGISTICA = {
   label: "Finanzas",
-  items: [{ href: "/compras", label: "Compras", icon: ShoppingBag }],
+  items: [
+    { href: "/compras", label: "Compras", icon: ShoppingBag },
+    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  ],
 };
 
 const ADMINISTRACION = {
