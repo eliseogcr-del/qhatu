@@ -5,7 +5,8 @@ import { Lock } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
-import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
+import { consultarPrecioLinea, consultarSaldoCliente } from "@/app/(app)/precios/actions";
+import { formatFecha } from "@/lib/fecha";
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -93,6 +94,24 @@ export default function VentaDirectaForm({
   const [almacenSeleccionado, setAlmacenSeleccionado] = useState(almacenSesion ?? "");
   const [descuento, setDescuento] = useState(0);
   const [clienteId, setClienteId] = useState("");
+  const [deudaCliente, setDeudaCliente] = useState<{
+    saldo: number;
+    moneda: string;
+    fechaUltimaVenta: string;
+  } | null>(null);
+
+  // Solo informativo: avisa si el cliente elegido tiene ventas anteriores
+  // sin cobrar, pero no impide continuar con esta venta nueva.
+  // consultarSaldoCliente resuelve a null cuando clienteId viene vacío.
+  useEffect(() => {
+    let vigente = true;
+    consultarSaldoCliente(clienteId).then((resultado) => {
+      if (vigente) setDeudaCliente(resultado);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [clienteId]);
 
   const productosDisponibles = productos.filter((p) => {
     if (!p.control_inventario) return true;
@@ -201,6 +220,13 @@ export default function VentaDirectaForm({
       {avisoDuplicado && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
           {avisoDuplicado}
+        </p>
+      )}
+      {deudaCliente && (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+          Este cliente debe {deudaCliente.moneda} {deudaCliente.saldo.toFixed(2)} de una venta
+          anterior (última con saldo pendiente: {formatFecha(deudaCliente.fechaUltimaVenta)}).
+          Puedes continuar con esta venta de todas formas.
         </p>
       )}
 
