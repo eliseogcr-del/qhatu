@@ -16,8 +16,11 @@ export default function ReportesFiltroForm({
 
   const navegar = (params: { desde: string; hasta: string }) => {
     const usp = new URLSearchParams();
-    if (params.desde) usp.set("desde", params.desde);
-    if (params.hasta) usp.set("hasta", params.hasta);
+    // Se mandan siempre (incluso vacíos) para distinguir "sin filtro
+    // explícito" (usa el día de hoy por defecto) de "el usuario los vació
+    // a propósito" — igual que en Ventas y Kardex.
+    usp.set("desde", params.desde);
+    usp.set("hasta", params.hasta);
     router.push(`${pathname}?${usp.toString()}`);
   };
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import { hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import ReportesFiltroForm from "@/components/ReportesFiltroForm";
 
 export default async function ReportesPage({
@@ -11,21 +11,29 @@ export default async function ReportesPage({
   const { desde, hasta } = await searchParams;
   const supabase = await createClient();
 
+  // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
+  // defecto, para no traer siempre todo el historial. Si el usuario borra
+  // los campos y filtra, quedan como string vacío (presentes pero sin
+  // valor) y ahí sí se ve todo — igual que en Ventas y Kardex.
+  const hoy = hoyLima();
+  const desdeEfectivo = desde === undefined ? hoy : desde;
+  const hastaEfectivo = hasta === undefined ? hoy : hasta;
+
   let ventasQuery = supabase.from("ventas").select("id, total, fecha").neq("estado", "anulada");
-  if (desde) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(desde));
-  if (hasta) ventasQuery = ventasQuery.lte("fecha", finDiaLima(hasta));
+  if (desdeEfectivo) ventasQuery = ventasQuery.gte("fecha", inicioDiaLima(desdeEfectivo));
+  if (hastaEfectivo) ventasQuery = ventasQuery.lte("fecha", finDiaLima(hastaEfectivo));
   const { data: ventas } = await ventasQuery;
 
   let cobranzasQuery = supabase.from("cobranzas").select("id, monto, fecha");
-  if (desde) cobranzasQuery = cobranzasQuery.gte("fecha", inicioDiaLima(desde));
-  if (hasta) cobranzasQuery = cobranzasQuery.lte("fecha", finDiaLima(hasta));
+  if (desdeEfectivo) cobranzasQuery = cobranzasQuery.gte("fecha", inicioDiaLima(desdeEfectivo));
+  if (hastaEfectivo) cobranzasQuery = cobranzasQuery.lte("fecha", finDiaLima(hastaEfectivo));
   const { data: cobranzas } = await cobranzasQuery;
 
   let devolucionesQuery = supabase
     .from("devoluciones")
     .select("cantidad, fecha, venta_detalle:venta_detalle_id(precio_unitario)");
-  if (desde) devolucionesQuery = devolucionesQuery.gte("fecha", inicioDiaLima(desde));
-  if (hasta) devolucionesQuery = devolucionesQuery.lte("fecha", finDiaLima(hasta));
+  if (desdeEfectivo) devolucionesQuery = devolucionesQuery.gte("fecha", inicioDiaLima(desdeEfectivo));
+  if (hastaEfectivo) devolucionesQuery = devolucionesQuery.lte("fecha", finDiaLima(hastaEfectivo));
   const { data: devoluciones } = await devolucionesQuery;
 
   const totalVendido = (ventas ?? []).reduce((acc, v) => acc + v.total, 0);
@@ -87,9 +95,9 @@ export default async function ReportesPage({
         </div>
 
         <ReportesFiltroForm
-          desde={desde ?? ""}
-          hasta={hasta ?? ""}
-          hayFiltros={!!(desde || hasta)}
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
+          hayFiltros={desde !== undefined || hasta !== undefined}
         />
 
         <p className="mb-4 text-xs text-gray-400">
