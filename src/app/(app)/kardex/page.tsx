@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { PackageMinus } from "lucide-react";
+import { FileDown, PackageMinus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
@@ -15,9 +15,10 @@ export default async function KardexPage({
     hasta?: string;
     producto_id?: string;
     almacen_id?: string;
+    tipo?: string;
   }>;
 }) {
-  const { desde, hasta, producto_id, almacen_id: almacenIdParam } = await searchParams;
+  const { desde, hasta, producto_id, almacen_id: almacenIdParam, tipo } = await searchParams;
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
 
@@ -57,6 +58,7 @@ export default async function KardexPage({
   if (hastaEfectivo) query = query.lte("fecha", finDiaLima(hastaEfectivo));
   if (producto_id) query = query.eq("producto_id", producto_id);
   if (almacenId) query = query.eq("almacen_id", almacenId);
+  if (tipo) query = query.eq("tipo_movimiento", tipo);
 
   const { data: movimientos, error } = await query;
 
@@ -64,21 +66,39 @@ export default async function KardexPage({
     desde !== undefined ||
     hasta !== undefined ||
     producto_id ||
-    (!session.almacenId && almacenId)
+    (!session.almacenId && almacenId) ||
+    tipo
   );
+
+  const exportParams = new URLSearchParams();
+  exportParams.set("desde", desdeEfectivo);
+  exportParams.set("hasta", hastaEfectivo);
+  if (producto_id) exportParams.set("producto_id", producto_id);
+  if (almacenId) exportParams.set("almacen_id", almacenId);
+  if (tipo) exportParams.set("tipo", tipo);
+  const exportQs = exportParams.toString();
 
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Kardex</h1>
-          <Link
-            href="/kardex/merma"
-            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-          >
-            <PackageMinus size={16} />
-            Registrar merma
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href={`/kardex/export${exportQs ? `?${exportQs}` : ""}`}
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <FileDown size={16} />
+              Exportar a Excel
+            </a>
+            <Link
+              href="/kardex/merma"
+              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            >
+              <PackageMinus size={16} />
+              Registrar merma
+            </Link>
+          </div>
         </div>
         <p className="mb-4 text-sm text-gray-500">
           Registro inmutable de movimientos de stock (últimos 200).
@@ -89,6 +109,7 @@ export default async function KardexPage({
           hasta={hastaEfectivo}
           productoId={producto_id ?? ""}
           almacenId={almacenId ?? ""}
+          tipo={tipo ?? ""}
           productos={productos ?? []}
           almacenes={almacenes ?? []}
           almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
