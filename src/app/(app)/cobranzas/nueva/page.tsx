@@ -9,66 +9,48 @@ import { createCobranza } from "../actions";
 export default async function NuevaCobranzaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; pedido_id?: string; volver?: string }>;
+  searchParams: Promise<{ error?: string; venta_id?: string; volver?: string }>;
 }) {
-  const { error, pedido_id: pedidoId, volver } = await searchParams;
+  const { error, venta_id: ventaId, volver } = await searchParams;
   const supabase = await createClient();
 
-  if (!pedidoId) {
-    const { data: pedidos } = await supabase
-      .from("pedidos")
-      .select("id, fecha, total, moneda, clientes(nombre)")
-      .not("estado", "in", "(cancelado)")
+  if (!ventaId) {
+    // Solo las ventas generan un cobro pendiente real — un pedido que
+    // todavía no se registró como venta no es una deuda del cliente, así
+    // que este listado nunca muestra pedidos sueltos.
+    const { data: ventas } = await supabase
+      .from("ventas")
+      .select("id, fecha, total, descuento, moneda, clientes(nombre)")
+      .neq("estado", "anulada")
       .order("fecha", { ascending: false });
 
-    const pedidoIds = (pedidos ?? []).map((p) => p.id);
-    const { data: ventas } =
-      pedidoIds.length > 0
-        ? await supabase
-            .from("ventas")
-            .select("id, pedido_id, total, descuento, moneda")
-            .in("pedido_id", pedidoIds)
-        : {
-            data: [] as {
-              id: string;
-              pedido_id: string;
-              total: number;
-              descuento: number;
-              moneda: string;
-            }[],
-          };
-
     const ventaIds = (ventas ?? []).map((v) => v.id);
-    const { data: cobranzas } = await supabase
-      .from("cobranzas")
-      .select("pedido_id, venta_id, monto")
-      .eq("estado", "activa")
-      .or(
-        [
-          pedidoIds.length > 0 ? `pedido_id.in.(${pedidoIds.join(",")})` : null,
-          ventaIds.length > 0 ? `venta_id.in.(${ventaIds.join(",")})` : null,
-        ]
-          .filter(Boolean)
-          .join(","),
-      );
+    const { data: cobranzas } =
+      ventaIds.length > 0
+        ? await supabase
+            .from("cobranzas")
+            .select("venta_id, monto")
+            .eq("estado", "activa")
+            .in("venta_id", ventaIds)
+        : { data: [] as { venta_id: string | null; monto: number }[] };
 
-    const ventaPorPedido = new Map((ventas ?? []).map((v) => [v.pedido_id, v]));
+    const cobradoPorVenta = new Map<string, number>();
+    for (const c of cobranzas ?? []) {
+      if (!c.venta_id) continue;
+      cobradoPorVenta.set(c.venta_id, (cobradoPorVenta.get(c.venta_id) ?? 0) + c.monto);
+    }
 
-    const filas = (pedidos ?? [])
-      .map((p) => {
-        const cliente = p.clientes as unknown as { nombre: string } | null;
-        const venta = ventaPorPedido.get(p.id);
-        const total = venta ? venta.total - venta.descuento : p.total;
-        const moneda = venta ? venta.moneda : p.moneda;
-        const cobrado = (cobranzas ?? [])
-          .filter((c) => (venta ? c.venta_id === venta.id : c.pedido_id === p.id))
-          .reduce((acc, c) => acc + c.monto, 0);
+    const filas = (ventas ?? [])
+      .map((v) => {
+        const cliente = v.clientes as unknown as { nombre: string } | null;
+        const total = v.total - v.descuento;
+        const cobrado = cobradoPorVenta.get(v.id) ?? 0;
         const saldo = Math.round((total - cobrado) * 100) / 100;
         return {
-          id: p.id,
-          fecha: p.fecha,
+          id: v.id,
+          fecha: v.fecha,
           clienteNombre: cliente?.nombre ?? "—",
-          moneda,
+          moneda: v.moneda,
           saldo,
         };
       })
@@ -89,15 +71,15 @@ export default async function NuevaCobranzaPage({
             </Link>
           </div>
           <p className="mb-4 text-sm text-gray-600">
-            Selecciona el pedido o venta con saldo pendiente al que
-            corresponde el cobro.
+            Selecciona la venta con saldo pendiente a la que corresponde el
+            cobro.
           </p>
           <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <ul>
               {filas.map((f) => (
                 <li key={f.id} className="border-b border-gray-100 last:border-0">
                   <Link
-                    href={`/cobranzas/nueva?pedido_id=${f.id}`}
+                    href={`/cobranzas/nueva?venta_id=${f.id}`}
                     className="flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50"
                   >
                     <span className="font-medium text-gray-900">
@@ -112,7 +94,7 @@ export default async function NuevaCobranzaPage({
               ))}
               {filas.length === 0 && (
                 <li className="px-4 py-10 text-center text-gray-400">
-                  No hay pedidos ni ventas con saldo pendiente.
+                  No hay ventas con saldo pendiente.
                 </li>
               )}
             </ul>
@@ -122,32 +104,26 @@ export default async function NuevaCobranzaPage({
     );
   }
 
-  const { data: pedido } = await supabase
-    .from("pedidos")
-    .select("id, total, moneda, clientes(nombre)")
-    .eq("id", pedidoId)
-    .single();
-
-  if (!pedido) notFound();
-
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, descuento, moneda")
-    .eq("pedido_id", pedidoId)
-    .maybeSingle();
+    .select("id, total, descuento, moneda, clientes(nombre)")
+    .eq("id", ventaId)
+    .single();
+
+  if (!venta) notFound();
 
   const { data: cobranzasPrevias } = await supabase
     .from("cobranzas")
     .select("monto")
-    .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId)
+    .eq("venta_id", ventaId)
     .eq("estado", "activa");
 
-  const totalReferencia = venta ? venta.total - venta.descuento : pedido.total;
-  const monedaReferencia = venta ? venta.moneda : pedido.moneda;
+  const totalReferencia = venta.total - venta.descuento;
+  const monedaReferencia = venta.moneda;
   const cobrado = (cobranzasPrevias ?? []).reduce((acc, c) => acc + c.monto, 0);
   const saldoPendiente = totalReferencia - cobrado;
 
-  const cliente = pedido.clientes as unknown as { nombre: string } | null;
+  const cliente = venta.clientes as unknown as { nombre: string } | null;
 
   const { data: bytesUsados } = await supabase.rpc("total_storage_usado_bytes");
   const almacenamientoBloqueado = (bytesUsados ?? 0) >= UMBRAL_BLOQUEO_BYTES;
@@ -161,7 +137,7 @@ export default async function NuevaCobranzaPage({
             Registrar cobro
           </h1>
           <Link
-            href={volver || `/pedidos/${pedidoId}`}
+            href={volver || `/ventas/${ventaId}`}
             className="text-sm font-medium text-gray-600 hover:underline"
           >
             ← Volver
@@ -172,7 +148,7 @@ export default async function NuevaCobranzaPage({
           <CobranzaForm
             action={createCobranza}
             error={error}
-            pedidoId={pedidoId}
+            ventaId={ventaId}
             clienteNombre={cliente?.nombre ?? "—"}
             monedaSugerida={monedaReferencia}
             saldoPendiente={saldoPendiente}

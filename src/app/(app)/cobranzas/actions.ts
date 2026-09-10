@@ -7,11 +7,14 @@ import { getEmpresaSession } from "@/utils/supabase/session";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { UMBRAL_BLOQUEO_BYTES, buildNombreArchivoCobranza } from "@/lib/cobranza-adjuntos";
 
+// Solo las ventas generan un cobro pendiente real — un pedido por sí solo
+// (sin venta registrada) no representa una deuda del cliente, así que este
+// flujo siempre trabaja contra una venta.
 export async function createCobranza(formData: FormData) {
   const supabase = await createClient();
   const { userId, empresaId } = await getEmpresaSession(supabase);
 
-  const pedidoId = String(formData.get("pedido_id") ?? "");
+  const ventaId = String(formData.get("venta_id") ?? "");
   const monto = Number(formData.get("monto") ?? 0);
   const moneda = String(formData.get("moneda") ?? "PEN");
   const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
@@ -19,50 +22,44 @@ export async function createCobranza(formData: FormData) {
   const referencia = String(formData.get("referencia") ?? "") || null;
   // A dónde volver tras registrar el cobro (la venta o el pedido desde
   // donde se abrió el formulario) — si no viene, se cae al comportamiento
-  // de siempre (la página del pedido).
+  // de siempre (la página de la venta).
   const redirectTo = String(formData.get("redirect_to") ?? "") || null;
   const volverQs = redirectTo ? `&volver=${encodeURIComponent(redirectTo)}` : "";
 
-  if (!pedidoId || monto <= 0) {
+  if (!ventaId || monto <= 0) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent("Ingresa un monto válido.")}`,
+      `/cobranzas/nueva?venta_id=${ventaId}${volverQs}&error=${encodeURIComponent("Ingresa un monto válido.")}`,
     );
   }
   if (!(tipoCambio > 0)) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
+      `/cobranzas/nueva?venta_id=${ventaId}${volverQs}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
     );
-  }
-
-  const { data: pedido } = await supabase
-    .from("pedidos")
-    .select("id, total, clientes(nombre)")
-    .eq("id", pedidoId)
-    .single();
-
-  if (!pedido) {
-    redirect(`/cobranzas/nueva?error=${encodeURIComponent("El pedido no existe.")}`);
   }
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, total, descuento")
-    .eq("pedido_id", pedidoId)
-    .maybeSingle();
+    .select("id, pedido_id, total, descuento, clientes(nombre)")
+    .eq("id", ventaId)
+    .single();
+
+  if (!venta) {
+    redirect(`/cobranzas/nueva?error=${encodeURIComponent("La venta no existe.")}`);
+  }
 
   const { data: cobranzasPrevias } = await supabase
     .from("cobranzas")
     .select("monto")
-    .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : pedidoId)
+    .eq("venta_id", ventaId)
     .eq("estado", "activa");
 
-  const totalReferencia = venta ? venta.total - venta.descuento : pedido.total;
+  const totalReferencia = venta.total - venta.descuento;
   const cobradoPrevio = (cobranzasPrevias ?? []).reduce((acc, c) => acc + c.monto, 0);
   const saldoPendiente = Math.round((totalReferencia - cobradoPrevio) * 100) / 100;
 
   if (monto > saldoPendiente) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent(
+      `/cobranzas/nueva?venta_id=${ventaId}${volverQs}&error=${encodeURIComponent(
         `El monto (${monto.toFixed(2)}) no puede ser mayor al saldo pendiente (${saldoPendiente.toFixed(2)}).`,
       )}`,
     );
@@ -72,13 +69,13 @@ export async function createCobranza(formData: FormData) {
     .from("cobranzas")
     .insert({
       empresa_id: empresaId,
-      pedido_id: pedidoId,
-      venta_id: venta?.id ?? null,
+      pedido_id: venta.pedido_id,
+      venta_id: venta.id,
       monto,
       moneda,
       tipo_cambio_aplicado: tipoCambio,
       metodo_pago: metodoPago,
-      tipo_pago: venta ? "pago" : "anticipo",
+      tipo_pago: "pago",
       referencia,
       usuario_id: userId,
     })
@@ -87,7 +84,7 @@ export async function createCobranza(formData: FormData) {
 
   if (error || !cobranza) {
     redirect(
-      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent(error?.message ?? "No se pudo registrar el cobro.")}`,
+      `/cobranzas/nueva?venta_id=${ventaId}${volverQs}&error=${encodeURIComponent(error?.message ?? "No se pudo registrar el cobro.")}`,
     );
   }
 
@@ -100,7 +97,7 @@ export async function createCobranza(formData: FormData) {
 
   if (archivos.length > 0 && (bytesUsados ?? 0) < UMBRAL_BLOQUEO_BYTES) {
     const clienteNombre =
-      (pedido.clientes as unknown as { nombre: string } | null)?.nombre ?? "Cliente";
+      (venta.clientes as unknown as { nombre: string } | null)?.nombre ?? "Cliente";
     const codigoCobranza = cobranza.id.slice(0, 8).toUpperCase();
     const fecha = new Date().toISOString().slice(0, 10);
 
@@ -135,9 +132,9 @@ export async function createCobranza(formData: FormData) {
 
   revalidatePath("/cobranzas");
   revalidatePath("/evidencias-pago");
-  revalidatePath(`/pedidos/${pedidoId}`);
-  if (venta) revalidatePath(`/ventas/${venta.id}`);
-  redirect(redirectTo || `/pedidos/${pedidoId}`);
+  revalidatePath(`/pedidos/${venta.pedido_id}`);
+  revalidatePath(`/ventas/${venta.id}`);
+  redirect(redirectTo || `/ventas/${venta.id}`);
 }
 
 // Sube o reemplaza la evidencia de pago de un cobro ya registrado. A
