@@ -128,7 +128,7 @@ export default async function ConfiguracionPreciosPage({
           </h2>
           <form
             action={crearPrecioEspecial}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_140px_140px_auto] sm:items-end"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_2fr_100px_100px_auto] sm:items-end"
           >
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
