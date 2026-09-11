@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal, X } from "lucide-react";
 
 type Opcion = { id: string; nombre: string };
 
@@ -20,6 +21,11 @@ export default function AbastecimientoCampoFiltroForm({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // Cerrado por defecto en cuanto hay un filtro aplicado (el caso típico
+  // en celular: ya elegiste qué ver, ahora hace falta el espacio para la
+  // grilla) — se recalcula solo al recargar tras cambiar un filtro, ya
+  // que ese cambio siempre trae un round-trip al servidor.
+  const [abierto, setAbierto] = useState(!hayFiltros);
 
   const navegar = (params: { desde: string; hasta: string; producto_id: string }) => {
     const usp = new URLSearchParams();
@@ -33,49 +39,74 @@ export default function AbastecimientoCampoFiltroForm({
   };
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="min-w-[200px] flex-1">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
-        <select
-          value={productoId}
-          onChange={(e) => navegar({ desde, hasta, producto_id: e.target.value })}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">Todos</option>
-          {productos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
-        <input
-          type="date"
-          value={desde}
-          onChange={(e) => navegar({ desde: e.target.value, hasta, producto_id: productoId })}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
-        <input
-          type="date"
-          value={hasta}
-          onChange={(e) => navegar({ desde, hasta: e.target.value, producto_id: productoId })}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        />
-      </div>
-      {hayFiltros && (
-        <button
-          type="button"
-          onClick={() => navegar({ desde: "", hasta: "", producto_id: "" })}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
-        >
-          <X size={14} />
-          Limpiar
-        </button>
+    <div className="mb-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-700"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal size={16} className="text-gray-500" />
+          Filtros
+          {hayFiltros && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              Activos
+            </span>
+          )}
+        </span>
+        {abierto ? (
+          <ChevronUp size={16} className="text-gray-500" />
+        ) : (
+          <ChevronDown size={16} className="text-gray-500" />
+        )}
+      </button>
+
+      {abierto && (
+        <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 p-4">
+          <div className="min-w-[200px] flex-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
+            <select
+              value={productoId}
+              onChange={(e) => navegar({ desde, hasta, producto_id: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Todos</option>
+              {productos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
+            <input
+              type="date"
+              value={desde}
+              onChange={(e) => navegar({ desde: e.target.value, hasta, producto_id: productoId })}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
+            <input
+              type="date"
+              value={hasta}
+              onChange={(e) => navegar({ desde, hasta: e.target.value, producto_id: productoId })}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          {hayFiltros && (
+            <button
+              type="button"
+              onClick={() => navegar({ desde: "", hasta: "", producto_id: "" })}
+              className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
+            >
+              <X size={14} />
+              Limpiar
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

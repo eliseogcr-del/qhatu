@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, SlidersHorizontal, X } from "lucide-react";
 
 export default function ComprasFiltroForm({
   q,
@@ -21,6 +21,7 @@ export default function ComprasFiltroForm({
   const pathname = usePathname();
   const [query, setQuery] = useState(q);
   const primerRender = useRef(true);
+  const [abierto, setAbierto] = useState(!hayFiltros);
 
   const navegar = (params: { q: string; desde: string; hasta: string; pendientes: string }) => {
     const usp = new URLSearchParams();
@@ -46,7 +47,30 @@ export default function ComprasFiltroForm({
   }, [query]);
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="mb-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-700"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal size={16} className="text-gray-500" />
+          Filtros
+          {hayFiltros && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              Activos
+            </span>
+          )}
+        </span>
+        {abierto ? (
+          <ChevronUp size={16} className="text-gray-500" />
+        ) : (
+          <ChevronDown size={16} className="text-gray-500" />
+        )}
+      </button>
+
+      {abierto && (
+      <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 p-4">
       <div className="min-w-[200px] flex-1">
         <label className="mb-1 block text-sm font-medium text-gray-700">Proveedor</label>
         <div className="relative">
@@ -108,6 +132,8 @@ export default function ComprasFiltroForm({
           <X size={14} />
           Limpiar
         </button>
+      )}
+      </div>
       )}
     </div>
   );
