@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { fetchVentasConSaldo } from "@/utils/supabase/ventas";
 import { hoyLima } from "@/lib/fecha";
+import { METODOS_PAGO, METODO_PAGO_LABEL } from "@/lib/cobranza-tipos";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
 import VentasFiltroForm from "@/components/VentasFiltroForm";
 
@@ -104,6 +105,22 @@ export default async function VentasPage({
   const totalAdeudadoResumen =
     Math.round(ventasActivas.reduce((acc, v) => acc + v.saldo, 0) * 100) / 100;
 
+  // Resumen de lo cobrado por método de pago (mismo criterio y estilo que
+  // en Cobranzas), sobre los pagos de las ventas ya filtradas arriba —
+  // venta.pagos ya viene limitado a cobranzas activas.
+  const pagosPorMetodo = METODOS_PAGO.map((m) => ({
+    metodo: m,
+    label: METODO_PAGO_LABEL[m],
+    monto:
+      Math.round(
+        ventasActivas
+          .flatMap((v) => v.pagos)
+          .filter((p) => p.metodoPago === m)
+          .reduce((acc, p) => acc + p.monto, 0) * 100,
+      ) / 100,
+  })).filter((r) => r.monto > 0);
+  const totalPagosResumen = Math.round(pagosPorMetodo.reduce((acc, r) => acc + r.monto, 0) * 100) / 100;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-6xl">
@@ -173,6 +190,37 @@ export default async function VentasPage({
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </p>
+        )}
+
+        {pagosPorMetodo.length > 0 && (
+          <div className="mb-4 overflow-x-auto rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-emerald-200 text-emerald-900">
+                <tr>
+                  <th className="px-4 py-2 font-bold">Resumen de lo cobrado</th>
+                  <th className="px-4 py-2 text-right font-bold">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagosPorMetodo.map((r) => (
+                  <tr key={r.metodo} className="border-b border-emerald-100 last:border-0">
+                    <td className="px-4 py-2 text-emerald-800">{r.label}</td>
+                    <td className="px-4 py-2 text-right text-emerald-800">
+                      {monedaResumen} {r.monto.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-emerald-200 font-semibold text-emerald-900">
+                  <td className="px-4 py-2">Total</td>
+                  <td className="px-4 py-2 text-right">
+                    {monedaResumen} {totalPagosResumen.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         )}
 
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
