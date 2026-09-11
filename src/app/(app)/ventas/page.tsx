@@ -184,43 +184,15 @@ export default async function VentasPage({
           vendedores={vendedores ?? []}
           almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
           hayFiltros={hayFiltros}
+          pagosPorMetodo={pagosPorMetodo}
+          totalPagosResumen={totalPagosResumen}
+          monedaResumen={monedaResumen}
         />
 
         {error && (
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </p>
-        )}
-
-        {pagosPorMetodo.length > 0 && (
-          <div className="mb-4 overflow-x-auto rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-emerald-200 text-emerald-900">
-                <tr>
-                  <th className="px-4 py-2 font-bold">Resumen de lo cobrado</th>
-                  <th className="px-4 py-2 text-right font-bold">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagosPorMetodo.map((r) => (
-                  <tr key={r.metodo} className="border-b border-emerald-100 last:border-0">
-                    <td className="px-4 py-2 text-emerald-800">{r.label}</td>
-                    <td className="px-4 py-2 text-right text-emerald-800">
-                      {monedaResumen} {r.monto.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-emerald-200 font-semibold text-emerald-900">
-                  <td className="px-4 py-2">Total</td>
-                  <td className="px-4 py-2 text-right">
-                    {monedaResumen} {totalPagosResumen.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         )}
 
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
