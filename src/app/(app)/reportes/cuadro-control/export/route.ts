@@ -7,12 +7,12 @@ const HEADERS = [
   "Almacén",
   "Producto",
   "Unidad de medida",
+  "Saldo anterior",
   "Trasladada",
   "Vendida",
   "Abastecida",
   "Merma",
-  "Inventario",
-  "Diferencia",
+  "Stock Actual (Diferencia)",
 ];
 
 export async function GET(request: NextRequest) {
@@ -37,11 +37,11 @@ export async function GET(request: NextRequest) {
     f.almacenNombre,
     f.productoNombre,
     f.unidadMedida,
+    f.saldoAnterior,
     f.trasladada,
     f.vendida,
     f.abastecida,
     f.merma,
-    f.inventario,
     f.diferencia,
   ]);
 
