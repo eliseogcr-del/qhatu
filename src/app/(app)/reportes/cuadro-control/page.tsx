@@ -142,16 +142,32 @@ export default async function CuadroControlProductosPage({
                           <td className="px-4 py-2 text-gray-600">{f.unidadMedida}</td>
                           <td className="px-4 py-2 text-gray-600">{f.saldoAnterior}</td>
                           <td className="px-4 py-2 font-medium text-blue-600">
-                            {f.trasladada > 0 ? `+${f.trasladada}` : "—"}
+                            {f.trasladada > 0
+                              ? `+${f.trasladada}`
+                              : f.trasladada < 0
+                                ? f.trasladada
+                                : "—"}
                           </td>
                           <td className="px-4 py-2 font-medium text-red-600">
-                            {f.vendida > 0 ? `-${f.vendida}` : "—"}
+                            {f.vendida > 0
+                              ? `-${f.vendida}`
+                              : f.vendida < 0
+                                ? `+${Math.abs(f.vendida)}`
+                                : "—"}
                           </td>
                           <td className="px-4 py-2 font-medium text-blue-600">
-                            {f.abastecida > 0 ? `+${f.abastecida}` : "—"}
+                            {f.abastecida > 0
+                              ? `+${f.abastecida}`
+                              : f.abastecida < 0
+                                ? f.abastecida
+                                : "—"}
                           </td>
                           <td className="px-4 py-2 font-medium text-red-600">
-                            {f.merma > 0 ? `-${f.merma}` : "—"}
+                            {f.merma > 0
+                              ? `-${f.merma}`
+                              : f.merma < 0
+                                ? `+${Math.abs(f.merma)}`
+                                : "—"}
                           </td>
                           <td className="px-4 py-2 font-semibold text-gray-900">
                             {f.diferencia}
