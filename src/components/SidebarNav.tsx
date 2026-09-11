@@ -29,6 +29,7 @@ import {
   FileSpreadsheet,
   Tags,
   Zap,
+  ClipboardCheck,
 } from "lucide-react";
 
 const GENERAL = {
@@ -61,6 +62,11 @@ const LOGISTICA = {
     { href: "/produccion", label: "Producción", icon: Factory },
     { href: "/inventario", label: "Inventario", icon: Boxes },
     { href: "/kardex", label: "Kardex", icon: ScrollText },
+    {
+      href: "/reportes/cuadro-control",
+      label: "Cuadro de Control de Productos",
+      icon: ClipboardCheck,
+    },
   ],
 };
 
@@ -127,6 +133,11 @@ const LOGISTICA_VENDEDOR = {
     { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
     { href: "/inventario", label: "Inventario", icon: Boxes },
     { href: "/kardex", label: "Kardex", icon: ScrollText },
+    {
+      href: "/reportes/cuadro-control",
+      label: "Cuadro de Control de Productos",
+      icon: ClipboardCheck,
+    },
   ],
 };
 
