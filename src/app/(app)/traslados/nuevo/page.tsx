@@ -14,20 +14,35 @@ export default async function NuevoTrasladoPage({
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
 
-  const [{ data: almacenes }, { data: productos }, { data: inventario }] = await Promise.all([
-    supabase.from("almacenes").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase
-      .from("productos")
-      .select("id, nombre")
-      .eq("activo", true)
-      .eq("control_inventario", true)
-      .order("nombre"),
-    supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
-  ]);
+  const [{ data: almacenes }, { data: productos }, { data: inventario }, { data: usuariosVendedores }] =
+    await Promise.all([
+      supabase
+        .from("almacenes")
+        .select("id, nombre, es_digital")
+        .eq("activo", true)
+        .order("nombre"),
+      supabase
+        .from("productos")
+        .select("id, nombre")
+        .eq("activo", true)
+        .eq("control_inventario", true)
+        .order("nombre"),
+      supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
+      supabase.from("usuarios").select("almacen_id").eq("rol", "vendedor").not("almacen_id", "is", null),
+    ]);
 
   const stockPorAlmacen = Object.fromEntries(
     (inventario ?? []).map((i) => [`${i.producto_id}::${i.almacen_id}`, i.stock_actual]),
   );
+
+  // Almacenes "móvil" (asignados a un vendedor) o digitales: al elegirlos
+  // como origen de un traslado se precarga todo su stock disponible, para
+  // no tener que agregar producto por producto al devolver/reubicar la
+  // carga completa hacia el almacén principal.
+  const almacenesMovilOdigital = new Set([
+    ...(usuariosVendedores ?? []).map((u) => u.almacen_id as string),
+    ...(almacenes ?? []).filter((a) => a.es_digital).map((a) => a.id),
+  ]);
 
   return (
     <div className="p-8">
@@ -56,6 +71,7 @@ export default async function NuevoTrasladoPage({
             productos={productos ?? []}
             almacenSesion={session.rol === "admin" ? null : session.almacenId}
             stockPorAlmacen={stockPorAlmacen}
+            almacenesMovilODigital={[...almacenesMovilOdigital]}
           />
         </div>
       </div>

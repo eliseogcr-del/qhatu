@@ -45,6 +45,7 @@ export default function TrasladoForm({
   productos,
   almacenSesion,
   stockPorAlmacen,
+  almacenesMovilODigital,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -59,8 +60,30 @@ export default function TrasladoForm({
   // Stock por producto+almacén, clave `${productoId}::${almacenId}`, para
   // mostrar cuánto hay disponible en el almacén de origen elegido.
   stockPorAlmacen: Record<string, number>;
+  // IDs de almacenes "móvil" (asignados a un vendedor) o digitales — al
+  // elegir uno de estos como origen se precarga todo su stock disponible,
+  // para no tener que agregar producto por producto al devolver/reubicar
+  // la carga completa (ej. retorno de ruta hacia el almacén principal).
+  almacenesMovilODigital: string[];
 }) {
-  const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
+  const almacenesPrecarga = new Set(almacenesMovilODigital);
+
+  function calcularLineasPrecarga(origenId: string): Linea[] | null {
+    if (!origenId || !almacenesPrecarga.has(origenId)) return null;
+    const conStock = productos
+      .map((p) => ({ producto: p, stock: stockPorAlmacen[`${p.id}::${origenId}`] ?? 0 }))
+      .filter((x) => x.stock > 0);
+    if (conStock.length === 0) return null;
+    return conStock.map(({ producto, stock }) => ({
+      key: `precarga-${producto.id}`,
+      producto_id: producto.id,
+      cantidad: stock,
+    }));
+  }
+
+  const [lineas, setLineas] = useState<Linea[]>(() =>
+    almacenSesion ? (calcularLineasPrecarga(almacenSesion) ?? [newLinea()]) : [newLinea()],
+  );
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
   const [origenId, setOrigenId] = useState(almacenSesion ?? "");
   const [destinoId, setDestinoId] = useState("");
@@ -153,7 +176,12 @@ export default function TrasladoForm({
                 name="almacen_origen_id"
                 required
                 value={origenId}
-                onChange={(e) => setOrigenId(e.target.value)}
+                onChange={(e) => {
+                  const nuevoOrigen = e.target.value;
+                  setOrigenId(nuevoOrigen);
+                  setLineas(calcularLineasPrecarga(nuevoOrigen) ?? [newLinea()]);
+                  setAvisoDuplicado(null);
+                }}
                 className={inputClass}
               >
                 <option value="">Selecciona un almacén</option>
@@ -200,6 +228,12 @@ export default function TrasladoForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Productos a trasladar
         </h2>
+        {origenIdEfectivo && almacenesPrecarga.has(origenIdEfectivo) && (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            Se precargó todo el stock disponible de este almacén. Ajusta las
+            cantidades o quita lo que no vayas a trasladar.
+          </p>
+        )}
 
         <div className="space-y-3">
           {lineas.map((linea) => {
