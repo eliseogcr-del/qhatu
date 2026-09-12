@@ -11,6 +11,7 @@ const HEADERS = [
   "Trasladada",
   "Vendida",
   "Abastecida",
+  "Traslado de salida",
   "Merma",
   "Stock Actual (Diferencia)",
 ];
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
     f.trasladada,
     f.vendida,
     f.abastecida,
+    f.trasladoSalida,
     f.merma,
     f.diferencia,
   ]);

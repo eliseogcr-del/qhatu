@@ -87,8 +87,9 @@ export default async function CuadroControlProductosPage({
         <p className="mb-6 text-sm text-gray-500">
           Por producto: el saldo que ya tenía antes del rango filtrado,
           cuánto entró por traslado, cuánto se vendió, cuánto se abasteció
-          en campo y cuánta merma tuvo. Stock Actual (Diferencia) = Saldo
-          anterior + Trasladada + Abastecida − Vendida − Merma.
+          en campo, cuánto salió por traslado hacia otro almacén y cuánta
+          merma tuvo. Stock Actual (Diferencia) = Saldo anterior +
+          Trasladada + Abastecida − Vendida − Traslado de salida − Merma.
         </p>
 
         <ReportesLogisticaFiltroForm
@@ -129,6 +130,7 @@ export default async function CuadroControlProductosPage({
                         <th className="px-4 py-2 font-bold">Trasladada</th>
                         <th className="px-4 py-2 font-bold">Vendida</th>
                         <th className="px-4 py-2 font-bold">Abastecida</th>
+                        <th className="px-4 py-2 font-bold">Traslado de salida</th>
                         <th className="px-4 py-2 font-bold">Merma</th>
                         <th className="px-4 py-2 font-bold">Stock Actual (Diferencia)</th>
                       </tr>
@@ -160,6 +162,13 @@ export default async function CuadroControlProductosPage({
                               ? `+${f.abastecida}`
                               : f.abastecida < 0
                                 ? f.abastecida
+                                : "—"}
+                          </td>
+                          <td className="px-4 py-2 font-medium text-red-600">
+                            {f.trasladoSalida > 0
+                              ? `-${f.trasladoSalida}`
+                              : f.trasladoSalida < 0
+                                ? `+${Math.abs(f.trasladoSalida)}`
                                 : "—"}
                           </td>
                           <td className="px-4 py-2 font-medium text-red-600">
