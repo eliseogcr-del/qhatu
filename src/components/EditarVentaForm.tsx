@@ -125,11 +125,15 @@ export default function EditarVentaForm({
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
     });
-    if (preciosBloqueados) {
-      consultarPrecioLinea(clienteId || null, productoId, unidadMedidaId || null, almacenId || null).then(
-        (precio) => actualizarLinea(key, { precio_unitario: precio }),
-      );
-    }
+    // El precio se sugiere siempre al elegir el producto, esté bloqueado o
+    // no — lo único que cambia según el bloqueo es si después se puede
+    // editar a mano (ver el input de precio_unitario más abajo). Sin esto,
+    // una línea nueva quedaba con precio 0 cuando el bloqueo estaba
+    // desactivado, y el guardado fallaba por "precio unitario debe ser
+    // mayor a 0" perdiendo todo lo demás que se había editado en la venta.
+    consultarPrecioLinea(clienteId || null, productoId, unidadMedidaId || null, almacenId || null).then(
+      (precio) => actualizarLinea(key, { precio_unitario: precio }),
+    );
   };
 
   const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
@@ -233,6 +237,7 @@ export default function EditarVentaForm({
           );
           const factor = unidadSeleccionada?.cantidad ?? 1;
           const cantidadBase = linea.cantidad * factor;
+          const quitada = !linea.esNueva && linea.cantidad === 0;
           return (
           <div key={linea.key} className="space-y-2">
           <div
@@ -274,11 +279,14 @@ export default function EditarVentaForm({
                 step="0.01"
                 min="0"
                 name="cantidad[]"
-                value={linea.cantidad || ""}
+                readOnly={quitada}
+                value={quitada ? 0 : linea.cantidad || ""}
                 onChange={(e) =>
                   actualizarLinea(linea.key, { cantidad: Number(e.target.value) })
                 }
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none ${
+                  quitada ? "bg-gray-50 text-gray-400" : "bg-white"
+                }`}
               />
               {factor !== 1 && (
                 <p className="mt-1 text-xs text-gray-400">= {cantidadBase} unidades</p>

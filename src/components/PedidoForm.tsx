@@ -212,9 +212,10 @@ export default function PedidoForm({
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
     });
-    if (preciosBloqueados) {
-      resolverPrecioLinea(key, productoId, unidadMedidaId);
-    }
+    // El precio se sugiere siempre al elegir el producto, esté bloqueado o
+    // no — lo único que cambia según el bloqueo es si después se puede
+    // editar a mano. Igual que en VentaDirectaForm/CotizacionForm.
+    resolverPrecioLinea(key, productoId, unidadMedidaId);
   };
 
   const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
