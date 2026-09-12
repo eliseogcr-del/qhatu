@@ -156,7 +156,7 @@ export default function ProductoCombobox({
                       elegir(p.id);
                       setOpen(false);
                     }}
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
+                    className="block w-full px-3 py-2 text-left text-sm text-gray-900 hover:bg-emerald-50"
                   >
                     {p.nombre}
                   </button>

@@ -80,7 +80,7 @@ export default function ClienteCombobox({
                       setQuery(c.nombre);
                       setOpen(false);
                     }}
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
+                    className="block w-full px-3 py-2 text-left text-sm text-gray-900 hover:bg-emerald-50"
                   >
                     {c.nombre}
                   </button>
