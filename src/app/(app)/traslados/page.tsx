@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { Plus, ClipboardList } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession } from "@/utils/supabase/session";
 import TrasladosFiltroForm from "@/components/TrasladosFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 import BotonImprimir from "@/components/BotonImprimir";
@@ -13,10 +14,16 @@ export default async function TrasladosPage({
     desde?: string;
     hasta?: string;
     producto_id?: string;
+    almacen_id?: string;
   }>;
 }) {
-  const { desde, hasta, producto_id: productoId } = await searchParams;
+  const { desde, hasta, producto_id: productoId, almacen_id: almacenIdParam } = await searchParams;
   const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
+
+  // Un vendedor tiene almacén fijo: siempre ve solo el suyo, sin importar
+  // qué venga en la URL. Admin/logística (almacenId null) eligen libremente.
+  const almacenId = session.almacenId ?? almacenIdParam;
 
   // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
   // defecto. Si el usuario borra los campos de fecha y filtra, quedan como
@@ -25,11 +32,17 @@ export default async function TrasladosPage({
   const desdeEfectivo = desde === undefined ? hoy : desde;
   const hastaEfectivo = hasta === undefined ? hoy : hasta;
 
-  const { data: productos } = await supabase
-    .from("productos")
+  let almacenesQuery = supabase
+    .from("almacenes")
     .select("id, nombre")
     .eq("activo", true)
     .order("nombre");
+  if (session.almacenId) almacenesQuery = almacenesQuery.eq("id", session.almacenId);
+
+  const [{ data: productos }, { data: almacenes }] = await Promise.all([
+    supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
+    almacenesQuery,
+  ]);
 
   let query = supabase
     .from("traslados")
@@ -41,10 +54,16 @@ export default async function TrasladosPage({
 
   if (desdeEfectivo) query = query.gte("fecha", inicioDiaLima(desdeEfectivo));
   if (hastaEfectivo) query = query.lte("fecha", finDiaLima(hastaEfectivo));
+  if (almacenId) query = query.or(`almacen_origen_id.eq.${almacenId},almacen_destino_id.eq.${almacenId}`);
 
   const { data: traslados, error } = await query;
 
-  const hayFiltros = !!(desde !== undefined || hasta !== undefined || productoId);
+  const hayFiltros = !!(
+    desde !== undefined ||
+    hasta !== undefined ||
+    productoId ||
+    (!session.almacenId && almacenId)
+  );
 
   const filas = (traslados ?? []).flatMap((t) => {
     const origen = t.almacen_origen as unknown as { nombre: string } | null;
@@ -104,6 +123,9 @@ export default async function TrasladosPage({
             hasta={hastaEfectivo}
             productoId={productoId ?? ""}
             productos={productos ?? []}
+            almacenId={almacenId ?? ""}
+            almacenes={almacenes ?? []}
+            almacenFijoNombre={session.almacenId ? (almacenes?.[0]?.nombre ?? "Tu almacén") : null}
             hayFiltros={hayFiltros}
           />
         </div>
