@@ -11,6 +11,7 @@ export type FilaCuadroControl = {
   trasladada: number;
   vendida: number;
   abastecida: number;
+  trasladoSalida: number;
   merma: number;
   diferencia: number;
 };
@@ -23,9 +24,10 @@ export type CuadroControlFiltro = {
 
 // Cuadro de Control de Productos: por producto y almacén, el saldo que ya
 // tenía antes del rango filtrado, cuánto entró por traslado, cuánto se
-// vendió, cuánto se abasteció en campo y cuánta merma tuvo — con el stock
-// actual esperado (diferencia = saldo anterior + trasladada + abastecida
-// − vendida − merma).
+// vendió, cuánto se abasteció en campo, cuánto salió por traslado hacia
+// otro almacén y cuánta merma tuvo — con el stock actual esperado
+// (diferencia = saldo anterior + trasladada + abastecida − vendida −
+// traslado de salida − merma).
 export async function fetchCuadroControlProductos(
   supabase: Awaited<ReturnType<typeof createClient>>,
   { fechaDesde, fechaHasta, almacenId }: CuadroControlFiltro,
@@ -35,7 +37,14 @@ export async function fetchCuadroControlProductos(
     .select(
       "almacen_id, producto_id, tipo_movimiento, cantidad, referencia_id, almacenes(nombre), productos(nombre, unidades_medida!productos_unidad_medida_id_fkey(descripcion))",
     )
-    .in("tipo_movimiento", ["traslado_entrada", "venta", "abastecimiento_campo", "merma", "ajuste"]);
+    .in("tipo_movimiento", [
+      "traslado_entrada",
+      "venta",
+      "abastecimiento_campo",
+      "traslado_salida",
+      "merma",
+      "ajuste",
+    ]);
 
   if (fechaDesde) movimientosQuery = movimientosQuery.gte("fecha", inicioDiaLima(fechaDesde));
   if (fechaHasta) movimientosQuery = movimientosQuery.lte("fecha", finDiaLima(fechaHasta));
@@ -87,6 +96,7 @@ export async function fetchCuadroControlProductos(
         trasladada: 0,
         vendida: 0,
         abastecida: 0,
+        trasladoSalida: 0,
         merma: 0,
         diferencia: 0,
       });
@@ -96,6 +106,7 @@ export async function fetchCuadroControlProductos(
     if (m.tipo_movimiento === "traslado_entrada") fila.trasladada += cantidad;
     else if (m.tipo_movimiento === "venta") fila.vendida += cantidad;
     else if (m.tipo_movimiento === "abastecimiento_campo") fila.abastecida += cantidad;
+    else if (m.tipo_movimiento === "traslado_salida") fila.trasladoSalida += cantidad;
     else if (m.tipo_movimiento === "merma") fila.merma += cantidad;
     else if (m.tipo_movimiento === "ajuste" && m.referencia_id) {
       // Sin Math.abs: el ajuste ya viene con el signo correcto del delta
@@ -137,7 +148,12 @@ export async function fetchCuadroControlProductos(
 
   for (const fila of filas) {
     fila.diferencia =
-      fila.saldoAnterior + fila.trasladada + fila.abastecida - fila.vendida - fila.merma;
+      fila.saldoAnterior +
+      fila.trasladada +
+      fila.abastecida -
+      fila.vendida -
+      fila.trasladoSalida -
+      fila.merma;
   }
 
   return { filas, error: null };
