@@ -85,11 +85,9 @@ export default async function CuadroControlProductosPage({
           </div>
         </div>
         <p className="mb-6 text-sm text-gray-500">
-          Por producto: el saldo que ya tenía antes del rango filtrado,
-          cuánto entró por traslado, cuánto se vendió, cuánto se abasteció
-          en campo, cuánto salió por traslado hacia otro almacén y cuánta
-          merma tuvo. Stock Actual (Diferencia) = Saldo anterior +
-          Trasladada + Abastecida − Vendida − Traslado de salida − Merma.
+          Por producto: cuánto entró por traslado, cuánto se vendió, cuánto
+          se abasteció en campo, cuánto salió por traslado hacia otro
+          almacén y cuánta merma tuvo.
         </p>
 
         <ReportesLogisticaFiltroForm
@@ -126,13 +124,11 @@ export default async function CuadroControlProductosPage({
                       <tr>
                         <th className="px-4 py-2 font-bold">Producto</th>
                         <th className="px-4 py-2 font-bold">Unidad de medida</th>
-                        <th className="px-4 py-2 font-bold">Saldo anterior</th>
                         <th className="px-4 py-2 font-bold">Trasladada</th>
                         <th className="px-4 py-2 font-bold">Vendida</th>
                         <th className="px-4 py-2 font-bold">Abastecida</th>
                         <th className="px-4 py-2 font-bold">Traslado de salida</th>
                         <th className="px-4 py-2 font-bold">Merma</th>
-                        <th className="px-4 py-2 font-bold">Stock Actual (Diferencia)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -142,7 +138,6 @@ export default async function CuadroControlProductosPage({
                             {f.productoNombre}
                           </td>
                           <td className="px-4 py-2 text-gray-600">{f.unidadMedida}</td>
-                          <td className="px-4 py-2 text-gray-600">{f.saldoAnterior}</td>
                           <td className="px-4 py-2 font-medium text-blue-600">
                             {f.trasladada > 0
                               ? `+${f.trasladada}`
@@ -177,9 +172,6 @@ export default async function CuadroControlProductosPage({
                               : f.merma < 0
                                 ? `+${Math.abs(f.merma)}`
                                 : "—"}
-                          </td>
-                          <td className="px-4 py-2 font-semibold text-gray-900">
-                            {f.diferencia}
                           </td>
                         </tr>
                       ))}

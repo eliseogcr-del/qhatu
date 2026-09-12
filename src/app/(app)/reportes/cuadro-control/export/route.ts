@@ -7,13 +7,11 @@ const HEADERS = [
   "Almacén",
   "Producto",
   "Unidad de medida",
-  "Saldo anterior",
   "Trasladada",
   "Vendida",
   "Abastecida",
   "Traslado de salida",
   "Merma",
-  "Stock Actual (Diferencia)",
 ];
 
 export async function GET(request: NextRequest) {
@@ -38,13 +36,11 @@ export async function GET(request: NextRequest) {
     f.almacenNombre,
     f.productoNombre,
     f.unidadMedida,
-    f.saldoAnterior,
     f.trasladada,
     f.vendida,
     f.abastecida,
     f.trasladoSalida,
     f.merma,
-    f.diferencia,
   ]);
 
   const body = buildExcelText(HEADERS, rows);
