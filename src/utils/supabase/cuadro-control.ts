@@ -7,13 +7,11 @@ export type FilaCuadroControl = {
   productoId: string;
   productoNombre: string;
   unidadMedida: string;
-  saldoAnterior: number;
   trasladada: number;
   vendida: number;
   abastecida: number;
   trasladoSalida: number;
   merma: number;
-  diferencia: number;
 };
 
 export type CuadroControlFiltro = {
@@ -22,12 +20,9 @@ export type CuadroControlFiltro = {
   almacenId?: string | null;
 };
 
-// Cuadro de Control de Productos: por producto y almacén, el saldo que ya
-// tenía antes del rango filtrado, cuánto entró por traslado, cuánto se
-// vendió, cuánto se abasteció en campo, cuánto salió por traslado hacia
-// otro almacén y cuánta merma tuvo — con el stock actual esperado
-// (diferencia = saldo anterior + trasladada + abastecida − vendida −
-// traslado de salida − merma).
+// Cuadro de Control de Productos: por producto y almacén, cuánto entró por
+// traslado, cuánto se vendió, cuánto se abasteció en campo, cuánto salió
+// por traslado hacia otro almacén y cuánta merma tuvo.
 export async function fetchCuadroControlProductos(
   supabase: Awaited<ReturnType<typeof createClient>>,
   { fechaDesde, fechaHasta, almacenId }: CuadroControlFiltro,
@@ -92,13 +87,11 @@ export async function fetchCuadroControlProductos(
         productoId: m.producto_id,
         productoNombre: producto?.nombre ?? "—",
         unidadMedida: producto?.unidades_medida?.descripcion ?? "—",
-        saldoAnterior: 0,
         trasladada: 0,
         vendida: 0,
         abastecida: 0,
         trasladoSalida: 0,
         merma: 0,
-        diferencia: 0,
       });
     }
     const fila = mapa.get(key)!;
@@ -117,44 +110,6 @@ export async function fetchCuadroControlProductos(
   }
 
   const filas = [...mapa.values()];
-
-  // Saldo anterior: el saldo_resultante del último movimiento de cada
-  // producto+almacén antes del inicio del rango filtrado (el kardex es un
-  // ledger inmutable con saldo corrido, así que ese último valor antes del
-  // corte ES el stock que había al empezar el rango). Sin un "desde"
-  // explícito no hay un corte real que calcular — queda en 0.
-  if (filas.length > 0 && fechaDesde) {
-    const corte = inicioDiaLima(fechaDesde);
-    let saldoQuery = supabase
-      .from("kardex_movimientos")
-      .select("almacen_id, producto_id, fecha, saldo_resultante")
-      .in("almacen_id", [...new Set(filas.map((f) => f.almacenId))])
-      .in("producto_id", [...new Set(filas.map((f) => f.productoId))])
-      .lt("fecha", corte)
-      .order("fecha", { ascending: true });
-    if (almacenId) saldoQuery = saldoQuery.eq("almacen_id", almacenId);
-
-    const { data: previos } = await saldoQuery;
-    const saldoPorClave = new Map<string, number>();
-    for (const p of previos ?? []) {
-      // En orden ascendente, el último write por clave queda como el saldo
-      // vigente justo antes del corte.
-      saldoPorClave.set(`${p.almacen_id}::${p.producto_id}`, p.saldo_resultante);
-    }
-    for (const fila of filas) {
-      fila.saldoAnterior = saldoPorClave.get(`${fila.almacenId}::${fila.productoId}`) ?? 0;
-    }
-  }
-
-  for (const fila of filas) {
-    fila.diferencia =
-      fila.saldoAnterior +
-      fila.trasladada +
-      fila.abastecida -
-      fila.vendida -
-      fila.trasladoSalida -
-      fila.merma;
-  }
 
   return { filas, error: null };
 }
