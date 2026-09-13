@@ -132,7 +132,8 @@ export default async function KardexPage({
                 <th className="px-4 py-3 font-bold">Producto</th>
                 <th className="px-4 py-3 font-bold">Almacén</th>
                 <th className="px-4 py-3 font-bold">Tipo</th>
-                <th className="px-4 py-3 font-bold">Cantidad</th>
+                <th className="px-4 py-3 font-bold">Entrada</th>
+                <th className="px-4 py-3 font-bold">Salida</th>
                 <th className="px-4 py-3 font-bold">Saldo resultante</th>
                 <th className="px-4 py-3 font-bold">Usuario</th>
                 <th className="px-4 py-3 font-bold">Detalle</th>
@@ -156,10 +157,11 @@ export default async function KardexPage({
                       {TIPO_MOVIMIENTO_LABEL[m.tipo_movimiento as TipoMovimiento] ??
                         m.tipo_movimiento}
                     </td>
-                    <td
-                      className={`px-4 py-3 font-medium ${m.cantidad < 0 ? "text-red-600" : "text-green-600"}`}
-                    >
-                      {m.cantidad > 0 ? `+${m.cantidad}` : m.cantidad}
+                    <td className="px-4 py-3 font-medium text-blue-600">
+                      {m.cantidad > 0 ? `+${m.cantidad}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-red-600">
+                      {m.cantidad < 0 ? m.cantidad : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{m.saldo_resultante}</td>
                     <td className="px-4 py-3 text-gray-600">{usuario?.nombre ?? "—"}</td>
@@ -169,7 +171,7 @@ export default async function KardexPage({
               })}
               {movimientos?.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ningún movimiento coincide con los filtros."
                       : "Aún no hay movimientos registrados."}
