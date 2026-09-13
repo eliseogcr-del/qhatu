@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +28,14 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* Barra de progreso arriba de la pantalla durante cualquier
+            navegación (cambiar un filtro, un link, un botón que redirige) —
+            sin esto no había ninguna señal de que el sistema estaba
+            procesando algo, y parecía que se había quedado colgado. */}
+        <NextTopLoader color="#059669" showSpinner={false} />
+        {children}
+      </body>
     </html>
   );
 }
