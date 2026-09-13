@@ -42,6 +42,15 @@ export async function validarStockDisponible(
   return `No hay stock suficiente en ese almacén: ${detalle}.${sugerencia ? ` ${sugerencia}` : ""}`;
 }
 
+// El saldo se actualiza con una función de Postgres (`registrar_movimiento_kardex`)
+// que hace un solo `UPDATE stock = stock + delta` atómico, en vez de "leer
+// el stock, calcular el nuevo saldo acá y recién after escribir" — ese
+// patrón de dos pasos permitía que dos movimientos casi simultáneos para el
+// mismo producto+almacén (doble clic, un reintento, dos pestañas) leyeran
+// el mismo stock viejo y uno de los dos se perdiera silenciosamente del
+// saldo (confirmado en producción). Con el UPDATE atómico, Postgres
+// serializa cualquier escritura concurrente sobre la misma fila y ya no
+// hay forma de perder un movimiento por una carrera.
 export async function registrarMovimientoKardex(
   supabase: Awaited<ReturnType<typeof createClient>>,
   params: {
@@ -55,48 +64,27 @@ export async function registrarMovimientoKardex(
     usuarioId: string;
   },
 ) {
-  const { data: inventario } = await supabase
-    .from("inventario")
-    .select("stock_actual")
-    .eq("producto_id", params.productoId)
-    .eq("almacen_id", params.almacenId)
-    .maybeSingle();
-
-  const saldoAnterior = inventario?.stock_actual ?? 0;
-  const saldoResultante = Math.round((saldoAnterior + params.cantidad) * 100) / 100;
-
-  await supabase.from("kardex_movimientos").insert({
-    empresa_id: params.empresaId,
-    producto_id: params.productoId,
-    almacen_id: params.almacenId,
-    tipo_movimiento: params.tipoMovimiento,
-    cantidad: params.cantidad,
-    saldo_resultante: saldoResultante,
-    referencia_id: params.referenciaId ?? null,
-    detalle: params.detalle ?? null,
-    usuario_id: params.usuarioId,
+  const { data, error } = await supabase.rpc("registrar_movimiento_kardex", {
+    p_empresa_id: params.empresaId,
+    p_producto_id: params.productoId,
+    p_almacen_id: params.almacenId,
+    p_tipo_movimiento: params.tipoMovimiento,
+    p_cantidad: params.cantidad,
+    p_usuario_id: params.usuarioId,
+    p_referencia_id: params.referenciaId ?? null,
+    p_detalle: params.detalle ?? null,
   });
 
-  await supabase.from("inventario").upsert(
-    {
-      producto_id: params.productoId,
-      almacen_id: params.almacenId,
-      stock_actual: saldoResultante,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "producto_id,almacen_id" },
-  );
+  if (error) throw new Error(error.message);
 
-  return saldoResultante;
+  return data as number;
 }
 
-// Versión en lote: resuelve N movimientos en 3 round-trips (un select, un
-// insert masivo, un upsert masivo) en vez de 3*N — usada donde una sola
-// operación (ej. registrar una venta) genera varios movimientos a la vez.
-// Los saldos se acumulan en memoria y en el orden del array, así que el
-// orden de `movimientos` debe respetar la secuencia real de cada
-// producto+almacén (igual que llamar a registrarMovimientoKardex N veces
-// seguidas).
+// Versión en lote: mismos movimientos, pero resueltos en una sola llamada
+// a `registrar_movimientos_kardex`, que aplica cada uno con su propio
+// UPDATE atómico dentro de una única transacción — un movimiento a la vez,
+// en el orden del array, igual que antes, pero sin la ventana de carrera
+// que tenía la versión que acumulaba saldos en memoria del lado de JS.
 export async function registrarMovimientosKardex(
   supabase: Awaited<ReturnType<typeof createClient>>,
   empresaId: string,
@@ -112,54 +100,18 @@ export async function registrarMovimientosKardex(
 ) {
   if (movimientos.length === 0) return;
 
-  const key = (productoId: string, almacenId: string) => `${productoId}::${almacenId}`;
-
-  const productoIds = [...new Set(movimientos.map((m) => m.productoId))];
-  const almacenIds = [...new Set(movimientos.map((m) => m.almacenId))];
-
-  const { data: inventarios } = await supabase
-    .from("inventario")
-    .select("producto_id, almacen_id, stock_actual")
-    .in("producto_id", productoIds)
-    .in("almacen_id", almacenIds);
-
-  const saldos = new Map<string, number>();
-  for (const inv of inventarios ?? []) {
-    saldos.set(key(inv.producto_id, inv.almacen_id), inv.stock_actual);
-  }
-
-  const kardexRows = movimientos.map((m) => {
-    const k = key(m.productoId, m.almacenId);
-    const saldoResultante =
-      Math.round(((saldos.get(k) ?? 0) + m.cantidad) * 100) / 100;
-    saldos.set(k, saldoResultante);
-
-    return {
-      empresa_id: empresaId,
-      producto_id: m.productoId,
-      almacen_id: m.almacenId,
-      tipo_movimiento: m.tipoMovimiento,
+  const { error } = await supabase.rpc("registrar_movimientos_kardex", {
+    p_empresa_id: empresaId,
+    p_usuario_id: usuarioId,
+    p_movimientos: movimientos.map((m) => ({
+      productoId: m.productoId,
+      almacenId: m.almacenId,
+      tipoMovimiento: m.tipoMovimiento,
       cantidad: m.cantidad,
-      saldo_resultante: saldoResultante,
-      referencia_id: m.referenciaId ?? null,
+      referenciaId: m.referenciaId ?? null,
       detalle: m.detalle ?? null,
-      usuario_id: usuarioId,
-    };
+    })),
   });
 
-  await supabase.from("kardex_movimientos").insert(kardexRows);
-
-  const inventarioRows = [...saldos.entries()].map(([k, stock]) => {
-    const [producto_id, almacen_id] = k.split("::");
-    return {
-      producto_id,
-      almacen_id,
-      stock_actual: stock,
-      updated_at: new Date().toISOString(),
-    };
-  });
-
-  await supabase
-    .from("inventario")
-    .upsert(inventarioRows, { onConflict: "producto_id,almacen_id" });
+  if (error) throw new Error(error.message);
 }
