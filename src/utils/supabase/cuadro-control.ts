@@ -50,6 +50,9 @@ export type FilaCuadroControl = {
   productoId: string;
   productoNombre: string;
   unidadMedida: string;
+  // Saldo que ya tenía antes del inicio del rango filtrado — sirve para
+  // poder cuadrar a mano: saldoAnterior + entradas − salidas = stockActual.
+  saldoAnterior: number;
   // Suma de cantidad (con signo, tal cual está en el kardex) por columna
   // dinámica — ej. cantidadesPorColumna["venta"], cantidadesPorColumna["ajuste_entrada"].
   cantidadesPorColumna: Record<string, number>;
@@ -105,6 +108,7 @@ export async function fetchCuadroControlProductos(
         productoId: m.producto_id,
         productoNombre: producto?.nombre ?? "—",
         unidadMedida: producto?.unidades_medida?.descripcion ?? "—",
+        saldoAnterior: 0,
         cantidadesPorColumna: {},
         stockActual: 0,
       });
@@ -136,6 +140,34 @@ export async function fetchCuadroControlProductos(
     );
     for (const fila of filas) {
       fila.stockActual = stockPorClave.get(`${fila.almacenId}::${fila.productoId}`) ?? 0;
+    }
+  }
+
+  // Saldo anterior: el saldo_resultante del último movimiento de cada
+  // producto+almacén antes del inicio del rango filtrado (el kardex es un
+  // ledger inmutable con saldo corrido, así que ese último valor antes del
+  // corte ES el stock que había al empezar el rango). Sin un "desde"
+  // explícito no hay un corte real que calcular — queda en 0.
+  if (filas.length > 0 && fechaDesde) {
+    const corte = inicioDiaLima(fechaDesde);
+    let saldoQuery = supabase
+      .from("kardex_movimientos")
+      .select("almacen_id, producto_id, fecha, saldo_resultante")
+      .in("almacen_id", [...new Set(filas.map((f) => f.almacenId))])
+      .in("producto_id", [...new Set(filas.map((f) => f.productoId))])
+      .lt("fecha", corte)
+      .order("fecha", { ascending: true });
+    if (almacenId) saldoQuery = saldoQuery.eq("almacen_id", almacenId);
+
+    const { data: previos } = await saldoQuery;
+    const saldoPorClave = new Map<string, number>();
+    for (const p of previos ?? []) {
+      // En orden ascendente, el último write por clave queda como el saldo
+      // vigente justo antes del corte.
+      saldoPorClave.set(`${p.almacen_id}::${p.producto_id}`, p.saldo_resultante);
+    }
+    for (const fila of filas) {
+      fila.saldoAnterior = saldoPorClave.get(`${fila.almacenId}::${fila.productoId}`) ?? 0;
     }
   }
 
