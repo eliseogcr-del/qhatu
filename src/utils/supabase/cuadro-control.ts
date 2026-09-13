@@ -156,15 +156,23 @@ export async function fetchCuadroControlProductos(
       .in("almacen_id", [...new Set(filas.map((f) => f.almacenId))])
       .in("producto_id", [...new Set(filas.map((f) => f.productoId))])
       .lt("fecha", corte)
-      .order("fecha", { ascending: true });
+      // Descendente (más reciente primero): Supabase corta las consultas
+      // en 1000 filas por defecto, y con varios meses de operación ya es
+      // fácil superar eso para un grupo de productos. En ascendente, si la
+      // respuesta se corta, se pierden justo las filas más recientes (las
+      // únicas que importan acá) y queda un saldo viejo. En descendente,
+      // aunque se corte, las primeras filas siguen siendo las correctas.
+      .order("fecha", { ascending: false });
     if (almacenId) saldoQuery = saldoQuery.eq("almacen_id", almacenId);
 
     const { data: previos } = await saldoQuery;
     const saldoPorClave = new Map<string, number>();
     for (const p of previos ?? []) {
-      // En orden ascendente, el último write por clave queda como el saldo
-      // vigente justo antes del corte.
-      saldoPorClave.set(`${p.almacen_id}::${p.producto_id}`, p.saldo_resultante);
+      const clave = `${p.almacen_id}::${p.producto_id}`;
+      // La primera vez que aparece cada clave, en orden descendente, ya es
+      // el movimiento más reciente antes del corte — no se debe seguir
+      // sobrescribiendo con los que vienen después (más viejos).
+      if (!saldoPorClave.has(clave)) saldoPorClave.set(clave, p.saldo_resultante);
     }
     for (const fila of filas) {
       fila.saldoAnterior = saldoPorClave.get(`${fila.almacenId}::${fila.productoId}`) ?? 0;
