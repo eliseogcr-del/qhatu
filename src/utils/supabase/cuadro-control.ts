@@ -173,5 +173,7 @@ export async function fetchCuadroControlProductos(
 
   const columnas = ORDEN_COLUMNAS.filter((c) => columnasPresentes.has(c));
 
+  filas.sort((a, b) => a.productoNombre.localeCompare(b.productoNombre));
+
   return { filas, columnas, error: null };
 }
