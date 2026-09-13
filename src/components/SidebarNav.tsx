@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ChevronDown,
+  ChevronRight,
   LayoutDashboard,
   Users,
   Package,
@@ -195,13 +198,52 @@ export default function SidebarNav({
   const pathname = usePathname();
   const groups = gruposPorRol(rol, almacenEsDigital);
 
+  // Qué grupos están colapsados (ej. "Comercial", "Logística") — se guarda
+  // en localStorage del navegador para que se mantenga al navegar entre
+  // pantallas. Arranca con todos expandidos y recién en el cliente se
+  // ajusta según lo guardado, para no depender de cookies solo por esto.
+  const [colapsados, setColapsados] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const guardado = localStorage.getItem("qhatu-sidebar-grupos-colapsados");
+      if (guardado) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setColapsados(new Set(JSON.parse(guardado)));
+      }
+    } catch {
+      // Almacenamiento no disponible (modo privado, etc.) — se queda todo expandido.
+    }
+  }, []);
+
+  function alternarGrupo(label: string) {
+    setColapsados((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      try {
+        localStorage.setItem("qhatu-sidebar-grupos-colapsados", JSON.stringify([...next]));
+      } catch {
+        // Sin persistencia disponible, igual cambia para esta sesión.
+      }
+      return next;
+    });
+  }
+
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-      {groups.map((group) => (
+      {groups.map((group) => {
+        const abierto = !colapsados.has(group.label);
+        return (
         <div key={group.label}>
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-200/70">
+          <button
+            type="button"
+            onClick={() => alternarGrupo(group.label)}
+            className="mb-2 flex w-full items-center justify-between px-3 text-xs font-semibold uppercase tracking-wider text-emerald-200/70 hover:text-emerald-100"
+          >
             {group.label}
-          </p>
+            {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+          {abierto && (
           <div className="space-y-0.5">
             {group.items.map((item) => {
               const Icon = item.icon;
@@ -224,8 +266,10 @@ export default function SidebarNav({
               );
             })}
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </nav>
   );
 }
