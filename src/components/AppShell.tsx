@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Logo from "./Logo";
 import SidebarNav from "./SidebarNav";
 import { ROL_LABEL, type Rol } from "@/lib/roles";
@@ -103,6 +103,37 @@ export default function AppShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // Menú lateral de escritorio: se puede ocultar para ganar espacio de
+  // pantalla. La preferencia se guarda en localStorage (por navegador, no
+  // por servidor) para que se mantenga al navegar entre pantallas — arranca
+  // visible por defecto y recién en el cliente se ajusta según lo guardado,
+  // para no depender de cookies solo por esto.
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  useEffect(() => {
+    try {
+      const guardado = localStorage.getItem("qhatu-sidebar-visible");
+      // No hay forma de leer localStorage antes de este efecto (no existe
+      // en el servidor), así que ajustar el estado inicial acá es
+      // inevitable.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (guardado !== null) setSidebarVisible(guardado === "1");
+    } catch {
+      // Almacenamiento no disponible (modo privado, etc.) — se queda visible.
+    }
+  }, []);
+
+  function alternarSidebar() {
+    setSidebarVisible((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("qhatu-sidebar-visible", next ? "1" : "0");
+      } catch {
+        // Sin persistencia disponible, igual cambia para esta sesión.
+      }
+      return next;
+    });
+  }
+
   useDeshabilitarScrollEnNumeros();
 
   return (
@@ -151,15 +182,37 @@ export default function AppShell({
         </div>
       )}
 
-      {/* Sidebar fijo — solo en desktop */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-emerald-800 md:flex">
-        <div className="border-b border-white/10 px-5 py-5">
-          <BrandRow />
-        </div>
-        <UserInfo nombre={nombre} rol={rol} almacenNombre={almacenNombre} />
-        <SidebarNav rol={rol} almacenEsDigital={almacenEsDigital} />
-        <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
-      </aside>
+      {/* Sidebar fijo — solo en desktop, se puede ocultar */}
+      {sidebarVisible && (
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-emerald-800 md:flex">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+            <BrandRow />
+            <button
+              type="button"
+              onClick={alternarSidebar}
+              aria-label="Ocultar menú"
+              title="Ocultar menú"
+              className="rounded-lg p-1 text-white/70 hover:bg-emerald-700"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          </div>
+          <UserInfo nombre={nombre} rol={rol} almacenNombre={almacenNombre} />
+          <SidebarNav rol={rol} almacenEsDigital={almacenEsDigital} />
+          <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
+        </aside>
+      )}
+      {!sidebarVisible && (
+        <button
+          type="button"
+          onClick={alternarSidebar}
+          aria-label="Mostrar menú"
+          title="Mostrar menú"
+          className="no-imprimir fixed left-0 top-1/2 z-20 hidden -translate-y-1/2 rounded-r-lg bg-emerald-800 p-2 text-white shadow-md hover:bg-emerald-700 md:block"
+        >
+          <ChevronRight size={18} />
+        </button>
+      )}
 
       <main className="min-w-0 flex-1 pt-14 md:pt-0">{children}</main>
     </div>
