@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { Plus, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList, Undo2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import TrasladosFiltroForm from "@/components/TrasladosFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 import BotonImprimir from "@/components/BotonImprimir";
+import ConfirmFormButton from "@/components/ConfirmFormButton";
+import { revertirTraslado } from "./actions";
 
 export default async function TrasladosPage({
   searchParams,
@@ -80,6 +82,7 @@ export default async function TrasladosPage({
       .filter((l) => !productoId || l.producto_id === productoId)
       .map((l) => ({
         id: l.id,
+        trasladoId: t.id,
         fecha: t.fecha,
         origenNombre: origen?.nombre ?? "—",
         destinoNombre: destino?.nombre ?? "—",
@@ -88,6 +91,12 @@ export default async function TrasladosPage({
         cantidad: l.cantidad,
       }));
   });
+
+  // Para no repetir el botón "Revertir" en cada línea de un mismo
+  // traslado, solo se muestra en la primera fila de cada grupo — las
+  // filas de un mismo traslado quedan siempre contiguas porque vienen del
+  // mismo `t` en el flatMap de arriba.
+  const trasladoIdsVistos = new Set<string>();
 
   return (
     <div className="p-8">
@@ -148,10 +157,16 @@ export default async function TrasladosPage({
                 <th className="px-4 py-3 font-bold">Origen</th>
                 <th className="px-4 py-3 font-bold">Destino</th>
                 <th className="px-4 py-3 font-bold">Usuario responsable</th>
+                {session.rol === "admin" && (
+                  <th className="no-imprimir px-4 py-3 font-bold">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody>
-              {filas.map((f) => (
+              {filas.map((f) => {
+                const primeraLineaDelGrupo = !trasladoIdsVistos.has(f.trasladoId);
+                trasladoIdsVistos.add(f.trasladoId);
+                return (
                 <tr key={f.id} className="border-b-2 border-gray-200 last:border-0">
                   <td className="px-4 py-3 text-gray-600">{formatFechaHora(f.fecha)}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">{f.productoNombre}</td>
@@ -159,11 +174,30 @@ export default async function TrasladosPage({
                   <td className="px-4 py-3 text-gray-600">{f.origenNombre}</td>
                   <td className="px-4 py-3 text-gray-600">{f.destinoNombre}</td>
                   <td className="px-4 py-3 text-gray-600">{f.usuarioNombre}</td>
+                  {session.rol === "admin" && (
+                    <td className="no-imprimir px-4 py-3">
+                      {primeraLineaDelGrupo && (
+                        <ConfirmFormButton
+                          action={revertirTraslado.bind(null, f.trasladoId)}
+                          confirmMessage={`¿Revertir este traslado? Se creará un traslado inverso de ${f.destinoNombre} a ${f.origenNombre} con los mismos productos y cantidades, para usar solo si la mercadería nunca se movió físicamente.`}
+                          icon={<Undo2 size={14} />}
+                          pendingLabel="Revirtiendo..."
+                          className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                        >
+                          Revertir
+                        </ConfirmFormButton>
+                      )}
+                    </td>
+                  )}
                 </tr>
-              ))}
+                );
+              })}
               {filas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
+                  <td
+                    colSpan={session.rol === "admin" ? 7 : 6}
+                    className="px-4 py-10 text-center text-gray-400"
+                  >
                     {hayFiltros
                       ? "Ningún traslado coincide con los filtros."
                       : "Aún no hay traslados registrados."}
