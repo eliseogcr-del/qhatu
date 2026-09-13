@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp, SlidersHorizontal, X } from "lucide-react";
+import ProductoCombobox from "./ProductoCombobox";
 
 type Opcion = { id: string; nombre: string };
 
@@ -61,18 +62,13 @@ export default function ProduccionFiltroForm({
       <div className="flex flex-wrap items-end gap-3 border-t border-gray-100 p-4">
       <div className="min-w-[200px] flex-1">
         <label className="mb-1 block text-sm font-medium text-gray-700">Producto</label>
-        <select
+        <ProductoCombobox
+          productos={productos}
           value={productoId}
-          onChange={(e) => navegar({ desde, hasta, producto_id: e.target.value })}
+          onChange={(producto_id) => navegar({ desde, hasta, producto_id })}
+          placeholder="Todos"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">Todos</option>
-          {productos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
+        />
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
