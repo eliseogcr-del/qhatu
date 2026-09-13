@@ -3,7 +3,11 @@ import { ArrowLeft, FileDown } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { hoyLima } from "@/lib/fecha";
-import { fetchCuadroControlProductos } from "@/utils/supabase/cuadro-control";
+import {
+  fetchCuadroControlProductos,
+  COLUMNA_LABEL,
+  COLUMNA_GRUPO,
+} from "@/utils/supabase/cuadro-control";
 import ReportesLogisticaFiltroForm from "@/components/ReportesLogisticaFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 
@@ -34,7 +38,7 @@ export default async function CuadroControlProductosPage({
     .order("nombre");
   if (session.almacenId) almacenesQuery = almacenesQuery.eq("id", session.almacenId);
 
-  const [{ data: almacenes }, { filas, error }] = await Promise.all([
+  const [{ data: almacenes }, { filas, columnas, error }] = await Promise.all([
     almacenesQuery,
     fetchCuadroControlProductos(supabase, {
       fechaDesde: desdeEfectivo,
@@ -42,6 +46,9 @@ export default async function CuadroControlProductosPage({
       almacenId,
     }),
   ]);
+
+  const columnasEntrada = columnas.filter((c) => COLUMNA_GRUPO[c] === "entrada");
+  const columnasSalida = columnas.filter((c) => COLUMNA_GRUPO[c] === "salida");
 
   const almacenesConMovimiento = [...new Set(filas.map((f) => f.almacenId))].map((id) => ({
     id,
@@ -85,9 +92,10 @@ export default async function CuadroControlProductosPage({
           </div>
         </div>
         <p className="mb-6 text-sm text-gray-500">
-          Por producto: cuánto entró por traslado, cuánto se vendió, cuánto
-          se abasteció en campo, cuánto salió por traslado hacia otro
-          almacén y cuánta merma tuvo.
+          Como el Kardex, pero un solo renglón por producto: cada tipo de
+          movimiento que tuvo en el rango filtrado, agrupado en Entradas y
+          Salidas. La columna Stock actual es la de hoy (tabla Inventario),
+          no la resultante del rango filtrado.
         </p>
 
         <ReportesLogisticaFiltroForm
@@ -122,13 +130,49 @@ export default async function CuadroControlProductosPage({
                   <table className="w-full text-left text-sm">
                     <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
                       <tr>
-                        <th className="px-4 py-2 font-bold">Producto</th>
-                        <th className="px-4 py-2 font-bold">Unidad de medida</th>
-                        <th className="px-4 py-2 font-bold">Trasladada</th>
-                        <th className="px-4 py-2 font-bold">Vendida</th>
-                        <th className="px-4 py-2 font-bold">Abastecida</th>
-                        <th className="px-4 py-2 font-bold">Traslado de salida</th>
-                        <th className="px-4 py-2 font-bold">Merma</th>
+                        <th rowSpan={2} className="px-4 py-2 font-bold align-bottom">
+                          Producto
+                        </th>
+                        <th rowSpan={2} className="px-4 py-2 font-bold align-bottom">
+                          Unidad de medida
+                        </th>
+                        {columnasEntrada.length > 0 && (
+                          <th
+                            colSpan={columnasEntrada.length}
+                            className="border-l border-sky-200 bg-blue-50 px-4 py-1 text-center font-bold text-blue-700"
+                          >
+                            ENTRADAS
+                          </th>
+                        )}
+                        {columnasSalida.length > 0 && (
+                          <th
+                            colSpan={columnasSalida.length}
+                            className="border-l border-sky-200 bg-red-50 px-4 py-1 text-center font-bold text-red-700"
+                          >
+                            SALIDAS
+                          </th>
+                        )}
+                        <th rowSpan={2} className="border-l border-sky-200 px-4 py-2 font-bold align-bottom">
+                          Stock actual
+                        </th>
+                      </tr>
+                      <tr>
+                        {columnasEntrada.map((c) => (
+                          <th
+                            key={c}
+                            className="border-l border-sky-100 bg-blue-50 px-4 py-2 font-bold text-blue-700"
+                          >
+                            {COLUMNA_LABEL[c]}
+                          </th>
+                        ))}
+                        {columnasSalida.map((c) => (
+                          <th
+                            key={c}
+                            className="border-l border-sky-100 bg-red-50 px-4 py-2 font-bold text-red-700"
+                          >
+                            {COLUMNA_LABEL[c]}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
@@ -138,40 +182,24 @@ export default async function CuadroControlProductosPage({
                             {f.productoNombre}
                           </td>
                           <td className="px-4 py-2 text-gray-600">{f.unidadMedida}</td>
-                          <td className="px-4 py-2 font-medium text-blue-600">
-                            {f.trasladada > 0
-                              ? `+${f.trasladada}`
-                              : f.trasladada < 0
-                                ? f.trasladada
-                                : "—"}
-                          </td>
-                          <td className="px-4 py-2 font-medium text-red-600">
-                            {f.vendida > 0
-                              ? `-${f.vendida}`
-                              : f.vendida < 0
-                                ? `+${Math.abs(f.vendida)}`
-                                : "—"}
-                          </td>
-                          <td className="px-4 py-2 font-medium text-blue-600">
-                            {f.abastecida > 0
-                              ? `+${f.abastecida}`
-                              : f.abastecida < 0
-                                ? f.abastecida
-                                : "—"}
-                          </td>
-                          <td className="px-4 py-2 font-medium text-red-600">
-                            {f.trasladoSalida > 0
-                              ? `-${f.trasladoSalida}`
-                              : f.trasladoSalida < 0
-                                ? `+${Math.abs(f.trasladoSalida)}`
-                                : "—"}
-                          </td>
-                          <td className="px-4 py-2 font-medium text-red-600">
-                            {f.merma > 0
-                              ? `-${f.merma}`
-                              : f.merma < 0
-                                ? `+${Math.abs(f.merma)}`
-                                : "—"}
+                          {columnasEntrada.map((c) => {
+                            const valor = f.cantidadesPorColumna[c] ?? 0;
+                            return (
+                              <td key={c} className="px-4 py-2 font-medium text-blue-600">
+                                {valor !== 0 ? `+${valor}` : "—"}
+                              </td>
+                            );
+                          })}
+                          {columnasSalida.map((c) => {
+                            const valor = f.cantidadesPorColumna[c] ?? 0;
+                            return (
+                              <td key={c} className="px-4 py-2 font-medium text-red-600">
+                                {valor !== 0 ? valor : "—"}
+                              </td>
+                            );
+                          })}
+                          <td className="px-4 py-2 font-semibold text-gray-900">
+                            {f.stockActual}
                           </td>
                         </tr>
                       ))}
@@ -184,7 +212,7 @@ export default async function CuadroControlProductosPage({
 
           {almacenesConMovimiento.length === 0 && (
             <p className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-400 shadow-sm">
-              No hay movimientos de traslado, venta, abastecimiento o merma en este rango.
+              No hay movimientos de kardex en este rango.
             </p>
           )}
         </div>
