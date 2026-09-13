@@ -13,6 +13,7 @@ import {
   PackagePlus,
   Factory,
   ScrollText,
+  Zap,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, getAuthUser } from "@/utils/supabase/session";
@@ -43,6 +44,7 @@ const QUICK_LINKS_REPARTIDOR = [
 ];
 
 const QUICK_LINKS_VENDEDOR = [
+  { href: "/ventas/directa", label: "Registrar venta", icon: Zap },
   { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
