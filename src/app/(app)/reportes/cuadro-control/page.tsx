@@ -94,8 +94,9 @@ export default async function CuadroControlProductosPage({
         <p className="mb-6 text-sm text-gray-500">
           Como el Kardex, pero un solo renglón por producto: cada tipo de
           movimiento que tuvo en el rango filtrado, agrupado en Entradas y
-          Salidas. La columna Stock actual es la de hoy (tabla Inventario),
-          no la resultante del rango filtrado.
+          Salidas. Para cuadrar: Saldo anterior + Entradas − Salidas = Stock
+          actual. El Stock actual es el de hoy (tabla Inventario), no el
+          resultante del rango filtrado.
         </p>
 
         <ReportesLogisticaFiltroForm
@@ -135,6 +136,9 @@ export default async function CuadroControlProductosPage({
                         </th>
                         <th rowSpan={2} className="px-4 py-2 font-bold align-bottom">
                           Unidad de medida
+                        </th>
+                        <th rowSpan={2} className="border-l border-sky-200 px-4 py-2 font-bold align-bottom">
+                          Saldo anterior
                         </th>
                         {columnasEntrada.length > 0 && (
                           <th
@@ -182,6 +186,7 @@ export default async function CuadroControlProductosPage({
                             {f.productoNombre}
                           </td>
                           <td className="px-4 py-2 text-gray-600">{f.unidadMedida}</td>
+                          <td className="px-4 py-2 text-gray-600">{f.saldoAnterior}</td>
                           {columnasEntrada.map((c) => {
                             const valor = f.cantidadesPorColumna[c] ?? 0;
                             return (

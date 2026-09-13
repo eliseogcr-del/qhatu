@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     "Almacén",
     "Producto",
     "Unidad de medida",
+    "Saldo anterior",
     ...columnas.map((c) => COLUMNA_LABEL[c]),
     "Stock actual",
   ];
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     f.almacenNombre,
     f.productoNombre,
     f.unidadMedida,
+    f.saldoAnterior,
     ...columnas.map((c) => f.cantidadesPorColumna[c] ?? 0),
     f.stockActual,
   ]);
