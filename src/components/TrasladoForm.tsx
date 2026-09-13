@@ -81,9 +81,16 @@ export default function TrasladoForm({
     }));
   }
 
-  const [lineas, setLineas] = useState<Linea[]>(() =>
-    almacenSesion ? (calcularLineasPrecarga(almacenSesion) ?? [newLinea()]) : [newLinea()],
-  );
+  // OJO: para un vendedor el origen ya viene fijo a su propio almacén (no
+  // hay una acción de "elegirlo"), así que la precarga NUNCA se dispara
+  // sola al abrir esta pantalla — eso dejaba el formulario listo para
+  // devolver todo el stock con solo elegir destino y guardar, sin que el
+  // vendedor hubiera pedido eso realmente. Para él, precargar es un botón
+  // aparte que hay que apretar a propósito (ver más abajo). Para
+  // admin/logística sí se sigue precargando solo al elegir el origen en el
+  // selector, porque ahí elegir el almacén ya es una acción deliberada.
+  const [lineas, setLineas] = useState<Linea[]>(() => [newLinea()]);
+  const [precargaAplicada, setPrecargaAplicada] = useState(false);
   const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
   const [origenId, setOrigenId] = useState(almacenSesion ?? "");
   const [destinoId, setDestinoId] = useState("");
@@ -179,7 +186,9 @@ export default function TrasladoForm({
                 onChange={(e) => {
                   const nuevoOrigen = e.target.value;
                   setOrigenId(nuevoOrigen);
-                  setLineas(calcularLineasPrecarga(nuevoOrigen) ?? [newLinea()]);
+                  const precarga = calcularLineasPrecarga(nuevoOrigen);
+                  setLineas(precarga ?? [newLinea()]);
+                  setPrecargaAplicada(precarga !== null);
                   setAvisoDuplicado(null);
                 }}
                 className={inputClass}
@@ -228,11 +237,34 @@ export default function TrasladoForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Productos a trasladar
         </h2>
-        {origenIdEfectivo && almacenesPrecarga.has(origenIdEfectivo) && (
+        {origenIdEfectivo && almacenesPrecarga.has(origenIdEfectivo) && precargaAplicada && (
           <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
             Se precargó todo el stock disponible de este almacén. Ajusta las
             cantidades o quita lo que no vayas a trasladar.
           </p>
+        )}
+        {origenIdEfectivo && almacenesPrecarga.has(origenIdEfectivo) && !precargaAplicada && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-sm text-gray-600">
+              ¿Vas a devolver toda la carga? Puedes precargar de una vez todo
+              el stock disponible de tu almacén en vez de agregarlo producto
+              por producto.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const precarga = calcularLineasPrecarga(origenIdEfectivo);
+                if (precarga) {
+                  setLineas(precarga);
+                  setPrecargaAplicada(true);
+                  setAvisoDuplicado(null);
+                }
+              }}
+              className="whitespace-nowrap rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              Precargar todo el stock disponible
+            </button>
+          </div>
         )}
 
         <div className="space-y-3">
