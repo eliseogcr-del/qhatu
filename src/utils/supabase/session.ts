@@ -1,12 +1,27 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "./server";
+
+// auth.getUser() hace una llamada de red real a Supabase (revalida el JWT
+// contra el servidor de Auth, no solo lo decodifica localmente) — sin
+// cachear esto, el layout compartido de la app y cada página lo repetían
+// por separado en cada navegación (2 o 3 veces por click), sumando esa
+// latencia de red cada vez. React cache() deduplica esta llamada dentro de
+// un mismo request sin importar cuántas funciones distintas la invoquen ni
+// qué instancia de cliente supabase tenga cada una — por eso crea la suya
+// propia acá en vez de recibirla por parámetro.
+export const getAuthUser = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});
 
 export async function getEmpresaSession(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) redirect("/login");
 
