@@ -162,7 +162,11 @@ export async function fetchCuadroControlProductos(
       // respuesta se corta, se pierden justo las filas más recientes (las
       // únicas que importan acá) y queda un saldo viejo. En descendente,
       // aunque se corte, las primeras filas siguen siendo las correctas.
-      .order("fecha", { ascending: false });
+      // El límite es una red de seguridad explícita (con el índice por
+      // fecha ya no debería necesitarse escanear más que esto) para que
+      // esta consulta no se vuelva lenta si el histórico crece mucho.
+      .order("fecha", { ascending: false })
+      .limit(3000);
     if (almacenId) saldoQuery = saldoQuery.eq("almacen_id", almacenId);
 
     const { data: previos } = await saldoQuery;
