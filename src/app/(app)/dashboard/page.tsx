@@ -15,6 +15,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getEmpresaSession, getAuthUser } from "@/utils/supabase/session";
 
 const QUICK_LINKS_COMPLETO = [
   { href: "/clientes", label: "Clientes", icon: Users },
@@ -65,13 +66,9 @@ export default async function DashboardPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: usuario } = user
-    ? await supabase.from("usuarios").select("rol").eq("id", user.id).maybeSingle()
-    : { data: null };
-  const QUICK_LINKS = quickLinksPorRol(usuario?.rol ?? "vendedor");
+  const { rol } = await getEmpresaSession(supabase);
+  const user = await getAuthUser();
+  const QUICK_LINKS = quickLinksPorRol(rol);
 
   return (
     <div className="p-8">
