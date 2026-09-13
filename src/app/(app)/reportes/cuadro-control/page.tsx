@@ -131,7 +131,7 @@ export default async function CuadroControlProductosPage({
                   <table className="w-full text-left text-sm">
                     <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
                       <tr>
-                        <th rowSpan={2} className="px-4 py-2 font-bold align-bottom">
+                        <th className="sticky left-0 z-20 border-r-2 border-gray-200 bg-sky-50 px-4 py-2 font-bold align-bottom" rowSpan={2}>
                           Producto
                         </th>
                         <th rowSpan={2} className="px-4 py-2 font-bold align-bottom">
@@ -182,7 +182,7 @@ export default async function CuadroControlProductosPage({
                     <tbody>
                       {filasAlmacen.map((f) => (
                         <tr key={f.productoId} className="border-b-2 border-gray-200 last:border-0">
-                          <td className="px-4 py-2 font-medium text-gray-900">
+                          <td className="sticky left-0 z-10 border-r-2 border-gray-200 bg-white px-4 py-2 font-medium text-gray-900">
                             {f.productoNombre}
                           </td>
                           <td className="px-4 py-2 text-gray-600">{f.unidadMedida}</td>
