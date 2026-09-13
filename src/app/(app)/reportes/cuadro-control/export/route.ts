@@ -1,18 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { fetchCuadroControlProductos } from "@/utils/supabase/cuadro-control";
+import { fetchCuadroControlProductos, COLUMNA_LABEL } from "@/utils/supabase/cuadro-control";
 import { buildExcelText } from "@/lib/csv";
-
-const HEADERS = [
-  "Almacén",
-  "Producto",
-  "Unidad de medida",
-  "Trasladada",
-  "Vendida",
-  "Abastecida",
-  "Traslado de salida",
-  "Merma",
-];
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -26,24 +15,29 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
 
-  const { filas } = await fetchCuadroControlProductos(supabase, {
+  const { filas, columnas } = await fetchCuadroControlProductos(supabase, {
     fechaDesde: params.get("desde"),
     fechaHasta: params.get("hasta"),
     almacenId: params.get("almacen_id"),
   });
 
+  const headers = [
+    "Almacén",
+    "Producto",
+    "Unidad de medida",
+    ...columnas.map((c) => COLUMNA_LABEL[c]),
+    "Stock actual",
+  ];
+
   const rows = filas.map((f) => [
     f.almacenNombre,
     f.productoNombre,
     f.unidadMedida,
-    f.trasladada,
-    f.vendida,
-    f.abastecida,
-    f.trasladoSalida,
-    f.merma,
+    ...columnas.map((c) => f.cantidadesPorColumna[c] ?? 0),
+    f.stockActual,
   ]);
 
-  const body = buildExcelText(HEADERS, rows);
+  const body = buildExcelText(headers, rows);
 
   return new NextResponse(body, {
     headers: {
