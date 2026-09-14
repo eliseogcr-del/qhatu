@@ -61,6 +61,14 @@ export default async function VentasProductosVendidosPage({
     (!session.almacenId && almacenId)
   );
 
+  // Solo tiene sentido sumar cantidades cuando está filtrado a un único
+  // producto — sumar cantidades de productos distintos (y unidades de
+  // medida distintas) no sería un número útil.
+  const productoFiltrado = producto_id
+    ? (productos ?? []).find((p) => p.id === producto_id)
+    : null;
+  const totalCantidad = filas.reduce((acc, f) => acc + f.cantidad, 0);
+
   const exportParams = new URLSearchParams();
   if (q) exportParams.set("q", q);
   exportParams.set("desde", desdeEfectivo);
@@ -114,6 +122,13 @@ export default async function VentasProductosVendidosPage({
         )}
 
         <ResultadosCount count={filas.length} />
+
+        {productoFiltrado && (
+          <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+            Cantidad total vendida de <span className="font-semibold">{productoFiltrado.nombre}</span>:{" "}
+            <span className="font-semibold">{totalCantidad}</span>
+          </p>
+        )}
 
         <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
