@@ -10,10 +10,10 @@ export default async function EditarClientePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; volver?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, volver } = await searchParams;
 
   const supabase = await createClient();
   const { data: cliente } = await supabase
@@ -32,7 +32,7 @@ export default async function EditarClientePage({
             Editar cliente
           </h1>
           <Link
-            href="/clientes"
+            href={volver || "/clientes"}
             className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
             <ArrowLeft size={16} />

@@ -12,10 +12,10 @@ export default async function EditarPedidoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; volver?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, volver } = await searchParams;
   const supabase = await createClient();
   const { empresaId } = await getEmpresaSession(supabase);
 
@@ -30,10 +30,11 @@ export default async function EditarPedidoPage({
   if (!pedido) notFound();
 
   if (pedido.estado !== "pendiente_confirmacion") {
+    const volverQs = volver ? `&volver=${encodeURIComponent(volver)}` : "";
     redirect(
       `/pedidos/${id}?error=${encodeURIComponent(
         "Solo se puede editar un pedido mientras está pendiente de confirmación.",
-      )}`,
+      )}${volverQs}`,
     );
   }
 
@@ -78,7 +79,7 @@ export default async function EditarPedidoPage({
             Editar pedido de {cliente?.nombre ?? "—"}
           </h1>
           <Link
-            href={`/pedidos/${id}`}
+            href={`/pedidos/${id}${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`}
             className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
           >
             <ArrowLeft size={16} />

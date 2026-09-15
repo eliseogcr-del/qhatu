@@ -43,6 +43,15 @@ export default async function ProduccionPage({
 
   const hayFiltros = !!(desde !== undefined || hasta !== undefined || productoId);
 
+  // Se manda a "editar" para que "Volver al listado" regrese exactamente
+  // a esta URL (con filtros) en vez de reiniciarlos.
+  const volverParams = new URLSearchParams();
+  if (desde !== undefined) volverParams.set("desde", desde);
+  if (hasta !== undefined) volverParams.set("hasta", hasta);
+  if (productoId) volverParams.set("producto_id", productoId);
+  const volverQs = volverParams.toString();
+  const volverUrl = `/produccion${volverQs ? `?${volverQs}` : ""}`;
+
   const filas = (producciones ?? []).flatMap((p) => {
     const almacen = p.almacenes as unknown as { nombre: string } | null;
     const usuario = p.usuarios as unknown as { nombre: string | null } | null;
@@ -125,7 +134,7 @@ export default async function ProduccionPage({
                   <td className="px-4 py-3 text-gray-600">{f.nota ?? "—"}</td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`/produccion/${f.produccionId}/editar`}
+                      href={`/produccion/${f.produccionId}/editar?volver=${encodeURIComponent(volverUrl)}`}
                       className="flex items-center justify-end gap-1 text-sm font-medium text-gray-600 hover:underline"
                     >
                       <Pencil size={14} />

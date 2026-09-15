@@ -10,10 +10,10 @@ export default async function EditarRepartoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; volver?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, volver } = await searchParams;
 
   const supabase = await createClient();
   const [{ data: reparto }, { data: pedidosData }, { data: usuarios }] =
@@ -42,7 +42,7 @@ export default async function EditarRepartoPage({
             Editar reparto
           </h1>
           <Link
-            href="/repartos"
+            href={volver || "/repartos"}
             className="text-sm font-medium text-gray-600 hover:underline"
           >
             ← Volver al listado

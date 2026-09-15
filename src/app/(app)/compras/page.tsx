@@ -51,6 +51,16 @@ export default async function ComprasPage({
 
   const hayFiltros = !!(q || desde || hasta || pendientes);
 
+  // Se manda al detalle de la compra para que "Volver al listado" regrese
+  // exactamente a esta URL (con filtros) en vez de reiniciarlos.
+  const volverParams = new URLSearchParams();
+  if (q) volverParams.set("q", q);
+  if (desde) volverParams.set("desde", desde);
+  if (hasta) volverParams.set("hasta", hasta);
+  if (pendientes) volverParams.set("pendientes", pendientes);
+  const volverQs = volverParams.toString();
+  const volverUrl = `/compras${volverQs ? `?${volverQs}` : ""}`;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-6xl">
@@ -125,7 +135,7 @@ export default async function ComprasPage({
             </thead>
             <tbody>
               {compras.map((compra) => (
-                <CompraFilaExpandible key={compra.id} compra={compra} />
+                <CompraFilaExpandible key={compra.id} compra={compra} volver={volverUrl} />
               ))}
 
               {compras.length === 0 && (

@@ -7,7 +7,15 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import type { CompraConSaldo } from "@/utils/supabase/compras";
 
-export default function CompraFilaExpandible({ compra }: { compra: CompraConSaldo }) {
+export default function CompraFilaExpandible({
+  compra,
+  volver,
+}: {
+  compra: CompraConSaldo;
+  // URL de la lista (con filtros) para que "Volver al listado" en el
+  // detalle regrese exactamente aquí en vez de reiniciarlos.
+  volver: string;
+}) {
   const [abierta, setAbierta] = useState(false);
   const tienePagos = compra.pagos.length > 0;
 
@@ -72,7 +80,7 @@ export default function CompraFilaExpandible({ compra }: { compra: CompraConSald
         </td>
         <td className="px-4 py-3 text-right">
           <Link
-            href={`/compras/${compra.id}`}
+            href={`/compras/${compra.id}?volver=${encodeURIComponent(volver)}`}
             className="text-sm font-medium text-gray-700 hover:underline"
           >
             Ver
