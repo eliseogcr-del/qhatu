@@ -45,8 +45,10 @@ const QUICK_LINKS_REPARTIDOR = [
 
 // Almacén móvil: solo lo que hace falta en ruta. Pedidos, Inventario,
 // Kardex y Reportes quedan fuera del día a día de un vendedor de ruta.
+// "Venta rápida" (no "Venta directa") es a propósito: es la pantalla
+// simplificada hecha a medida para vender desde el celular en la calle.
 const QUICK_LINKS_VENDEDOR = [
-  { href: "/ventas/directa", label: "Registrar venta", icon: Zap },
+  { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
   { href: "/ventas", label: "Ventas", icon: ShoppingCart },
