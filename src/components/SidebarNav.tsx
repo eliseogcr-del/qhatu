@@ -123,10 +123,7 @@ const ACCESO_RAPIDO_VENDEDOR = {
 
 const COMERCIAL_VENDEDOR = {
   label: "Comercial",
-  items: [
-    { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
-    { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet },
-  ],
+  items: [{ href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet }],
 };
 
 const LOGISTICA_VENDEDOR = {
@@ -134,8 +131,6 @@ const LOGISTICA_VENDEDOR = {
   items: [
     { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
     { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
-    { href: "/inventario", label: "Inventario", icon: Boxes },
-    { href: "/kardex", label: "Kardex", icon: ScrollText },
     {
       href: "/reportes/cuadro-control",
       label: "Cuadro de Control de Productos",
