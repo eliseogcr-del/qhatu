@@ -27,6 +27,12 @@ export async function createAbastecimientoCampo(formData: FormData) {
   const proveedorId = String(formData.get("proveedor_id") ?? "").trim() || null;
   const nota = String(formData.get("nota") ?? "").trim() || null;
 
+  if (!proveedorId) {
+    redirect(
+      `/abastecimiento-campo/nuevo?error=${encodeURIComponent("Selecciona el proveedor.")}`,
+    );
+  }
+
   const productoIds = formData.getAll("producto_id[]").map(String);
   const cantidades = formData.getAll("cantidad[]").map(Number);
   const unidadesMedidaIds = formData.getAll("unidad_medida_id[]").map(String);

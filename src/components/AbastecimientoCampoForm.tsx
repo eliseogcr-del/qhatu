@@ -153,9 +153,18 @@ export default function AbastecimientoCampoForm({
             </>
           ) : (
             <>
-              <Field label="Proveedor (opcional)">
-                <select name="proveedor_id" defaultValue="" className={inputClass}>
-                  <option value="">Sin especificar</option>
+              <Field label="Proveedor">
+                <select
+                  name="proveedor_id"
+                  required
+                  defaultValue={proveedores[0]?.id ?? ""}
+                  className={inputClass}
+                >
+                  {proveedores.length === 0 && (
+                    <option value="" disabled>
+                      No hay proveedores activos
+                    </option>
+                  )}
                   {proveedores.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nombre}
