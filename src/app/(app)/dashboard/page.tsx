@@ -43,6 +43,8 @@ const QUICK_LINKS_REPARTIDOR = [
   { href: "/mis-repartos", label: "Mis repartos", icon: Route },
 ];
 
+// Almacén móvil: solo lo que hace falta en ruta. Pedidos, Inventario,
+// Kardex y Reportes quedan fuera del día a día de un vendedor de ruta.
 const QUICK_LINKS_VENDEDOR = [
   { href: "/ventas/directa", label: "Registrar venta", icon: Zap },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
@@ -50,11 +52,23 @@ const QUICK_LINKS_VENDEDOR = [
   { href: "/ventas", label: "Ventas", icon: ShoppingCart },
 ];
 
-function quickLinksPorRol(rol: string) {
+// Almacén digital: opera como una tienda, no recibe mercadería en ruta —
+// conserva Pedidos, Inventario, Kardex y Reportes.
+const QUICK_LINKS_VENDEDOR_DIGITAL = [
+  { href: "/ventas/directa", label: "Registrar venta", icon: Zap },
+  { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
+  { href: "/inventario", label: "Inventario", icon: Boxes },
+  { href: "/kardex", label: "Kardex", icon: ScrollText },
+  { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  { href: "/reportes", label: "Reportes", icon: BarChart3 },
+];
+
+function quickLinksPorRol(rol: string, almacenEsDigital: boolean) {
   if (rol === "admin") return QUICK_LINKS_COMPLETO;
   if (rol === "logistica") return QUICK_LINKS_LOGISTICA;
   if (rol === "repartidor") return QUICK_LINKS_REPARTIDOR;
-  return QUICK_LINKS_VENDEDOR;
+  return almacenEsDigital ? QUICK_LINKS_VENDEDOR_DIGITAL : QUICK_LINKS_VENDEDOR;
 }
 
 export default async function DashboardPage({
@@ -64,9 +78,20 @@ export default async function DashboardPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  const { rol } = await getEmpresaSession(supabase);
+  const { rol, almacenId } = await getEmpresaSession(supabase);
   const user = await getAuthUser();
-  const QUICK_LINKS = quickLinksPorRol(rol);
+
+  let almacenEsDigital = false;
+  if (almacenId) {
+    const { data: almacen } = await supabase
+      .from("almacenes")
+      .select("es_digital")
+      .eq("id", almacenId)
+      .maybeSingle();
+    almacenEsDigital = almacen?.es_digital ?? false;
+  }
+
+  const QUICK_LINKS = quickLinksPorRol(rol, almacenEsDigital);
 
   return (
     <div className="p-8">
