@@ -52,6 +52,10 @@ export default async function PedidosPage({
 
   const hayFiltros = !!(q || desde !== undefined || hasta !== undefined || estado);
 
+  // Se manda al detalle del pedido para que "Volver al listado" regrese
+  // exactamente a esta URL (con filtros) en vez de reiniciarlos.
+  const volverUrl = `/pedidos${exportQs ? `?${exportQs}` : ""}`;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
@@ -143,7 +147,7 @@ export default async function PedidosPage({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/pedidos/${pedido.id}`}
+                        href={`/pedidos/${pedido.id}?volver=${encodeURIComponent(volverUrl)}`}
                         className="flex items-center justify-end gap-1 text-sm font-medium text-gray-700 hover:underline"
                       >
                         <Eye size={14} />

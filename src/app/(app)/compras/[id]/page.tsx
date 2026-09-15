@@ -19,10 +19,10 @@ export default async function CompraDetallePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; volver?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, volver } = await searchParams;
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
   const puedeValidar = session.rol === "admin" || session.rol === "logistica";
@@ -95,7 +95,7 @@ export default async function CompraDetallePage({
               </ConfirmFormButton>
             )}
             <Link
-              href="/compras"
+              href={volver || "/compras"}
               className="text-sm font-medium text-gray-600 hover:underline"
             >
               ← Volver al listado

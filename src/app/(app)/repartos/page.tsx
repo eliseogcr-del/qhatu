@@ -61,6 +61,14 @@ export default async function RepartosPage({
 
   const rutaCombinada = fechaEfectiva ? buildGoogleMapsMultiStopLink(destinos) : null;
 
+  // Se manda a "editar" para que "Volver al listado" regrese exactamente
+  // a esta URL (con filtros) en vez de reiniciarlos.
+  const volverParams = new URLSearchParams();
+  if (fecha !== undefined) volverParams.set("fecha", fecha);
+  if (estado) volverParams.set("estado", estado);
+  const volverQs = volverParams.toString();
+  const volverUrl = `/repartos${volverQs ? `?${volverQs}` : ""}`;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
@@ -158,7 +166,7 @@ export default async function RepartosPage({
                         </a>
                       )}
                       <Link
-                        href={`/repartos/${reparto.id}/editar`}
+                        href={`/repartos/${reparto.id}/editar?volver=${encodeURIComponent(volverUrl)}`}
                         className="text-sm font-medium text-gray-700 hover:underline"
                       >
                         Editar

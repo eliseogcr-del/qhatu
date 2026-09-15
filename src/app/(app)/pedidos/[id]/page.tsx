@@ -29,10 +29,10 @@ export default async function PedidoDetallePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; volver?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, volver } = await searchParams;
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
 
@@ -110,7 +110,7 @@ export default async function PedidoDetallePage({
           <div className="flex items-center gap-4">
             {estado === "pendiente_confirmacion" && (
               <Link
-                href={`/pedidos/${id}/editar`}
+                href={`/pedidos/${id}/editar${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`}
                 className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 <Pencil size={16} />
@@ -132,7 +132,7 @@ export default async function PedidoDetallePage({
               Asignar reparto
             </Link>
             <Link
-              href="/pedidos"
+              href={volver || "/pedidos"}
               className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
             >
               <ArrowLeft size={16} />

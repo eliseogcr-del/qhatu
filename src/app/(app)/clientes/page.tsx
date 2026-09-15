@@ -43,6 +43,10 @@ export default async function ClientesPage({
   if (canal) exportParams.set("canal", canal);
   const exportQs = exportParams.toString();
 
+  // Se manda a "editar" para que "Volver al listado" regrese exactamente
+  // a esta URL (con filtros) en vez de reiniciarlos.
+  const volverUrl = `/clientes${exportQs ? `?${exportQs}` : ""}`;
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
@@ -124,7 +128,7 @@ export default async function ClientesPage({
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <Link
-                        href={`/clientes/${cliente.id}/editar`}
+                        href={`/clientes/${cliente.id}/editar?volver=${encodeURIComponent(volverUrl)}`}
                         className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:underline"
                       >
                         <Pencil size={14} />

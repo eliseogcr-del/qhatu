@@ -99,7 +99,7 @@ export default async function ProveedoresPage({
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <Link
-                        href={`/proveedores/${proveedor.id}/editar`}
+                        href={`/proveedores/${proveedor.id}/editar${q ? `?q=${encodeURIComponent(q)}` : ""}`}
                         className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:underline"
                       >
                         <Pencil size={14} />
