@@ -9,6 +9,7 @@ import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
 import { consultarPrecioLinea, consultarSaldoCliente } from "@/app/(app)/precios/actions";
 import { formatFecha } from "@/lib/fecha";
+import { useOscuroVendedorMovil } from "@/hooks/useOscuroVendedorMovil";
 
 // Módulo aparte de VentaDirectaForm, hecho a medida para el vendedor de
 // almacén móvil (vende parado en la calle, desde el celular, contra el
@@ -38,8 +39,6 @@ type Linea = {
   precio_unitario: number;
   unidad_medida_id: string;
 };
-
-const OSCURO_KEY = "qhatu-venta-rapida-oscuro";
 
 function Field({
   label,
@@ -117,35 +116,7 @@ export default function VentaRapidaForm({
     fechaUltimaVenta: string;
   } | null>(null);
   const [mostrarToast, setMostrarToast] = useState(false);
-  const [oscuro, setOscuro] = useState(false);
-
-  // El modo oscuro es una preferencia del celular/vendedora, no del
-  // sistema — se guarda en este navegador para que no haya que
-  // reactivarlo en cada venta. Arranca en claro y recién en el cliente se
-  // ajusta según lo guardado, para no depender de cookies solo por esto.
-  useEffect(() => {
-    try {
-      const guardadoOscuro = localStorage.getItem(OSCURO_KEY);
-      if (guardadoOscuro === "1") {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setOscuro(true);
-      }
-    } catch {
-      // Almacenamiento no disponible (modo privado, etc.) — se queda en claro.
-    }
-  }, []);
-
-  function alternarOscuro() {
-    setOscuro((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(OSCURO_KEY, next ? "1" : "0");
-      } catch {
-        // Sin persistencia disponible, igual cambia para esta sesión.
-      }
-      return next;
-    });
-  }
+  const [oscuro, alternarOscuro] = useOscuroVendedorMovil();
 
   // Evita que un doble toque (muy común con el apuro/el celular en la
   // calle) mande la misma venta dos veces: se corta en seco en el propio
