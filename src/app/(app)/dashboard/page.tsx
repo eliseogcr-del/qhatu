@@ -45,13 +45,9 @@ const QUICK_LINKS_REPARTIDOR = [
 
 const QUICK_LINKS_VENDEDOR = [
   { href: "/ventas/directa", label: "Registrar venta", icon: Zap },
-  { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
-  { href: "/inventario", label: "Inventario", icon: Boxes },
-  { href: "/kardex", label: "Kardex", icon: ScrollText },
   { href: "/ventas", label: "Ventas", icon: ShoppingCart },
-  { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 function quickLinksPorRol(rol: string) {
