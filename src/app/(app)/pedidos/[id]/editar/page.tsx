@@ -92,6 +92,7 @@ export default async function EditarPedidoPage({
             modo="editar"
             action={updatePedido.bind(null, id)}
             error={error}
+            volver={volver}
             clientes={clientes ?? []}
             productos={productos ?? []}
             unidadesMedida={unidadesMedida ?? []}
