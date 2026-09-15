@@ -99,6 +99,7 @@ export default function PedidoForm({
   pedidoInicial,
   modo = "crear",
   preciosBloqueados,
+  volver,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -124,6 +125,10 @@ export default function PedidoForm({
   // el almacén) y no se puede tocar a mano. El servidor vuelve a calcular
   // este mismo valor al guardar, así que esto es solo para mostrarlo.
   preciosBloqueados: boolean;
+  // URL de la lista de pedidos (con filtros) de donde se vino al editar —
+  // viaja como campo oculto para que el servidor pueda mandar de vuelta
+  // ahí después de guardar, sin perder el filtro.
+  volver?: string;
 }) {
   const [lineas, setLineas] = useState<Linea[]>(() =>
     pedidoInicial && pedidoInicial.lineas.length > 0
@@ -254,6 +259,7 @@ export default function PedidoForm({
       }}
       className="space-y-8"
     >
+      {volver && <input type="hidden" name="volver" value={volver} />}
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}

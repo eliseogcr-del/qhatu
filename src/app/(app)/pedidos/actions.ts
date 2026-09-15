@@ -158,6 +158,12 @@ export async function updatePedido(id: string, formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await getEmpresaSession(supabase);
 
+  // Viene como campo oculto del formulario (ver PedidoForm) para que, tras
+  // guardar, se regrese al pedido con la URL de lista (con filtros) de
+  // donde se vino, en vez de perderla.
+  const volver = String(formData.get("volver") ?? "").trim() || null;
+  const volverQs = volver ? `&volver=${encodeURIComponent(volver)}` : "";
+
   const { data: pedido } = await supabase
     .from("pedidos")
     .select("id, estado, almacen_id")
@@ -172,7 +178,7 @@ export async function updatePedido(id: string, formData: FormData) {
     redirect(
       `/pedidos/${id}?error=${encodeURIComponent(
         "Solo se puede editar un pedido mientras está pendiente de confirmación.",
-      )}`,
+      )}${volverQs}`,
     );
   }
 
@@ -182,7 +188,9 @@ export async function updatePedido(id: string, formData: FormData) {
   const moneda = String(formData.get("moneda") ?? "PEN");
 
   if (!clienteId) {
-    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent("Selecciona un cliente.")}`);
+    redirect(
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Selecciona un cliente.")}${volverQs}`,
+    );
   }
 
   const productoIds = formData.getAll("producto_id[]").map(String);
@@ -201,26 +209,26 @@ export async function updatePedido(id: string, formData: FormData) {
 
   if (lineasConProducto.length === 0) {
     redirect(
-      `/pedidos/${id}/editar?error=${encodeURIComponent("Agrega al menos un producto al pedido.")}`,
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Agrega al menos un producto al pedido.")}${volverQs}`,
     );
   }
 
   if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
     redirect(
-      `/pedidos/${id}/editar?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}${volverQs}`,
     );
   }
 
   if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
     redirect(
-      `/pedidos/${id}/editar?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}${volverQs}`,
     );
   }
 
   const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
   if (productoIdsUnicos.size !== lineasConProducto.length) {
     redirect(
-      `/pedidos/${id}/editar?error=${encodeURIComponent("Hay un producto repetido en el pedido. Cada producto debe aparecer una sola vez.")}`,
+      `/pedidos/${id}/editar?error=${encodeURIComponent("Hay un producto repetido en el pedido. Cada producto debe aparecer una sola vez.")}${volverQs}`,
     );
   }
 
@@ -255,7 +263,7 @@ export async function updatePedido(id: string, formData: FormData) {
     .eq("pedido_id", id);
 
   if (deleteError) {
-    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(deleteError.message)}`);
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(deleteError.message)}${volverQs}`);
   }
 
   const { error: detalleError } = await supabase
@@ -263,7 +271,7 @@ export async function updatePedido(id: string, formData: FormData) {
     .insert(lineas.map((l) => ({ ...l, pedido_id: id })));
 
   if (detalleError) {
-    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(detalleError.message)}`);
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(detalleError.message)}${volverQs}`);
   }
 
   const { error: updateError } = await supabase
@@ -278,12 +286,12 @@ export async function updatePedido(id: string, formData: FormData) {
     .eq("id", id);
 
   if (updateError) {
-    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(updateError.message)}`);
+    redirect(`/pedidos/${id}/editar?error=${encodeURIComponent(updateError.message)}${volverQs}`);
   }
 
   revalidatePath(`/pedidos/${id}`);
   revalidatePath("/pedidos");
-  redirect(`/pedidos/${id}`);
+  redirect(`/pedidos/${id}${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`);
 }
 
 export async function updateEstadoPedido(id: string, estado: string) {
