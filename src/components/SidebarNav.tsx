@@ -153,9 +153,15 @@ const LOGISTICA_VENDEDOR = {
   ],
 };
 
+// El almacén móvil ve "Mis ventas" (lista en tarjetas, pensada para
+// celular); el digital ve la pantalla normal — ver gruposPorRol.
 const FINANZAS_VENDEDOR = {
   label: "Finanzas",
   items: [{ href: "/ventas", label: "Ventas", icon: ShoppingCart }],
+};
+const FINANZAS_VENDEDOR_MOVIL = {
+  label: "Finanzas",
+  items: [{ href: "/ventas/mis-ventas", label: "Mis ventas", icon: ShoppingCart }],
 };
 
 function gruposPorRol(rol: string, almacenEsDigital: boolean) {
@@ -202,7 +208,7 @@ function gruposPorRol(rol: string, almacenEsDigital: boolean) {
     almacenEsDigital ? ACCESO_RAPIDO_VENDEDOR : ACCESO_RAPIDO_VENDEDOR_MOVIL,
     comercialVendedor,
     logisticaVendedor,
-    FINANZAS_VENDEDOR,
+    almacenEsDigital ? FINANZAS_VENDEDOR : FINANZAS_VENDEDOR_MOVIL,
   ];
 }
 
