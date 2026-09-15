@@ -57,7 +57,12 @@ export default function MisVentasView({
   const claseCard = oscuro
     ? "block rounded-xl border-2 border-gray-700 bg-gray-900 p-4 shadow-sm active:bg-gray-800"
     : "block rounded-xl border-2 border-gray-200 bg-white p-4 shadow-sm active:bg-gray-50";
-  const claseCardTitulo = oscuro ? "text-base font-bold text-gray-100" : "text-base font-bold text-gray-900";
+  // Etiqueta del comprobante con relleno propio (azul marino + letra
+  // blanca en negrita) para que resalte de un vistazo sobre el resto de
+  // la tarjeta — funciona igual en claro y oscuro, por eso no depende de
+  // "oscuro".
+  const claseCardTitulo =
+    "inline-block rounded-md bg-blue-950 px-2 py-1 text-sm font-bold text-white";
   const claseCliente = oscuro ? "text-lg font-bold text-gray-50" : "text-lg font-bold text-gray-900";
   const claseFecha = oscuro ? "mb-2 text-sm font-medium text-gray-400" : "mb-2 text-sm font-medium text-gray-500";
   const claseTotal = oscuro ? "text-xl font-extrabold text-gray-50" : "text-xl font-extrabold text-gray-900";
