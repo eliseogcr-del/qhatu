@@ -53,7 +53,7 @@ const QUICK_LINKS_VENDEDOR = [
   { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
-  { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  { href: "/ventas/mis-ventas", label: "Mis ventas", icon: ShoppingCart },
 ];
 
 // Almacén digital: opera como una tienda, no recibe mercadería en ruta —
