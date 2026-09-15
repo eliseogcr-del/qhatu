@@ -113,12 +113,19 @@ const MIS_REPARTOS = {
   items: [{ href: "/mis-repartos", label: "Mis repartos", icon: Route }],
 };
 
-// Acceso directo al formulario de "Venta directa" (sin pedido previo),
-// para que un vendedor en ruta (ej. almacén móvil) registre la venta en un
-// solo paso sin pasar por el listado de Ventas ni por "Nueva venta".
+// Acceso directo a un formulario de venta sin pedido previo, para que un
+// vendedor registre la venta en un solo paso sin pasar por el listado de
+// Ventas ni por "Nueva venta". El almacén móvil usa "Venta rápida" (Venta
+// Rapida Form: pantalla simplificada a medida para vender parado en la
+// calle desde el celular); el resto usa "Venta directa" (formulario
+// completo) — ver gruposPorRol.
 const ACCESO_RAPIDO_VENDEDOR = {
   label: "Acceso rápido",
   items: [{ href: "/ventas/directa", label: "Venta directa", icon: Zap }],
+};
+const ACCESO_RAPIDO_VENDEDOR_MOVIL = {
+  label: "Acceso rápido",
+  items: [{ href: "/ventas/rapida", label: "Venta rápida", icon: Zap }],
 };
 
 const COMERCIAL_VENDEDOR = {
@@ -185,7 +192,7 @@ function gruposPorRol(rol: string, almacenEsDigital: boolean) {
     : LOGISTICA_VENDEDOR;
   return [
     GENERAL,
-    ACCESO_RAPIDO_VENDEDOR,
+    almacenEsDigital ? ACCESO_RAPIDO_VENDEDOR : ACCESO_RAPIDO_VENDEDOR_MOVIL,
     comercialVendedor,
     logisticaVendedor,
     FINANZAS_VENDEDOR,

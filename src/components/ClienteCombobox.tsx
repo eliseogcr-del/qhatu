@@ -6,12 +6,16 @@ import ClienteRapidoModal from "./ClienteRapidoModal";
 
 type Cliente = { id: string; nombre: string };
 
+const inputClassDefault =
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+
 export default function ClienteCombobox({
   clientes,
   name = "cliente_id",
   defaultClienteId,
   placeholder = "Escribe el nombre del cliente...",
   onChange,
+  className = inputClassDefault,
 }: {
   clientes: Cliente[];
   name?: string;
@@ -20,6 +24,7 @@ export default function ClienteCombobox({
   // Opcional: para cuando el formulario padre necesita reaccionar a la
   // selección (ej. recalcular precios según el cliente elegido).
   onChange?: (clienteId: string) => void;
+  className?: string;
 }) {
   const [clientesLocal, setClientesLocal] = useState(clientes);
   const clienteInicial = clientesLocal.find((c) => c.id === defaultClienteId);
@@ -65,7 +70,7 @@ export default function ClienteCombobox({
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
         autoComplete="off"
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+        className={className}
       />
       {open && (
         <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">

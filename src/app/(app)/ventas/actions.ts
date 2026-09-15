@@ -502,3 +502,238 @@ export async function createVentaDirecta(formData: FormData) {
   revalidatePath("/kardex");
   redirect(`/ventas/${venta.id}`);
 }
+
+// Módulo aparte de createVentaDirecta, para la pantalla "Venta rápida"
+// del vendedor de almacén móvil (VentaRapidaForm) — misma operación de
+// fondo (pedido "directo" + venta + kardex), pero siempre en soles al
+// contado y sin saltar al detalle: al terminar, vuelve a la misma
+// pantalla lista para la siguiente venta. No comparte código con
+// createVentaDirecta a propósito, para no arriesgar el flujo que ya usan
+// admin/logística y el almacén digital.
+export async function createVentaRapida(formData: FormData) {
+  const supabase = await createClient();
+  const session = await getEmpresaSession(supabase);
+  const { userId, empresaId } = session;
+
+  const almacenId = resolverAlmacenId(session, formData);
+  if (!almacenId) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("No se encontró tu almacén asignado.")}`,
+    );
+  }
+
+  const moneda = "PEN";
+  const tipoCambio = 1;
+  const clienteId = String(formData.get("cliente_id") ?? "");
+
+  const productoIds = formData.getAll("producto_id[]").map(String);
+  const cantidades = formData.getAll("cantidad[]").map(Number);
+  const precios = formData.getAll("precio_unitario[]").map(Number);
+  const unidadesMedidaIds = formData.getAll("unidad_medida_id[]").map(String);
+
+  const lineasConProducto = productoIds
+    .map((producto_id, i) => ({
+      producto_id,
+      cantidad: cantidades[i],
+      precio_unitario: precios[i],
+      unidad_medida_id: unidadesMedidaIds[i] || null,
+    }))
+    .filter((l) => l.producto_id);
+
+  if (!clienteId || lineasConProducto.length === 0) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("Selecciona un cliente y agrega al menos un producto.")}`,
+    );
+  }
+
+  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+    );
+  }
+
+  if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
+    );
+  }
+
+  const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineasConProducto.length) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
+  let lineasConPrecio = lineasConProducto;
+  if (await preciosBloqueados(supabase, empresaId)) {
+    const digital = await esAlmacenDigital(supabase, almacenId);
+    const precios = await resolverPrecios(supabase, {
+      empresaId,
+      clienteId,
+      esDigital: digital,
+      lineas: lineasConProducto.map((l) => ({
+        productoId: l.producto_id,
+        unidadMedidaId: l.unidad_medida_id,
+      })),
+    });
+    lineasConPrecio = lineasConProducto.map((l) => ({
+      ...l,
+      precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
+    }));
+  }
+
+  const { data: unidadesInfo } = await supabase
+    .from("unidades_medida")
+    .select("id, cantidad")
+    .in("id", [...new Set(lineasConPrecio.map((l) => l.unidad_medida_id!))]);
+  const factorPorUnidad = new Map((unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]));
+
+  const lineas = lineasConPrecio.map((l) => ({
+    ...l,
+    subtotal: Math.round(l.cantidad * l.precio_unitario * 100) / 100,
+    cantidad_base:
+      Math.round(l.cantidad * (factorPorUnidad.get(l.unidad_medida_id!) ?? 1) * 100) / 100,
+  }));
+
+  const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const descuento = Number(formData.get("descuento") || 0);
+  if (!(descuento >= 0)) {
+    redirect(`/ventas/rapida?error=${encodeURIComponent("El descuento no puede ser negativo.")}`);
+  }
+  if (descuento > total) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("El descuento no puede ser mayor al total de la venta.")}`,
+    );
+  }
+
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, nombre, control_inventario")
+    .in("id", [...productoIdsUnicos]);
+
+  const lineasControladas = lineas
+    .filter((l) => productosInfo?.find((p) => p.id === l.producto_id)?.control_inventario)
+    .map((l) => ({
+      productoId: l.producto_id,
+      productoNombre: productosInfo!.find((p) => p.id === l.producto_id)!.nombre,
+      cantidad: l.cantidad_base,
+    }));
+
+  const errorStock = await validarStockDisponible(
+    supabase,
+    almacenId,
+    lineasControladas,
+    "Realiza un traslado del producto desde el almacén principal a este almacén antes de registrar la venta.",
+  );
+  if (errorStock) {
+    redirect(`/ventas/rapida?error=${encodeURIComponent(errorStock)}`);
+  }
+
+  const { data: pedido, error: pedidoError } = await supabase
+    .from("pedidos")
+    .insert({
+      empresa_id: empresaId,
+      cliente_id: clienteId,
+      canal_pedido: "directo",
+      fecha_entrega_requerida: hoy,
+      estado: "entregado",
+      moneda,
+      total,
+      usuario_id: userId,
+      almacen_id: almacenId,
+    })
+    .select("id")
+    .single();
+
+  if (pedidoError || !pedido) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent(pedidoError?.message ?? "No se pudo registrar la venta.")}`,
+    );
+  }
+
+  const [, { data: venta, error: ventaError }] = await Promise.all([
+    supabase.from("pedido_detalle").insert(
+      lineas.map((l) => ({
+        producto_id: l.producto_id,
+        cantidad: l.cantidad,
+        precio_unitario: l.precio_unitario,
+        subtotal: l.subtotal,
+        unidad_medida_id: l.unidad_medida_id,
+        pedido_id: pedido.id,
+      })),
+    ),
+    supabase
+      .from("ventas")
+      .insert({
+        empresa_id: empresaId,
+        pedido_id: pedido.id,
+        cliente_id: clienteId,
+        moneda,
+        tipo_cambio_aplicado: tipoCambio,
+        total,
+        descuento,
+        almacen_id: almacenId,
+      })
+      .select("id")
+      .single(),
+  ]);
+
+  if (ventaError || !venta) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent(ventaError?.message ?? "No se pudo registrar la venta.")}`,
+    );
+  }
+
+  await crearNotaVentaAutomatica(supabase, {
+    empresaId,
+    userId,
+    ventaId: venta.id,
+    almacenId,
+  });
+
+  const { data: ventaDetalleRows } = await supabase
+    .from("venta_detalle")
+    .insert(
+      lineas.map((l) => ({
+        venta_id: venta.id,
+        producto_id: l.producto_id,
+        cantidad: l.cantidad,
+        cantidad_entregada: l.cantidad,
+        precio_unitario: l.precio_unitario,
+        subtotal: l.subtotal,
+        unidad_medida_id: l.unidad_medida_id,
+      })),
+    )
+    .select("id");
+
+  const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
+  lineas.forEach((linea, i) => {
+    const ventaDetalleId = ventaDetalleRows?.[i]?.id;
+    if (!ventaDetalleId) return;
+
+    const llevaInventario = productosInfo?.find(
+      (p) => p.id === linea.producto_id,
+    )?.control_inventario;
+
+    if (llevaInventario) {
+      movimientosKardex.push({
+        productoId: linea.producto_id,
+        almacenId,
+        tipoMovimiento: "venta",
+        cantidad: -linea.cantidad_base,
+        referenciaId: ventaDetalleId,
+      });
+    }
+  });
+
+  await registrarMovimientosKardex(supabase, empresaId, userId, movimientosKardex);
+
+  revalidatePath("/ventas");
+  revalidatePath("/pedidos");
+  revalidatePath("/inventario");
+  revalidatePath("/kardex");
+  redirect("/ventas/rapida?guardado=1");
+}
