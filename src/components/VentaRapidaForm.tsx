@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Lock, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Lock, Moon, Plus, Sun, Trash2 } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
@@ -12,10 +13,12 @@ import { formatFecha } from "@/lib/fecha";
 // Módulo aparte de VentaDirectaForm, hecho a medida para el vendedor de
 // almacén móvil (vende parado en la calle, desde el celular, contra el
 // reloj): sin Moneda/Tipo de cambio (siempre PEN al contado), cliente
-// frecuente precargado, letra grande y en negrita, y al guardar se queda
-// acá misma lista para la siguiente venta en vez de saltar a otra
-// pantalla. No se toca VentaDirectaForm para no afectar a admin/logística
-// ni al almacén digital, que siguen usando el formulario completo.
+// frecuente precargado, letra grande y en negrita, modo oscuro opcional
+// (para cansar menos la vista con el celular), envío protegido contra
+// doble toque, y al guardar se queda acá misma lista para la siguiente
+// venta en vez de saltar a otra pantalla. No se toca VentaDirectaForm
+// para no afectar a admin/logística ni al almacén digital, que siguen
+// usando el formulario completo.
 
 type Cliente = { id: string; nombre: string };
 type Producto = {
@@ -36,15 +39,13 @@ type Linea = {
   unidad_medida_id: string;
 };
 
-const campoClase =
-  "w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-lg font-semibold focus:border-emerald-500 focus:outline-none";
-const campoBloqueadoClase =
-  "w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-4 py-3 text-lg font-semibold text-gray-700";
+const OSCURO_KEY = "qhatu-venta-rapida-oscuro";
 
 function Field({
   label,
   children,
   chico = false,
+  oscuro,
 }: {
   label: string;
   children: React.ReactNode;
@@ -52,18 +53,17 @@ function Field({
   // discretos — Cliente, Producto y Cantidad son los que de verdad hay
   // que leer y tocar rápido en cada venta.
   chico?: boolean;
+  oscuro: boolean;
 }) {
+  const claseChico = oscuro
+    ? "mb-1 block text-sm font-semibold text-gray-400"
+    : "mb-1 block text-sm font-semibold text-gray-600";
+  const claseGrande = oscuro
+    ? "mb-1.5 block text-base font-bold text-gray-100"
+    : "mb-1.5 block text-base font-bold text-gray-800";
   return (
     <div>
-      <label
-        className={
-          chico
-            ? "mb-1 block text-sm font-semibold text-gray-600"
-            : "mb-1.5 block text-base font-bold text-gray-800"
-        }
-      >
-        {label}
-      </label>
+      <label className={chico ? claseChico : claseGrande}>{label}</label>
       {children}
     </div>
   );
@@ -117,6 +117,47 @@ export default function VentaRapidaForm({
     fechaUltimaVenta: string;
   } | null>(null);
   const [mostrarToast, setMostrarToast] = useState(false);
+  const [oscuro, setOscuro] = useState(false);
+
+  // El modo oscuro es una preferencia del celular/vendedora, no del
+  // sistema — se guarda en este navegador para que no haya que
+  // reactivarlo en cada venta. Arranca en claro y recién en el cliente se
+  // ajusta según lo guardado, para no depender de cookies solo por esto.
+  useEffect(() => {
+    try {
+      const guardadoOscuro = localStorage.getItem(OSCURO_KEY);
+      if (guardadoOscuro === "1") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setOscuro(true);
+      }
+    } catch {
+      // Almacenamiento no disponible (modo privado, etc.) — se queda en claro.
+    }
+  }, []);
+
+  function alternarOscuro() {
+    setOscuro((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(OSCURO_KEY, next ? "1" : "0");
+      } catch {
+        // Sin persistencia disponible, igual cambia para esta sesión.
+      }
+      return next;
+    });
+  }
+
+  // Evita que un doble toque (muy común con el apuro/el celular en la
+  // calle) mande la misma venta dos veces: se corta en seco en el propio
+  // evento de submit, sin esperar a que el botón se vea deshabilitado (esa
+  // actualización visual puede llegar unos milisegundos tarde). Se
+  // reactiva solo cuando llega una respuesta nueva del servidor (éxito o
+  // error) — nunca por su cuenta, para no arriesgar bloquear un reintento
+  // legítimo si algo falla antes de que "error"/"guardado" cambien.
+  const enviandoRef = useRef(false);
+  useEffect(() => {
+    enviandoRef.current = false;
+  }, [error, guardado]);
 
   // Detecta la transición false→true de "guardado" (no solo su valor al
   // montar) para que el aviso reaparezca en cada venta registrada, sea
@@ -222,206 +263,304 @@ export default function VentaRapidaForm({
     return false;
   })();
 
+  // Paleta de todo el formulario en un solo lugar — evita repetir el
+  // ternario claro/oscuro en cada elemento.
+  const claseCard = oscuro
+    ? "rounded-xl border-2 border-gray-700 bg-gray-900 p-4 shadow-sm sm:p-6"
+    : "rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-6";
+  const claseTitulo = oscuro ? "text-2xl font-bold text-gray-50" : "text-2xl font-bold text-gray-900";
+  const claseVolver = oscuro
+    ? "text-sm font-medium text-gray-300 hover:text-white"
+    : "text-sm font-medium text-gray-600 hover:underline";
+  const claseToggle = oscuro
+    ? "flex h-9 w-9 items-center justify-center rounded-lg border-2 border-gray-600 bg-gray-800 text-amber-300 hover:bg-gray-700"
+    : "flex h-9 w-9 items-center justify-center rounded-lg border-2 border-gray-300 bg-white text-gray-600 hover:bg-gray-100";
+  const claseCampo = oscuro
+    ? "w-full rounded-lg border-2 border-gray-600 bg-gray-800 px-4 py-3 text-lg font-semibold text-gray-100 focus:border-emerald-400 focus:outline-none"
+    : "w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-lg font-semibold text-gray-900 focus:border-emerald-500 focus:outline-none";
+  const claseCampoBloqueado = oscuro
+    ? "w-full rounded-lg border-2 border-gray-700 bg-gray-800/60 px-4 py-3 text-lg font-semibold text-gray-300"
+    : "w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-4 py-3 text-lg font-semibold text-gray-700";
+  const claseLineaCard = oscuro
+    ? "space-y-3 rounded-xl border-2 border-gray-700 bg-gray-800 p-3"
+    : "space-y-3 rounded-xl border-2 border-gray-200 bg-white p-3";
+  const claseQuitar = oscuro
+    ? "flex h-12 items-center justify-center gap-1.5 rounded-lg border-2 border-gray-600 bg-gray-800 px-4 text-base font-semibold text-gray-300 hover:bg-gray-700"
+    : "flex h-12 items-center justify-center gap-1.5 rounded-lg border-2 border-gray-300 bg-white px-4 text-base font-semibold text-gray-600 hover:bg-gray-100";
+  const claseAgregar = oscuro
+    ? "flex items-center gap-1.5 text-base font-bold text-emerald-400 hover:text-emerald-300"
+    : "flex items-center gap-1.5 text-base font-bold text-emerald-700 hover:text-emerald-900";
+  const claseTotales = oscuro
+    ? "space-y-1.5 rounded-xl border-2 border-gray-700 bg-gray-800 p-4 text-base font-semibold text-gray-300"
+    : "space-y-1.5 rounded-xl border-2 border-gray-200 bg-white p-4 text-base font-semibold text-gray-600";
+  const claseDescuento = oscuro
+    ? "w-28 rounded-lg border-2 border-gray-600 bg-gray-800 px-2 py-1.5 text-right text-base font-semibold text-gray-100 focus:border-emerald-400 focus:outline-none"
+    : "w-28 rounded-lg border-2 border-gray-300 bg-white px-2 py-1.5 text-right text-base font-semibold focus:border-emerald-500 focus:outline-none";
+  const claseNeto = oscuro
+    ? "flex justify-between border-t border-gray-700 pt-1.5 text-xl font-bold text-gray-50"
+    : "flex justify-between border-t border-gray-100 pt-1.5 text-xl font-bold text-gray-900";
+  const claseTextoSecundario = oscuro ? "text-gray-400" : "text-gray-500";
+
   return (
-    <form
-      action={action}
-      onSubmit={(e) => {
-        if (tieneDuplicados) {
-          e.preventDefault();
-          setAvisoDuplicado(
-            "Hay un producto repetido en la venta. Quita la línea duplicada antes de guardar.",
-          );
-        }
-      }}
-      className="space-y-6"
-    >
-      {/* Siempre soles al contado — no le hace falta elegirlo en cada venta de calle. */}
-      <input type="hidden" name="moneda" value="PEN" />
-      <input type="hidden" name="tipo_cambio_aplicado" value={1} />
+    <div className={claseCard}>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className={claseTitulo}>Venta rápida</h1>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={alternarOscuro}
+            aria-label={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            title={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            className={claseToggle}
+          >
+            {oscuro ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <Link href="/dashboard" className={`flex items-center gap-1 ${claseVolver}`}>
+            <ArrowLeft size={16} />
+            Panel
+          </Link>
+        </div>
+      </div>
 
-      {mostrarToast && (
-        <p className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-base font-bold text-emerald-800">
-          <CheckCircle2 size={20} className="shrink-0" />
-          Venta registrada. Lista para la siguiente.
-        </p>
-      )}
-      {error && (
-        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-base font-semibold text-red-700">
-          {error}
-        </p>
-      )}
-      {avisoDuplicado && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-base font-semibold text-amber-700">
-          {avisoDuplicado}
-        </p>
-      )}
-      {deudaCliente && (
-        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-base font-bold text-red-700">
-          Este cliente debe {deudaCliente.moneda} {deudaCliente.saldo.toFixed(2)} de una venta
-          anterior ({formatFecha(deudaCliente.fechaUltimaVenta)}). Puedes continuar de todas
-          formas.
-        </p>
-      )}
+      <form
+        action={action}
+        onSubmit={(e) => {
+          if (tieneDuplicados) {
+            e.preventDefault();
+            setAvisoDuplicado(
+              "Hay un producto repetido en la venta. Quita la línea duplicada antes de guardar.",
+            );
+            return;
+          }
+          if (enviandoRef.current) {
+            e.preventDefault();
+            return;
+          }
+          enviandoRef.current = true;
+        }}
+        className="space-y-6"
+      >
+        {/* Siempre soles al contado — no le hace falta elegirlo en cada venta de calle. */}
+        <input type="hidden" name="moneda" value="PEN" />
+        <input type="hidden" name="tipo_cambio_aplicado" value={1} />
 
-      <Field label="Cliente">
-        <ClienteCombobox
-          clientes={clientes}
-          defaultClienteId={clienteFrecuenteId ?? undefined}
-          onChange={setClienteId}
-          className={campoClase}
-        />
-      </Field>
+        {mostrarToast && (
+          <p
+            className={
+              oscuro
+                ? "flex items-center gap-2 rounded-lg border border-emerald-700 bg-emerald-950 p-3 text-base font-bold text-emerald-300"
+                : "flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-base font-bold text-emerald-800"
+            }
+          >
+            <CheckCircle2 size={20} className="shrink-0" />
+            Venta registrada. Lista para la siguiente.
+          </p>
+        )}
+        {error && (
+          <p
+            className={
+              oscuro
+                ? "rounded-lg border border-red-800 bg-red-950 p-3 text-base font-semibold text-red-300"
+                : "rounded-lg border border-red-200 bg-red-50 p-3 text-base font-semibold text-red-700"
+            }
+          >
+            {error}
+          </p>
+        )}
+        {avisoDuplicado && (
+          <p
+            className={
+              oscuro
+                ? "rounded-lg border border-amber-800 bg-amber-950 p-3 text-base font-semibold text-amber-300"
+                : "rounded-lg border border-amber-200 bg-amber-50 p-3 text-base font-semibold text-amber-700"
+            }
+          >
+            {avisoDuplicado}
+          </p>
+        )}
+        {deudaCliente && (
+          <p
+            className={
+              oscuro
+                ? "rounded-lg border border-red-800 bg-red-950 p-3 text-base font-bold text-red-300"
+                : "rounded-lg border border-red-200 bg-red-50 p-3 text-base font-bold text-red-700"
+            }
+          >
+            Este cliente debe {deudaCliente.moneda} {deudaCliente.saldo.toFixed(2)} de una venta
+            anterior ({formatFecha(deudaCliente.fechaUltimaVenta)}). Puedes continuar de todas
+            formas.
+          </p>
+        )}
 
-      <div className="space-y-4">
-        {lineas.map((linea) => {
-          const productoElegido = productos.find((p) => p.id === linea.producto_id);
-          const stockDisponible =
-            productoElegido?.control_inventario && almacenSesion
-              ? (stockPorAlmacen[`${linea.producto_id}::${almacenSesion}`] ?? 0)
-              : null;
-          const unidadSeleccionada = unidadesMedida.find((u) => u.id === linea.unidad_medida_id);
-          const factor = unidadSeleccionada?.cantidad ?? 1;
-          const cantidadBase = linea.cantidad * factor;
+        <Field label="Cliente" oscuro={oscuro}>
+          <ClienteCombobox
+            clientes={clientes}
+            defaultClienteId={clienteFrecuenteId ?? undefined}
+            onChange={setClienteId}
+            className={claseCampo}
+          />
+        </Field>
 
-          return (
-            <div
-              key={linea.key}
-              className="space-y-3 rounded-xl border-2 border-gray-200 bg-white p-3"
-            >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px]">
-                <Field label="Producto">
-                  <ProductoCombobox
-                    productos={productosDisponibles}
-                    value={linea.producto_id}
-                    onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
-                    className={campoClase}
-                  />
-                </Field>
-                <Field label="Cantidad">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    name="cantidad[]"
-                    value={linea.cantidad || ""}
-                    onChange={(e) => updateLinea(linea.key, { cantidad: Number(e.target.value) })}
-                    className={campoClase}
-                  />
-                  {factor !== 1 && (
-                    <p className="mt-1 text-sm text-gray-500">= {cantidadBase} unidades</p>
-                  )}
-                  {stockDisponible !== null && (
-                    <p
-                      className={`mt-1 text-sm font-medium ${cantidadBase > stockDisponible ? "text-red-600" : "text-gray-500"}`}
-                    >
-                      Disponible: {stockDisponible}
-                    </p>
-                  )}
-                </Field>
-              </div>
+        <div className="space-y-4">
+          {lineas.map((linea) => {
+            const productoElegido = productos.find((p) => p.id === linea.producto_id);
+            const stockDisponible =
+              productoElegido?.control_inventario && almacenSesion
+                ? (stockPorAlmacen[`${linea.producto_id}::${almacenSesion}`] ?? 0)
+                : null;
+            const unidadSeleccionada = unidadesMedida.find((u) => u.id === linea.unidad_medida_id);
+            const factor = unidadSeleccionada?.cantidad ?? 1;
+            const cantidadBase = linea.cantidad * factor;
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
-                <Field label="Unidad" chico>
-                  <select
-                    name="unidad_medida_id[]"
-                    value={linea.unidad_medida_id}
-                    onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
-                    className={campoClase}
-                  >
-                    <option value="">—</option>
-                    {unidadesMedida.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.descripcion}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Precio" chico>
-                  {preciosBloqueados && !productoElegido?.precio_editable ? (
-                    <div className={`${campoBloqueadoClase} flex items-center gap-1.5`}>
-                      <Lock size={14} className="shrink-0 text-gray-400" />
-                      {linea.precio_unitario.toFixed(2)}
-                    </div>
-                  ) : (
+            return (
+              <div key={linea.key} className={claseLineaCard}>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px]">
+                  <Field label="Producto" oscuro={oscuro}>
+                    <ProductoCombobox
+                      productos={productosDisponibles}
+                      value={linea.producto_id}
+                      onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
+                      className={claseCampo}
+                    />
+                  </Field>
+                  <Field label="Cantidad" oscuro={oscuro}>
                     <input
                       type="number"
                       step="0.01"
                       min="0.01"
-                      name="precio_unitario[]"
-                      value={linea.precio_unitario || ""}
+                      name="cantidad[]"
+                      value={linea.cantidad || ""}
                       onChange={(e) =>
-                        updateLinea(linea.key, { precio_unitario: Number(e.target.value) })
+                        updateLinea(linea.key, { cantidad: Number(e.target.value) })
                       }
-                      className={campoClase}
+                      className={claseCampo}
                     />
-                  )}
-                  {preciosBloqueados && !productoElegido?.precio_editable && (
-                    <input type="hidden" name="precio_unitario[]" value={linea.precio_unitario} />
-                  )}
-                </Field>
-                <Field label="Subtotal" chico>
-                  <input
-                    disabled
-                    value={(linea.cantidad * linea.precio_unitario).toFixed(2)}
-                    className={`${campoClase} bg-gray-50 text-gray-500`}
-                  />
-                </Field>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setLineas((prev) => (prev.length > 1 ? prev.filter((l) => l.key !== linea.key) : prev))
-                  }
-                  aria-label="Quitar producto"
-                  className="flex h-12 items-center justify-center gap-1.5 rounded-lg border-2 border-gray-300 bg-white px-4 text-base font-semibold text-gray-600 hover:bg-gray-100"
-                >
-                  <Trash2 size={16} />
-                  Quitar
-                </button>
+                    {factor !== 1 && (
+                      <p className={`mt-1 text-sm ${claseTextoSecundario}`}>
+                        = {cantidadBase} unidades
+                      </p>
+                    )}
+                    {stockDisponible !== null && (
+                      <p
+                        className={`mt-1 text-sm font-medium ${
+                          cantidadBase > stockDisponible
+                            ? oscuro
+                              ? "text-red-400"
+                              : "text-red-600"
+                            : claseTextoSecundario
+                        }`}
+                      >
+                        Disponible: {stockDisponible}
+                      </p>
+                    )}
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                  <Field label="Unidad" chico oscuro={oscuro}>
+                    <select
+                      name="unidad_medida_id[]"
+                      value={linea.unidad_medida_id}
+                      onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
+                      className={claseCampo}
+                    >
+                      <option value="">—</option>
+                      {unidadesMedida.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.descripcion}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Precio" chico oscuro={oscuro}>
+                    {preciosBloqueados && !productoElegido?.precio_editable ? (
+                      <div className={`${claseCampoBloqueado} flex items-center gap-1.5`}>
+                        <Lock size={14} className="shrink-0 text-gray-400" />
+                        {linea.precio_unitario.toFixed(2)}
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        name="precio_unitario[]"
+                        value={linea.precio_unitario || ""}
+                        onChange={(e) =>
+                          updateLinea(linea.key, { precio_unitario: Number(e.target.value) })
+                        }
+                        className={claseCampo}
+                      />
+                    )}
+                    {preciosBloqueados && !productoElegido?.precio_editable && (
+                      <input
+                        type="hidden"
+                        name="precio_unitario[]"
+                        value={linea.precio_unitario}
+                      />
+                    )}
+                  </Field>
+                  <Field label="Subtotal" chico oscuro={oscuro}>
+                    <input
+                      disabled
+                      value={(linea.cantidad * linea.precio_unitario).toFixed(2)}
+                      className={`${claseCampo} ${oscuro ? "bg-gray-800/60 text-gray-400" : "bg-gray-50 text-gray-500"}`}
+                    />
+                  </Field>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLineas((prev) =>
+                        prev.length > 1 ? prev.filter((l) => l.key !== linea.key) : prev,
+                      )
+                    }
+                    aria-label="Quitar producto"
+                    className={claseQuitar}
+                  >
+                    <Trash2 size={16} />
+                    Quitar
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setLineas((prev) => [...prev, newLinea()])}
-        className="flex items-center gap-1.5 text-base font-bold text-emerald-700 hover:text-emerald-900"
-      >
-        <Plus size={18} />
-        Agregar producto
-      </button>
-
-      <div className="space-y-1.5 rounded-xl border-2 border-gray-200 bg-white p-4 text-base font-semibold">
-        <div className="flex items-center justify-between text-gray-600">
-          <span>Total</span>
-          <span>{total.toFixed(2)}</span>
+            );
+          })}
         </div>
-        <div className="flex items-center justify-between text-gray-600">
-          <span>Descuento</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            name="descuento"
-            value={descuento || ""}
-            onChange={(e) => setDescuento(Number(e.target.value) || 0)}
-            placeholder="0"
-            className="w-28 rounded-lg border-2 border-gray-300 bg-white px-2 py-1.5 text-right text-base font-semibold focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
-        <div className="flex justify-between border-t border-gray-100 pt-1.5 text-xl font-bold text-gray-900">
-          <span>Neto a pagar</span>
-          <span>{netoAPagar.toFixed(2)}</span>
-        </div>
-      </div>
 
-      <SubmitButton
-        pendingLabel="Registrando venta..."
-        className="w-full justify-center rounded-lg bg-emerald-600 px-4 py-4 text-lg font-bold text-white hover:bg-emerald-700"
-      >
-        Registrar venta
-      </SubmitButton>
-    </form>
+        <button type="button" onClick={() => setLineas((prev) => [...prev, newLinea()])} className={claseAgregar}>
+          <Plus size={18} />
+          Agregar producto
+        </button>
+
+        <div className={claseTotales}>
+          <div className="flex items-center justify-between">
+            <span>Total</span>
+            <span>{total.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Descuento</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="descuento"
+              value={descuento || ""}
+              onChange={(e) => setDescuento(Number(e.target.value) || 0)}
+              placeholder="0"
+              className={claseDescuento}
+            />
+          </div>
+          <div className={claseNeto}>
+            <span>Neto a pagar</span>
+            <span>{netoAPagar.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <SubmitButton
+          pendingLabel="Registrando venta..."
+          className="w-full justify-center rounded-lg bg-emerald-600 px-4 py-4 text-lg font-bold text-white hover:bg-emerald-700"
+        >
+          Registrar venta
+        </SubmitButton>
+      </form>
+    </div>
   );
 }

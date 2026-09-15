@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
@@ -52,27 +51,18 @@ export default async function VentaRapidaPage({
   return (
     <div className="p-4 sm:p-8">
       <div className="mx-auto max-w-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Venta rápida</h1>
-          <Link href="/dashboard" className="text-sm font-medium text-gray-600 hover:underline">
-            ← Panel
-          </Link>
-        </div>
-
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-6">
-          <VentaRapidaForm
-            action={createVentaRapida}
-            error={error}
-            guardado={guardado === "1"}
-            clientes={clientes ?? []}
-            clienteFrecuenteId={clienteFrecuenteId}
-            productos={productos ?? []}
-            unidadesMedida={unidadesMedida ?? []}
-            stockPorAlmacen={stockPorAlmacen}
-            almacenSesion={almacenId}
-            preciosBloqueados={preciosBloqueados}
-          />
-        </div>
+        <VentaRapidaForm
+          action={createVentaRapida}
+          error={error}
+          guardado={guardado === "1"}
+          clientes={clientes ?? []}
+          clienteFrecuenteId={clienteFrecuenteId}
+          productos={productos ?? []}
+          unidadesMedida={unidadesMedida ?? []}
+          stockPorAlmacen={stockPorAlmacen}
+          almacenSesion={almacenId}
+          preciosBloqueados={preciosBloqueados}
+        />
       </div>
     </div>
   );
