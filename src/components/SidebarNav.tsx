@@ -149,27 +149,38 @@ function gruposPorRol(rol: string, almacenEsDigital: boolean) {
   if (rol === "logistica")
     return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA, FINANZAS_LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
-  // vendedor (y cualquier valor no reconocido): solo Pedidos, Abastecimiento
-  // en campo (para registrar lo que recibe en ruta) y Ventas, más un acceso
-  // rápido a Venta directa arriba de todo. El del almacén digital además ve
-  // Clientes, filtrado a solo los clientes digitales.
+  // vendedor (y cualquier valor no reconocido): un almacén móvil solo ve
+  // Cotizaciones, Traslados, Abastecimiento en campo (para registrar lo
+  // que recibe en ruta) y Ventas, más un acceso rápido a Venta directa
+  // arriba de todo — Pedidos, Inventario, Kardex y Reportes quedan fuera
+  // porque no le hacen falta en el día a día de ruta. El almacén digital,
+  // en cambio, sí opera como una tienda (no recibe mercadería en ruta), así
+  // que conserva Clientes, Pedidos, Inventario y Kardex.
   const comercialVendedor = almacenEsDigital
     ? {
         ...COMERCIAL_VENDEDOR,
         items: [
           { href: "/clientes", label: "Clientes", icon: Users },
+          { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
           ...COMERCIAL_VENDEDOR.items,
         ],
       }
     : COMERCIAL_VENDEDOR;
   // Abastecimiento en campo es para registrar lo que un vendedor recoge
-  // físicamente en ruta — no aplica al almacén digital.
+  // físicamente en ruta — no aplica al almacén digital, que en cambio sí
+  // necesita ver Inventario y Kardex (no tiene un vendedor de ruta que
+  // reporte esos movimientos por otro lado).
   const logisticaVendedor = almacenEsDigital
     ? {
         ...LOGISTICA_VENDEDOR,
-        items: LOGISTICA_VENDEDOR.items.filter(
-          (item) => item.href !== "/abastecimiento-campo",
-        ),
+        items: [
+          { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
+          { href: "/inventario", label: "Inventario", icon: Boxes },
+          { href: "/kardex", label: "Kardex", icon: ScrollText },
+          ...LOGISTICA_VENDEDOR.items.filter(
+            (item) => item.href !== "/traslados" && item.href !== "/abastecimiento-campo",
+          ),
+        ],
       }
     : LOGISTICA_VENDEDOR;
   return [
