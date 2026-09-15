@@ -76,6 +76,7 @@ const LOGISTICA = {
 const FINANZAS = {
   label: "Finanzas",
   items: [
+    { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
     { href: "/compras", label: "Compras", icon: ShoppingBag },
     { href: "/ventas", label: "Ventas", icon: ShoppingCart },
     { href: "/comprobantes", label: "Comprobantes", icon: FileText },
@@ -86,7 +87,10 @@ const FINANZAS = {
 
 const FINANZAS_LOGISTICA = {
   label: "Finanzas",
-  items: [{ href: "/ventas", label: "Ventas", icon: ShoppingCart }],
+  items: [
+    { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
+    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  ],
 };
 
 const ADMINISTRACION = {
@@ -121,7 +125,10 @@ const MIS_REPARTOS = {
 // completo) — ver gruposPorRol.
 const ACCESO_RAPIDO_VENDEDOR = {
   label: "Acceso rápido",
-  items: [{ href: "/ventas/directa", label: "Venta directa", icon: Zap }],
+  items: [
+    { href: "/ventas/directa", label: "Venta directa", icon: Zap },
+    { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
+  ],
 };
 const ACCESO_RAPIDO_VENDEDOR_MOVIL = {
   label: "Acceso rápido",

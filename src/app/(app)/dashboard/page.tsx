@@ -19,6 +19,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, getAuthUser } from "@/utils/supabase/session";
 
 const QUICK_LINKS_COMPLETO = [
+  { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/productos", label: "Productos", icon: Package },
   { href: "/proveedores", label: "Proveedores", icon: Truck },
@@ -31,6 +32,7 @@ const QUICK_LINKS_COMPLETO = [
 ];
 
 const QUICK_LINKS_LOGISTICA = [
+  { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
   { href: "/repartos", label: "Reparto", icon: Route },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
@@ -58,6 +60,7 @@ const QUICK_LINKS_VENDEDOR = [
 // conserva Pedidos, Inventario, Kardex y Reportes.
 const QUICK_LINKS_VENDEDOR_DIGITAL = [
   { href: "/ventas/directa", label: "Registrar venta", icon: Zap },
+  { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
   { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
   { href: "/inventario", label: "Inventario", icon: Boxes },
