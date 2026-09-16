@@ -19,6 +19,10 @@ export type RepartoInitialValues = {
   transportista_nombre: string | null;
   repartidor_id: string | null;
   estado: string;
+  placaNumero: string | null;
+  pesoBrutoTotal: number | null;
+  numeroDeBultos: number | null;
+  transportistaRuc: string | null;
 };
 
 const emptyValues: RepartoInitialValues = {
@@ -28,6 +32,10 @@ const emptyValues: RepartoInitialValues = {
   transportista_nombre: null,
   repartidor_id: null,
   estado: "pendiente",
+  placaNumero: null,
+  pesoBrutoTotal: null,
+  numeroDeBultos: null,
+  transportistaRuc: null,
 };
 
 const inputClass =
@@ -143,8 +151,8 @@ export default function RepartoForm({
         </Field>
       )}
 
-      {tipoTransporte === "repartidor_propio" && (
-        <Field label="Repartidor">
+      {(tipoTransporte === "repartidor_propio" || tipoTransporte === "vehiculo_cliente") && (
+        <Field label="Repartidor / conductor">
           <select
             name="repartidor_id"
             defaultValue={values.repartidor_id ?? ""}
@@ -157,8 +165,58 @@ export default function RepartoForm({
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-gray-400">
+            Necesario para declarar al conductor en la guía de remisión (transporte
+            privado) — sus datos (DNI, licencia) se completan en Usuarios.
+          </p>
         </Field>
       )}
+
+      <section className="space-y-4 rounded-lg border border-gray-200 p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Datos para la guía de remisión (opcional)
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Placa del vehículo">
+            <input
+              name="placa_numero"
+              defaultValue={values.placaNumero ?? ""}
+              placeholder="ABC123"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Peso bruto total (kg)">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="peso_bruto_total"
+              defaultValue={values.pesoBrutoTotal ?? ""}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="N° de bultos">
+            <input
+              type="number"
+              step="1"
+              min="1"
+              name="numero_de_bultos"
+              defaultValue={values.numeroDeBultos ?? ""}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        {tipoTransporte === "delivery_subcontratado" && (
+          <Field label="RUC del transportista">
+            <input
+              name="transportista_ruc"
+              defaultValue={values.transportistaRuc ?? ""}
+              maxLength={11}
+              className={inputClass}
+            />
+          </Field>
+        )}
+      </section>
 
       <SubmitButton>{submitLabel}</SubmitButton>
     </form>

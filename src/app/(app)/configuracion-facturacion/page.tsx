@@ -15,7 +15,7 @@ export default async function ConfiguracionFacturacionPage({
 
   const { data: config } = await supabase
     .from("configuracion_facturacion")
-    .select("serie_factura, serie_boleta")
+    .select("serie_factura, serie_boleta, serie_guia_remision")
     .eq("empresa_id", empresaId)
     .maybeSingle();
 
@@ -79,6 +79,18 @@ export default async function ConfiguracionFacturacionPage({
                   defaultValue={config?.serie_boleta ?? "BBB1"}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Serie para Guía de Remisión
+                </label>
+                <input
+                  name="serie_guia_remision"
+                  required
+                  defaultValue={config?.serie_guia_remision ?? "TTT1"}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-gray-400">Debe empezar con &quot;T&quot;.</p>
               </div>
             </div>
 

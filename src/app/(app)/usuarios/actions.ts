@@ -37,6 +37,9 @@ export async function createUsuario(formData: FormData) {
   const activo = formData.get("activo") === "on";
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
   const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
+  const dni = String(formData.get("dni") ?? "").trim() || null;
+  const apellidos = String(formData.get("apellidos") ?? "").trim() || null;
+  const licenciaConducir = String(formData.get("licencia_conducir") ?? "").trim() || null;
 
   if (!username || !nombre || password.length < 6) {
     redirect(
@@ -90,6 +93,9 @@ export async function createUsuario(formData: FormData) {
     rol,
     activo,
     almacen_id: almacenId,
+    dni,
+    apellidos,
+    licencia_conducir: licenciaConducir,
   });
 
   if (perfilError) {
@@ -114,6 +120,9 @@ export async function updateUsuario(id: string, formData: FormData) {
   const activo = formData.get("activo") === "on";
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
   const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
+  const dni = String(formData.get("dni") ?? "").trim() || null;
+  const apellidos = String(formData.get("apellidos") ?? "").trim() || null;
+  const licenciaConducir = String(formData.get("licencia_conducir") ?? "").trim() || null;
 
   if (!username || !nombre) {
     redirect(
@@ -157,7 +166,16 @@ export async function updateUsuario(id: string, formData: FormData) {
 
   const { error } = await admin
     .from("usuarios")
-    .update({ username, nombre, rol, activo, almacen_id: almacenId })
+    .update({
+      username,
+      nombre,
+      rol,
+      activo,
+      almacen_id: almacenId,
+      dni,
+      apellidos,
+      licencia_conducir: licenciaConducir,
+    })
     .eq("id", id);
 
   if (error) {

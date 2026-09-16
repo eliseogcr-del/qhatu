@@ -6,6 +6,8 @@ import { Save, Search, Loader2 } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode";
 import { consultarDocumento } from "@/app/(app)/clientes/actions";
 import SubmitButton from "./SubmitButton";
+import UbigeoSelect from "./UbigeoSelect";
+import type { UbigeoRow } from "@/utils/supabase/ubigeo";
 
 const ClienteMapPicker = dynamic(() => import("./ClienteMapPicker"), {
   ssr: false,
@@ -37,6 +39,7 @@ export type ClienteInitialValues = {
   codigo_interno: string | null;
   es_digital: boolean;
   activo: boolean;
+  ubigeo: string | null;
 };
 
 const emptyValues: ClienteInitialValues = {
@@ -60,6 +63,7 @@ const emptyValues: ClienteInitialValues = {
   codigo_interno: null,
   es_digital: false,
   activo: true,
+  ubigeo: null,
 };
 
 function Field({
@@ -87,11 +91,13 @@ export default function ClienteForm({
   initialValues,
   error,
   submitLabel,
+  catalogoUbigeo,
 }: {
   action: (formData: FormData) => void;
   initialValues?: ClienteInitialValues;
   error?: string;
   submitLabel: string;
+  catalogoUbigeo: UbigeoRow[];
 }) {
   const values = initialValues ?? emptyValues;
   const [lat, setLat] = useState<number | null>(values.latitud);
@@ -347,6 +353,17 @@ export default function ClienteForm({
             className={inputClass}
           />
         </Field>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Ubigeo (para la guía de remisión)
+          </label>
+          <p className="mb-2 text-xs text-gray-400">
+            Distinto de los campos de arriba: es el código oficial que exige
+            SUNAT para el punto de llegada al emitir una guía de remisión.
+          </p>
+          <UbigeoSelect catalogo={catalogoUbigeo} defaultValue={values.ubigeo} />
+        </div>
 
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-gray-700">

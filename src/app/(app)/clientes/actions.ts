@@ -30,6 +30,7 @@ function clienteFromForm(formData: FormData) {
     distrito: text("distrito"),
     direccion: text("direccion"),
     referencia: text("referencia"),
+    ubigeo: text("ubigeo"),
     latitud: num("latitud"),
     longitud: num("longitud"),
     zona: text("zona"),

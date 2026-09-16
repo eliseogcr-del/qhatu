@@ -23,7 +23,7 @@ export default async function EditarUsuarioPage({
   const [{ data: usuario }, { data: almacenes }] = await Promise.all([
     supabase
       .from("usuarios")
-      .select("id, username, nombre, rol, activo, almacen_id")
+      .select("id, username, nombre, rol, activo, almacen_id, dni, apellidos, licencia_conducir")
       .eq("id", id)
       .single(),
     supabase
@@ -64,6 +64,9 @@ export default async function EditarUsuarioPage({
               rol: usuario.rol,
               activo: usuario.activo,
               almacenId: usuario.almacen_id,
+              dni: usuario.dni,
+              apellidos: usuario.apellidos,
+              licenciaConducir: usuario.licencia_conducir,
             }}
             correoActual={authUser?.user?.email ?? ""}
             submitLabel="Guardar cambios"

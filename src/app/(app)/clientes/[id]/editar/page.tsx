@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { fetchUbigeoCatalogo } from "@/utils/supabase/ubigeo";
 import ClienteForm from "@/components/ClienteForm";
 import { updateCliente } from "../../actions";
 
@@ -16,11 +17,10 @@ export default async function EditarClientePage({
   const { error, volver } = await searchParams;
 
   const supabase = await createClient();
-  const { data: cliente } = await supabase
-    .from("clientes")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const [{ data: cliente }, catalogoUbigeo] = await Promise.all([
+    supabase.from("clientes").select("*").eq("id", id).single(),
+    fetchUbigeoCatalogo(supabase),
+  ]);
 
   if (!cliente) notFound();
 
@@ -46,6 +46,7 @@ export default async function EditarClientePage({
             initialValues={cliente}
             error={error}
             submitLabel="Guardar cambios"
+            catalogoUbigeo={catalogoUbigeo}
           />
         </div>
       </div>

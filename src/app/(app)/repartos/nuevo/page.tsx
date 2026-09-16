@@ -59,6 +59,10 @@ export default async function NuevoRepartoPage({
                     transportista_nombre: null,
                     repartidor_id: null,
                     estado: "pendiente",
+                    placaNumero: null,
+                    pesoBrutoTotal: null,
+                    numeroDeBultos: null,
+                    transportistaRuc: null,
                   }
                 : undefined
             }
