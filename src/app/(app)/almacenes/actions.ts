@@ -32,10 +32,11 @@ export async function updateAlmacen(id: string, formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "");
   const direccion = String(formData.get("direccion") ?? "") || null;
   const esDigital = formData.get("es_digital") === "on";
+  const ubigeo = String(formData.get("ubigeo") ?? "") || null;
 
   const { error } = await supabase
     .from("almacenes")
-    .update({ nombre, direccion, es_digital: esDigital })
+    .update({ nombre, direccion, es_digital: esDigital, ubigeo })
     .eq("id", id);
 
   if (error) {

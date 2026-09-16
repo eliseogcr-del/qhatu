@@ -3,7 +3,9 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
+import { fetchUbigeoCatalogo } from "@/utils/supabase/ubigeo";
 import SubmitButton from "@/components/SubmitButton";
+import UbigeoSelect from "@/components/UbigeoSelect";
 import { updateAlmacen } from "../../actions";
 
 export default async function EditarAlmacenPage({
@@ -18,11 +20,10 @@ export default async function EditarAlmacenPage({
   const supabase = await createClient();
   await requireAdmin(supabase);
 
-  const { data: almacen } = await supabase
-    .from("almacenes")
-    .select("id, nombre, direccion, es_digital")
-    .eq("id", id)
-    .single();
+  const [{ data: almacen }, catalogoUbigeo] = await Promise.all([
+    supabase.from("almacenes").select("id, nombre, direccion, es_digital, ubigeo").eq("id", id).single(),
+    fetchUbigeoCatalogo(supabase),
+  ]);
 
   if (!almacen) notFound();
 
@@ -83,6 +84,12 @@ export default async function EditarAlmacenPage({
               />
               Es almacén digital (usa Precio Digital en vez de Precio Campo)
             </label>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Ubicación (para la guía de remisión)
+              </label>
+              <UbigeoSelect catalogo={catalogoUbigeo} defaultValue={almacen.ubigeo} />
+            </div>
             <div>
               <SubmitButton>Guardar cambios</SubmitButton>
             </div>

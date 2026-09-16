@@ -11,10 +11,20 @@ export async function guardarConfiguracionFacturacion(formData: FormData) {
 
   const serieFactura = String(formData.get("serie_factura") ?? "").trim().toUpperCase();
   const serieBoleta = String(formData.get("serie_boleta") ?? "").trim().toUpperCase();
+  const serieGuiaRemision = String(formData.get("serie_guia_remision") ?? "").trim().toUpperCase();
 
-  if (!serieFactura || !serieBoleta) {
+  if (!serieFactura || !serieBoleta || !serieGuiaRemision) {
     redirect(
-      `/configuracion-facturacion?error=${encodeURIComponent("Completa ambas series.")}`,
+      `/configuracion-facturacion?error=${encodeURIComponent("Completa las tres series.")}`,
+    );
+  }
+
+  // Nubefact exige que la serie de Guía de Remisión Remitente empiece con "T".
+  if (!serieGuiaRemision.startsWith("T")) {
+    redirect(
+      `/configuracion-facturacion?error=${encodeURIComponent(
+        'La serie para Guía de Remisión debe empezar con "T" (ej. TTT1).',
+      )}`,
     );
   }
 
@@ -23,6 +33,7 @@ export async function guardarConfiguracionFacturacion(formData: FormData) {
       empresa_id: empresaId,
       serie_factura: serieFactura,
       serie_boleta: serieBoleta,
+      serie_guia_remision: serieGuiaRemision,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "empresa_id" },

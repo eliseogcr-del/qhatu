@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import { fetchUbigeoCatalogo } from "@/utils/supabase/ubigeo";
 import ClienteForm from "@/components/ClienteForm";
 import { createCliente } from "../actions";
 
@@ -9,6 +11,8 @@ export default async function NuevoClientePage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const supabase = await createClient();
+  const catalogoUbigeo = await fetchUbigeoCatalogo(supabase);
 
   return (
     <div className="p-8">
@@ -29,6 +33,7 @@ export default async function NuevoClientePage({
             action={createCliente}
             error={error}
             submitLabel="Crear cliente"
+            catalogoUbigeo={catalogoUbigeo}
           />
         </div>
       </div>

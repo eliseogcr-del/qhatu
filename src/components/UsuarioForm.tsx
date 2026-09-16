@@ -31,6 +31,9 @@ export type UsuarioInitialValues = {
   rol: string;
   activo: boolean;
   almacenId: string | null;
+  dni: string | null;
+  apellidos: string | null;
+  licenciaConducir: string | null;
 };
 
 const emptyValues: UsuarioInitialValues = {
@@ -39,6 +42,9 @@ const emptyValues: UsuarioInitialValues = {
   rol: "vendedor",
   activo: true,
   almacenId: null,
+  dni: null,
+  apellidos: null,
+  licenciaConducir: null,
 };
 
 export default function UsuarioForm({
@@ -193,11 +199,39 @@ export default function UsuarioForm({
       )}
 
       {rol === "repartidor" && (
-        <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
-          Repartidor solo ve y actualiza el estado de los repartos que se le
-          asignen — no accede a ventas, compras, inventario ni al resto del
-          sistema.
-        </p>
+        <>
+          <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
+            Repartidor solo ve y actualiza el estado de los repartos que se le
+            asignen — no accede a ventas, compras, inventario ni al resto del
+            sistema.
+          </p>
+          <div className="space-y-3 rounded-lg border border-amber-100 bg-amber-50 p-4">
+            <p className="text-xs text-amber-700">
+              Datos del conductor — se usan para declararlo en la guía de
+              remisión cuando reparte con vehículo propio o del cliente
+              (transporte privado).
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label="DNI">
+                <input name="dni" defaultValue={values.dni ?? ""} className={inputClass} />
+              </Field>
+              <Field label="Apellidos">
+                <input
+                  name="apellidos"
+                  defaultValue={values.apellidos ?? ""}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="N° de licencia de conducir">
+                <input
+                  name="licencia_conducir"
+                  defaultValue={values.licenciaConducir ?? ""}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+          </div>
+        </>
       )}
 
       <label className="flex items-center gap-2 text-sm text-gray-700">
