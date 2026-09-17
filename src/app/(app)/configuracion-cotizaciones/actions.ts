@@ -10,16 +10,10 @@ export async function guardarConfiguracionCotizaciones(formData: FormData) {
   const { empresaId } = await requireAdmin(supabase);
 
   const numeroInicial = Number(formData.get("numero_inicial") || 1);
-  const porcentajeIgv = Number(formData.get("porcentaje_igv") || 0);
 
   if (!(numeroInicial > 0)) {
     redirect(
       `/configuracion-cotizaciones?error=${encodeURIComponent("El número inicial debe ser mayor a 0.")}`,
-    );
-  }
-  if (!(porcentajeIgv >= 0)) {
-    redirect(
-      `/configuracion-cotizaciones?error=${encodeURIComponent("El porcentaje de impuesto no puede ser negativo.")}`,
     );
   }
 
@@ -27,7 +21,6 @@ export async function guardarConfiguracionCotizaciones(formData: FormData) {
     {
       empresa_id: empresaId,
       numero_inicial: numeroInicial,
-      porcentaje_igv: porcentajeIgv,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "empresa_id" },

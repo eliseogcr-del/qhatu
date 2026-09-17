@@ -81,14 +81,24 @@ export async function createCotizacion(formData: FormData) {
     }));
   }
 
-  const { data: config } = await supabase
-    .from("configuracion_cotizaciones")
-    .select("numero_inicial, porcentaje_igv")
-    .eq("empresa_id", empresaId)
-    .maybeSingle();
+  // El % de IGV es el mismo que usan Ventas (configuracion_facturacion) —
+  // una sola fuente para no volver a desfasarse. numero_inicial sigue
+  // siendo propio de cotizaciones.
+  const [{ data: config }, { data: configFacturacion }] = await Promise.all([
+    supabase
+      .from("configuracion_cotizaciones")
+      .select("numero_inicial")
+      .eq("empresa_id", empresaId)
+      .maybeSingle(),
+    supabase
+      .from("configuracion_facturacion")
+      .select("porcentaje_igv")
+      .eq("empresa_id", empresaId)
+      .maybeSingle(),
+  ]);
 
   const numeroInicial = config?.numero_inicial ?? 1;
-  const porcentajeIgv = config?.porcentaje_igv ?? 10.5;
+  const porcentajeIgv = configFacturacion?.porcentaje_igv ?? 10.5;
 
   // El precio unitario ya incluye el impuesto (igual que en Nota de
   // venta/Boleta) — el impuesto se extrae del total de cada línea, no se
