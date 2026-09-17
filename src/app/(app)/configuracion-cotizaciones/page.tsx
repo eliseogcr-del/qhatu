@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileSpreadsheet, Save } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
@@ -15,7 +16,7 @@ export default async function ConfiguracionCotizacionesPage({
 
   const { data: config } = await supabase
     .from("configuracion_cotizaciones")
-    .select("numero_inicial, porcentaje_igv")
+    .select("numero_inicial")
     .eq("empresa_id", empresaId)
     .maybeSingle();
 
@@ -29,9 +30,12 @@ export default async function ConfiguracionCotizacionesPage({
         <p className="mb-6 text-sm text-gray-500">
           El número inicial define desde qué correlativo empiezan las
           cotizaciones (si ya hay cotizaciones registradas, el sistema nunca
-          repite un número ya usado). El porcentaje de impuesto es propio de
-          la cotización — no afecta el IGV de 18% que usan Nota de
-          venta/Factura/Boleta.
+          repite un número ya usado). El porcentaje de IGV que usan las
+          cotizaciones es el mismo que Ventas — se configura en{" "}
+          <Link href="/configuracion-facturacion" className="underline">
+            Facturación electrónica
+          </Link>
+          .
         </p>
 
         {error && (
@@ -47,34 +51,18 @@ export default async function ConfiguracionCotizacionesPage({
 
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <form action={guardarConfiguracionCotizaciones} className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Número inicial de cotización
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  name="numero_inicial"
-                  required
-                  defaultValue={config?.numero_inicial ?? 1}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Porcentaje de impuesto (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  name="porcentaje_igv"
-                  required
-                  defaultValue={config?.porcentaje_igv ?? 10.5}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Número inicial de cotización
+              </label>
+              <input
+                type="number"
+                min="1"
+                name="numero_inicial"
+                required
+                defaultValue={config?.numero_inicial ?? 1}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none sm:w-1/2"
+              />
             </div>
 
             <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>

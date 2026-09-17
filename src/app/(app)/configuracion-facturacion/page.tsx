@@ -107,7 +107,8 @@ export default async function ConfiguracionFacturacionPage({
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
                 <p className="mt-1 text-xs text-gray-400">
-                  Usado al emitir factura/boleta/nota de crédito y la nota de venta interna.
+                  Usado al emitir factura/boleta/nota de crédito, la nota de venta interna, y
+                  también por Cotizaciones.
                 </p>
               </div>
             </div>
