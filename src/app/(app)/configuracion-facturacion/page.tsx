@@ -15,7 +15,7 @@ export default async function ConfiguracionFacturacionPage({
 
   const { data: config } = await supabase
     .from("configuracion_facturacion")
-    .select("serie_factura, serie_boleta, serie_guia_remision")
+    .select("serie_factura, serie_boleta, serie_guia_remision, porcentaje_igv")
     .eq("empresa_id", empresaId)
     .maybeSingle();
 
@@ -91,6 +91,24 @@ export default async function ConfiguracionFacturacionPage({
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:border-emerald-500 focus:outline-none"
                 />
                 <p className="mt-1 text-xs text-gray-400">Debe empezar con &quot;T&quot;.</p>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Porcentaje de IGV
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  name="porcentaje_igv"
+                  required
+                  defaultValue={config?.porcentaje_igv ?? 10.5}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Usado al emitir factura/boleta/nota de crédito y la nota de venta interna.
+                </p>
               </div>
             </div>
 

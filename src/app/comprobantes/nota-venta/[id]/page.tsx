@@ -24,7 +24,7 @@ export default async function NotaVentaPage({
   const { data: comprobante } = await supabase
     .from("comprobantes")
     .select(
-      "id, serie, numero, estado, tipo_comprobante, fecha_emision, venta_id, empresas(nombre), almacenes(nombre, direccion), ventas(moneda, total, clientes(tipo_documento, numero_documento, nombre, direccion))",
+      "id, serie, numero, estado, tipo_comprobante, fecha_emision, venta_id, empresa_id, empresas(nombre), almacenes(nombre, direccion), ventas(moneda, total, clientes(tipo_documento, numero_documento, nombre, direccion))",
     )
     .eq("id", id)
     .eq("tipo_comprobante", TIPO_NOTA_VENTA)
@@ -49,7 +49,7 @@ export default async function NotaVentaPage({
   } | null;
   const cliente = venta?.clientes ?? null;
 
-  const totales = await construirItemsYTotales(supabase, comprobante.venta_id);
+  const totales = await construirItemsYTotales(supabase, comprobante.venta_id, comprobante.empresa_id);
   if (!totales || !venta) notFound();
 
   const importeEnLetras = numeroALetras(venta.total, venta.moneda === "USD" ? "USD" : "PEN");
