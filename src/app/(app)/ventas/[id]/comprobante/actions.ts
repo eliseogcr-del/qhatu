@@ -157,7 +157,7 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
     );
   }
 
-  const totales = await construirItemsYTotales(supabase, ventaId);
+  const totales = await construirItemsYTotales(supabase, ventaId, empresaId);
   if (!totales) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("La venta no tiene productos entregados para facturar.")}`,
@@ -203,7 +203,7 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
     cliente_direccion: cliente.direccion ?? undefined,
     fecha_de_emision: fechaDeHoy(),
     moneda: venta.moneda === "USD" ? 2 : 1,
-    porcentaje_de_igv: 18.0,
+    porcentaje_de_igv: totales.porcentajeIgv,
     total_gravada: totales.totalGravada,
     total_igv: totales.totalIgv,
     total: totales.total,
@@ -267,7 +267,7 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
     );
   }
 
-  const totales = await construirItemsYTotales(supabase, ventaId);
+  const totales = await construirItemsYTotales(supabase, ventaId, empresaId);
   if (!totales) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("No se encontraron los productos originales para armar la nota de crédito.")}`,
@@ -313,7 +313,7 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
     cliente_direccion: cliente.direccion ?? undefined,
     fecha_de_emision: fechaDeHoy(),
     moneda: venta.moneda === "USD" ? 2 : 1,
-    porcentaje_de_igv: 18.0,
+    porcentaje_de_igv: totales.porcentajeIgv,
     total_gravada: totales.totalGravada,
     total_igv: totales.totalIgv,
     total: totales.total,
@@ -367,7 +367,7 @@ export async function emitirNotaVenta(ventaId: string) {
     );
   }
 
-  const totales = await construirItemsYTotales(supabase, ventaId);
+  const totales = await construirItemsYTotales(supabase, ventaId, empresaId);
   if (!totales) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("La venta no tiene productos entregados.")}`,

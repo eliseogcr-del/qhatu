@@ -12,6 +12,7 @@ export async function guardarConfiguracionFacturacion(formData: FormData) {
   const serieFactura = String(formData.get("serie_factura") ?? "").trim().toUpperCase();
   const serieBoleta = String(formData.get("serie_boleta") ?? "").trim().toUpperCase();
   const serieGuiaRemision = String(formData.get("serie_guia_remision") ?? "").trim().toUpperCase();
+  const porcentajeIgv = Number(formData.get("porcentaje_igv"));
 
   if (!serieFactura || !serieBoleta || !serieGuiaRemision) {
     redirect(
@@ -28,12 +29,21 @@ export async function guardarConfiguracionFacturacion(formData: FormData) {
     );
   }
 
+  if (!(porcentajeIgv > 0) || porcentajeIgv > 100) {
+    redirect(
+      `/configuracion-facturacion?error=${encodeURIComponent(
+        "El porcentaje de IGV debe ser mayor a 0 y como máximo 100.",
+      )}`,
+    );
+  }
+
   const { error } = await supabase.from("configuracion_facturacion").upsert(
     {
       empresa_id: empresaId,
       serie_factura: serieFactura,
       serie_boleta: serieBoleta,
       serie_guia_remision: serieGuiaRemision,
+      porcentaje_igv: porcentajeIgv,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "empresa_id" },
