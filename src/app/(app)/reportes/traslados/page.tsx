@@ -168,9 +168,9 @@ export default async function ReporteTrasladosPage({
                 <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
                   <p className="font-medium text-gray-900">{a.nombre}</p>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="max-h-[70vh] overflow-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-14 z-10 md:top-0">
+                    <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-0 z-10">
                       <tr>
                         <th className="px-4 py-2 font-bold">Producto</th>
                         <th className="px-4 py-2 font-bold">Cargado</th>
