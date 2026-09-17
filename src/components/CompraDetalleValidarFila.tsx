@@ -13,12 +13,14 @@ export default function CompraDetalleValidarFila({
   detalleId,
   productoId,
   productoNombre,
+  unidadMedida,
   cantidadInicial,
   costoInicial,
 }: {
   detalleId: string;
   productoId: string;
   productoNombre: string;
+  unidadMedida: string | null;
   cantidadInicial: number;
   costoInicial: number;
 }) {
@@ -28,7 +30,10 @@ export default function CompraDetalleValidarFila({
 
   return (
     <tr className="border-b-2 border-gray-200 last:border-0">
-      <td className="py-2 text-gray-900">{productoNombre}</td>
+      <td className="py-2 text-gray-900">
+        {productoNombre}
+        {unidadMedida && <span className="text-gray-500"> ({unidadMedida})</span>}
+      </td>
       <td className="py-2">
         <input type="hidden" name="detalle_id[]" value={detalleId} />
         <input type="hidden" name="producto_id[]" value={productoId} />
