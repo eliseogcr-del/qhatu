@@ -26,10 +26,24 @@ export default function CompraDetalleValidarFila({
 }) {
   const [cantidad, setCantidad] = useState(cantidadInicial);
   const [costo, setCosto] = useState(costoInicial);
+  const [verificado, setVerificado] = useState(false);
   const importe = Math.round(cantidad * costo * 100) / 100;
 
   return (
-    <tr className="border-b-2 border-gray-200 last:border-0">
+    <tr
+      className={`border-b-2 border-gray-200 last:border-0 ${
+        verificado ? "bg-emerald-50" : "bg-amber-50"
+      }`}
+    >
+      <td className="py-2 pr-2">
+        <input
+          type="checkbox"
+          checked={verificado}
+          onChange={(e) => setVerificado(e.target.checked)}
+          title={verificado ? "Verificado" : "Falta verificar"}
+          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+        />
+      </td>
       <td className="py-2 text-gray-900">
         {productoNombre}
         {unidadMedida && <span className="text-gray-500"> ({unidadMedida})</span>}
