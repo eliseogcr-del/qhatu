@@ -14,12 +14,25 @@ export default async function NuevaCompraPage({
   const supabase = await createClient();
   const { empresaId, almacenId } = await getEmpresaSession(supabase);
 
+  // La relación viene como array por el join !fkey; un producto solo
+  // tiene una unidad de medida base, así que se toma la primera.
+  type ProductoRow = {
+    id: string;
+    nombre: string;
+    costo_referencial: number | null;
+    unidades_medida: { descripcion: string }[] | { descripcion: string } | null;
+  };
+  const normalizarUnidad = (u: ProductoRow["unidades_medida"]) =>
+    Array.isArray(u) ? (u[0] ?? null) : u;
+
   const [{ data: proveedores }, { data: productos }, { data: almacenes }] =
     await Promise.all([
       supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, costo_referencial")
+        .select(
+          "id, nombre, costo_referencial, unidades_medida!productos_unidad_medida_id_fkey(descripcion)",
+        )
         .eq("activo", true)
         .order("nombre"),
       almacenId
@@ -54,7 +67,10 @@ export default async function NuevaCompraPage({
             action={createCompra}
             error={error}
             proveedores={proveedores ?? []}
-            productos={productos ?? []}
+            productos={(productos ?? []).map((p) => ({
+              ...p,
+              unidades_medida: normalizarUnidad((p as ProductoRow).unidades_medida),
+            }))}
             almacenes={almacenes ?? undefined}
           />
         </div>

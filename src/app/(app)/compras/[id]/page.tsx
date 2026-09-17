@@ -39,7 +39,9 @@ export default async function CompraDetallePage({
   const [{ data: detalle }, { data: pagos }] = await Promise.all([
     supabase
       .from("compra_detalle")
-      .select("id, producto_id, cantidad, costo_unitario, subtotal, productos(nombre)")
+      .select(
+        "id, producto_id, cantidad, costo_unitario, subtotal, productos(nombre, unidades_medida!productos_unidad_medida_id_fkey(descripcion))",
+      )
       .eq("compra_id", id),
     supabase
       .from("pagos_proveedor")
@@ -149,13 +151,17 @@ export default async function CompraDetallePage({
                 </thead>
                 <tbody>
                   {detalle?.map((linea) => {
-                    const producto = linea.productos as unknown as { nombre: string } | null;
+                    const producto = linea.productos as unknown as {
+                      nombre: string;
+                      unidades_medida: { descripcion: string } | null;
+                    } | null;
                     return (
                       <CompraDetalleValidarFila
                         key={linea.id}
                         detalleId={linea.id}
                         productoId={linea.producto_id}
                         productoNombre={producto?.nombre ?? "—"}
+                        unidadMedida={producto?.unidades_medida?.descripcion ?? null}
                         cantidadInicial={linea.cantidad}
                         costoInicial={linea.costo_unitario}
                       />
@@ -180,10 +186,17 @@ export default async function CompraDetallePage({
                 </thead>
                 <tbody>
                   {detalle?.map((linea) => {
-                    const producto = linea.productos as unknown as { nombre: string } | null;
+                    const producto = linea.productos as unknown as {
+                      nombre: string;
+                      unidades_medida: { descripcion: string } | null;
+                    } | null;
+                    const unidad = producto?.unidades_medida?.descripcion;
                     return (
                       <tr key={linea.id} className="border-b-2 border-gray-200 last:border-0">
-                        <td className="py-2 text-gray-900">{producto?.nombre ?? "—"}</td>
+                        <td className="py-2 text-gray-900">
+                          {producto?.nombre ?? "—"}
+                          {unidad && <span className="text-gray-500"> ({unidad})</span>}
+                        </td>
                         <td className="py-2 text-gray-600">{linea.cantidad}</td>
                         <td className="py-2 text-gray-600">{linea.costo_unitario}</td>
                         <td className="py-2 text-gray-600">{linea.subtotal}</td>

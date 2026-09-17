@@ -6,7 +6,12 @@ import SubmitButton from "./SubmitButton";
 import ProductoCombobox from "./ProductoCombobox";
 
 type Proveedor = { id: string; nombre: string };
-type Producto = { id: string; nombre: string; costo_referencial: number | null };
+type Producto = {
+  id: string;
+  nombre: string;
+  costo_referencial: number | null;
+  unidades_medida: { descripcion: string } | null;
+};
 
 type Linea = {
   key: string;
@@ -191,6 +196,17 @@ export default function CompraForm({
                   onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
                 />
+                {(() => {
+                  const unidad = productos.find((p) => p.id === linea.producto_id)
+                    ?.unidades_medida?.descripcion;
+                  return (
+                    unidad && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Unidad: {unidad}
+                      </p>
+                    )
+                  );
+                })()}
               </Field>
               <Field label="Cantidad">
                 <input
