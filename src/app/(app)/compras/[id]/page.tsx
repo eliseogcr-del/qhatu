@@ -7,6 +7,7 @@ import { getEmpresaSession } from "@/utils/supabase/session";
 import { METODOS_PAGO, METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import ConfirmFormButton from "@/components/ConfirmFormButton";
 import SubmitButton from "@/components/SubmitButton";
+import CompraDetalleValidarFila from "@/components/CompraDetalleValidarFila";
 import {
   anularCompra,
   createPagoProveedor,
@@ -143,39 +144,21 @@ export default async function CompraDetallePage({
                     <th className="py-2 font-bold">Producto</th>
                     <th className="py-2 font-bold">Cantidad</th>
                     <th className="py-2 font-bold">Costo unitario</th>
+                    <th className="py-2 font-bold">Importe</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detalle?.map((linea) => {
                     const producto = linea.productos as unknown as { nombre: string } | null;
                     return (
-                      <tr key={linea.id} className="border-b-2 border-gray-200 last:border-0">
-                        <td className="py-2 text-gray-900">{producto?.nombre ?? "—"}</td>
-                        <td className="py-2">
-                          <input type="hidden" name="detalle_id[]" value={linea.id} />
-                          <input type="hidden" name="producto_id[]" value={linea.producto_id} />
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            name="cantidad[]"
-                            required
-                            defaultValue={linea.cantidad}
-                            className="w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
-                          />
-                        </td>
-                        <td className="py-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            name="costo_unitario[]"
-                            required
-                            defaultValue={linea.costo_unitario}
-                            className="w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
-                          />
-                        </td>
-                      </tr>
+                      <CompraDetalleValidarFila
+                        key={linea.id}
+                        detalleId={linea.id}
+                        productoId={linea.producto_id}
+                        productoNombre={producto?.nombre ?? "—"}
+                        cantidadInicial={linea.cantidad}
+                        costoInicial={linea.costo_unitario}
+                      />
                     );
                   })}
                 </tbody>
