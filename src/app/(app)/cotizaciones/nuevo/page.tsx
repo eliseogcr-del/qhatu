@@ -36,7 +36,7 @@ export default async function NuevaCotizacionPage({
         .eq("activo", true)
         .order("descripcion"),
       supabase
-        .from("configuracion_cotizaciones")
+        .from("configuracion_facturacion")
         .select("porcentaje_igv")
         .eq("empresa_id", empresaId)
         .maybeSingle(),
