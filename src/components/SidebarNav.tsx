@@ -31,6 +31,7 @@ import {
   Ruler,
   FileSpreadsheet,
   Tags,
+  Tag,
   Zap,
   ClipboardCheck,
 } from "lucide-react";
@@ -70,6 +71,10 @@ const LOGISTICA = {
       label: "Cuadro de Control de Productos",
       icon: ClipboardCheck,
     },
+    // Compartido entre admin y logística (ver gruposPorRol) — no entra a
+    // ADMINISTRACION porque ese grupo trae Usuarios/Auditoría, fuera del
+    // alcance de logística.
+    { href: "/promociones", label: "Promociones", icon: Tag },
   ],
 };
 

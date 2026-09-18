@@ -62,8 +62,12 @@ export default async function EditarVentaPage({
         .eq("venta_id", id),
       supabase
         .from("productos")
-        .select("id, nombre, unidad_medida_id, unidad_venta_defecto_id, precio_editable")
-        .eq("activo", true)
+        .select(
+          "id, nombre, unidad_medida_id, unidad_venta_defecto_id, precio_editable, es_promocion, promocion_de_producto_id",
+        )
+        // Productos normales activos, más promociones activas (activo
+        // siempre queda en false para las promociones, ver 20260918010000).
+        .or("activo.eq.true,and(es_promocion.eq.true,promocion_activa.eq.true)")
         .order("nombre"),
       supabase
         .from("inventario")
