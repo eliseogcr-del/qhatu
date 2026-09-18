@@ -2,20 +2,14 @@
 
 import { useId, useState, useTransition } from "react";
 import { Pencil, X, Check } from "lucide-react";
+import { formatFechaHora, timestampAInputLocalLima } from "@/lib/fecha";
 
 function aInputLocal(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return iso ? timestampAInputLocalLima(iso) : "";
 }
 
 function formatearFecha(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("es-PE", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  return iso ? formatFechaHora(iso) : "—";
 }
 
 const inputEditClass =

@@ -69,7 +69,7 @@ export default async function CuadroControlProductosPage({
 
   return (
     <div className="p-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">
             Cuadro de Control de Productos
@@ -127,11 +127,11 @@ export default async function CuadroControlProductosPage({
                 <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
                   <p className="font-medium text-gray-900">{a.nombre}</p>
                 </div>
-                <div className="max-h-[70vh] overflow-auto">
+                <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700 sticky top-0 z-10">
+                    <thead className="border-b-2 border-sky-200 bg-sky-50 text-gray-700">
                       <tr>
-                        <th className="sticky left-0 z-20 border-r-2 border-gray-200 bg-sky-50 px-4 py-2 font-bold align-bottom" rowSpan={2}>
+                        <th className="border-r-2 border-gray-200 bg-sky-50 px-4 py-2 font-bold align-bottom" rowSpan={2}>
                           Producto
                         </th>
                         <th rowSpan={2} className="px-4 py-2 font-bold align-bottom">
@@ -182,7 +182,7 @@ export default async function CuadroControlProductosPage({
                     <tbody>
                       {filasAlmacen.map((f) => (
                         <tr key={f.productoId} className="border-b-2 border-gray-200 last:border-0">
-                          <td className="sticky left-0 z-10 border-r-2 border-gray-200 bg-white px-4 py-2 font-medium text-gray-900">
+                          <td className="border-r-2 border-gray-200 bg-white px-4 py-2 font-medium text-gray-900">
                             {f.productoNombre}
                           </td>
                           <td className="px-4 py-2 text-gray-600">{f.unidadMedida}</td>
