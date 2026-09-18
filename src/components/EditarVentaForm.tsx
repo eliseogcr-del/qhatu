@@ -15,6 +15,7 @@ type Producto = {
   precio_editable: boolean;
   es_promocion: boolean;
   promocion_de_producto_id: string | null;
+  promocion_cantidad_minima: number;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -31,6 +32,16 @@ type Linea = {
   tipoAjuste: string;
   detalleAjuste: string;
 };
+
+// Cuántas unidades gratis corresponden: la cantidad vendida del producto
+// atado, dividida entre la cantidad mínima, redondeada hacia abajo (ej.
+// 24 pizzas con mínima 12 -> 2 gratis). El servidor vuelve a calcular
+// esto al guardar, esto solo refleja lo mismo en pantalla.
+function cantidadPromoCalculada(promo: Producto, lineas: Linea[]): number {
+  const lineaAtada = lineas.find((l) => l.producto_id === promo.promocion_de_producto_id);
+  if (!lineaAtada) return 0;
+  return Math.floor(lineaAtada.cantidad / promo.promocion_cantidad_minima);
+}
 
 let nextKey = 0;
 function keyFor() {
@@ -129,10 +140,14 @@ export default function EditarVentaForm({
     actualizarLinea(key, {
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
-      // Una promoción siempre es cantidad 1 — no tiene sentido aplicarla
-      // más de una vez por la misma compra del producto que la habilita.
-      ...(producto?.es_promocion ? { cantidad: 1 } : {}),
     });
+    if (producto?.es_promocion) {
+      // El precio de una promoción siempre es 0 y su cantidad se calcula
+      // sola a partir de lo vendido del producto atado (ver
+      // cantidadPromoCalculada) — no hay precio que consultar.
+      actualizarLinea(key, { precio_unitario: 0 });
+      return;
+    }
     // El precio se sugiere siempre al elegir el producto, esté bloqueado o
     // no — lo único que cambia según el bloqueo es si después se puede
     // editar a mano (ver el input de precio_unitario más abajo). Sin esto,
@@ -204,19 +219,14 @@ export default function EditarVentaForm({
   const requiereMotivo = (l: Linea) => !l.esNueva && l.cantidad < l.cantidadPedido;
   const faltaMotivo = lineas.some((l) => requiereMotivo(l) && !l.tipoAjuste);
 
-  // Una promoción solo tiene sentido junto al producto que la habilita —
-  // el servidor vuelve a validar esto al guardar, esto es solo para
-  // avisar antes de intentarlo.
+  // Una promoción solo tiene sentido si el producto que la habilita
+  // alcanza su cantidad mínima — el servidor vuelve a validar esto al
+  // guardar, esto es solo para avisar antes de intentarlo. Una promoción
+  // ya quitada (cantidad 0) no cuenta como error, se está retirando.
   const promocionSinProducto = lineas
-    .filter((l) => l.cantidad > 0)
+    .filter((l) => !(!l.esNueva && l.cantidad === 0))
     .map((l) => productos.find((p) => p.id === l.producto_id))
-    .find(
-      (p) =>
-        p?.es_promocion &&
-        !lineas.some(
-          (l) => l.producto_id === p.promocion_de_producto_id && l.cantidad > 0,
-        ),
-    );
+    .find((p) => p?.es_promocion && cantidadPromoCalculada(p, lineas) <= 0);
 
   return (
     <form
@@ -265,8 +275,13 @@ export default function EditarVentaForm({
             (u) => u.id === linea.unidad_medida_id,
           );
           const factor = unidadSeleccionada?.cantidad ?? 1;
-          const cantidadBase = linea.cantidad * factor;
           const quitada = !linea.esNueva && linea.cantidad === 0;
+          const cantidadPromo =
+            productoElegido?.es_promocion && !quitada
+              ? cantidadPromoCalculada(productoElegido, lineas)
+              : null;
+          const cantidadMostrada = cantidadPromo ?? (quitada ? 0 : linea.cantidad);
+          const cantidadBase = cantidadMostrada * factor;
           return (
           <div key={linea.key} className="space-y-2">
           <div
@@ -289,7 +304,10 @@ export default function EditarVentaForm({
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                   {productoElegido?.es_promocion && (
-                    <p className="mt-1 text-xs font-medium text-emerald-700">Promoción</p>
+                    <p className="mt-1 text-xs font-medium text-emerald-700">
+                      Promoción — se agregan {cantidadPromoCalculada(productoElegido, lineas)}{" "}
+                      gratis
+                    </p>
                   )}
                 </>
               ) : (
@@ -308,12 +326,12 @@ export default function EditarVentaForm({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Cantidad
               </label>
-              {productoElegido?.es_promocion && !quitada ? (
+              {cantidadPromo !== null ? (
                 <>
                   <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                    1
+                    {cantidadPromo}
                   </div>
-                  <input type="hidden" name="cantidad[]" value={1} />
+                  <input type="hidden" name="cantidad[]" value={cantidadPromo} />
                 </>
               ) : (
                 <input
@@ -364,7 +382,12 @@ export default function EditarVentaForm({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Precio unitario
               </label>
-              {preciosBloqueados && !productoElegido?.precio_editable ? (
+              {productoElegido?.es_promocion ? (
+                <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  0.00
+                  <input type="hidden" name="precio_unitario[]" value={0} />
+                </div>
+              ) : preciosBloqueados && !productoElegido?.precio_editable ? (
                 <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                   <Lock size={12} className="shrink-0 text-gray-400" />
                   {linea.precio_unitario.toFixed(2)}
@@ -397,7 +420,7 @@ export default function EditarVentaForm({
               </label>
               <input
                 disabled
-                value={(linea.cantidad * linea.precio_unitario).toFixed(2)}
+                value={(cantidadMostrada * linea.precio_unitario).toFixed(2)}
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500"
               />
             </div>

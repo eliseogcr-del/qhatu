@@ -25,7 +25,9 @@ export default async function PromocionesPage({
       .order("nombre"),
     supabase
       .from("productos")
-      .select("id, nombre, precio_campo, promocion_activa, promocion_de_producto_id")
+      .select(
+        "id, nombre, promocion_activa, promocion_de_producto_id, promocion_cantidad_minima, promocion_inicio, promocion_fin",
+      )
       .eq("empresa_id", empresaId)
       .eq("es_promocion", true)
       .order("created_at", { ascending: false }),
@@ -41,11 +43,12 @@ export default async function PromocionesPage({
           <h1 className="text-2xl font-semibold text-gray-900">Promociones</h1>
         </div>
         <p className="-mt-6 text-sm text-gray-500">
-          Una promoción es una línea especial que resta de la venta — se
-          busca y se elige igual que cualquier producto, con cantidad 1 y
-          el precio ya configurado acá. Solo se puede agregar a una venta
-          que ya incluya el producto atado a la promoción. Si está
-          activa, cualquier almacén la ve.
+          Una promoción es un producto de regalo con precio 0: al vender al
+          menos la cantidad mínima del producto atado, se agrega sola con la
+          cantidad de unidades gratis que correspondan (ej. &quot;lleva 12 y
+          la 13 es gratis&quot; = cantidad mínima 12; con 24 se agregan 2
+          gratis). Además de estar activa, si defines inicio y/o fin de
+          campaña solo se aplica dentro de ese rango de fecha y hora.
         </p>
 
         {error && (
@@ -65,7 +68,7 @@ export default async function PromocionesPage({
           </h2>
           <form
             action={crearPromocion}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_2fr_120px_auto] sm:items-end"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Nombre</label>
@@ -87,30 +90,58 @@ export default async function PromocionesPage({
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Monto</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Cantidad mínima
+              </label>
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
-                name="monto"
+                name="cantidad_minima"
                 required
+                defaultValue={1}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
-            <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
-            <label className="flex items-center gap-2 text-sm text-gray-700 sm:col-span-4">
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  name="promocion_activa"
+                  defaultChecked
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                Activa (visible para cualquier almacén al registrar una venta)
+              </label>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Inicio de campaña (opcional)
+              </label>
               <input
-                type="checkbox"
-                name="promocion_activa"
-                defaultChecked
-                className="h-4 w-4 rounded border-gray-300"
+                type="datetime-local"
+                name="promocion_inicio"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
-              Activa (visible para cualquier almacén al registrar una venta)
-            </label>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Fin de campaña (opcional)
+              </label>
+              <input
+                type="datetime-local"
+                name="promocion_fin"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
+            </div>
           </form>
           <p className="mt-2 text-xs text-gray-500">
-            El monto se descuenta del total de la venta — no hace falta
-            ponerlo en negativo, el sistema lo resta solo.
+            El precio de la promoción siempre es 0: se registra como una
+            línea de regalo aparte, no como un descuento sobre el producto
+            atado.
           </p>
         </div>
 
@@ -120,7 +151,9 @@ export default async function PromocionesPage({
               <tr>
                 <th className="px-4 py-3 font-bold">Nombre</th>
                 <th className="px-4 py-3 font-bold">Producto atado</th>
-                <th className="px-4 py-3 font-bold">Monto</th>
+                <th className="px-4 py-3 font-bold">Cantidad mínima</th>
+                <th className="px-4 py-3 font-bold">Inicio</th>
+                <th className="px-4 py-3 font-bold">Fin</th>
                 <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -134,7 +167,9 @@ export default async function PromocionesPage({
                     (p.promocion_de_producto_id && nombreProducto.get(p.promocion_de_producto_id)) ??
                     "—"
                   }
-                  monto={Math.abs(p.precio_campo)}
+                  cantidadMinima={p.promocion_cantidad_minima}
+                  inicio={p.promocion_inicio}
+                  fin={p.promocion_fin}
                   activa={p.promocion_activa}
                   onActualizar={actualizarPromocion.bind(null, p.id)}
                   onAlternarActiva={alternarPromocionActiva.bind(null, p.id)}
@@ -142,7 +177,7 @@ export default async function PromocionesPage({
               ))}
               {promociones?.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay promociones configuradas.
                   </td>
                 </tr>

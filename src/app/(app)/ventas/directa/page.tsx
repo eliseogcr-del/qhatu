@@ -5,6 +5,7 @@ import {
   preciosBloqueados as obtenerPreciosBloqueados,
   descuentoHabilitado as obtenerDescuentoHabilitado,
 } from "@/utils/supabase/precios";
+import { filtrarPromocionesVigentes } from "@/utils/promociones";
 import VentaDirectaForm from "@/components/VentaDirectaForm";
 import { createVentaDirecta } from "../actions";
 
@@ -34,10 +35,13 @@ export default async function VentaDirectaPage({
       supabase
         .from("productos")
         .select(
-          "id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable, es_promocion, promocion_de_producto_id",
+          "id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_inicio, promocion_fin",
         )
         // Productos normales activos, más promociones activas (activo
         // siempre queda en false para las promociones, ver 20260918010000).
+        // La vigencia por fecha (promocion_inicio/fin) se filtra abajo,
+        // porque combinarla con el OR de arriba en una sola consulta
+        // PostgREST es poco confiable.
         .or("activo.eq.true,and(es_promocion.eq.true,promocion_activa.eq.true)")
         .order("nombre"),
       almacenId
@@ -61,6 +65,8 @@ export default async function VentaDirectaPage({
   const stockPorAlmacen = Object.fromEntries(
     (inventario ?? []).map((i) => [`${i.producto_id}::${i.almacen_id}`, i.stock_actual]),
   );
+
+  const productosVigentes = filtrarPromocionesVigentes(productos ?? []);
 
   return (
     <div className="p-8">
@@ -86,7 +92,7 @@ export default async function VentaDirectaPage({
             action={createVentaDirecta}
             error={error}
             clientes={clientes ?? []}
-            productos={productos ?? []}
+            productos={productosVigentes}
             unidadesMedida={unidadesMedida ?? []}
             almacenes={almacenes ?? undefined}
             stockPorAlmacen={stockPorAlmacen}

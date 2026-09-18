@@ -6,31 +6,38 @@ import { createClient } from "@/utils/supabase/server";
 import { requireLogisticaOAdmin } from "@/utils/supabase/session";
 
 // Una promoción es un producto "espejo" atado a un producto real: solo
-// se vende junto a él (ver validación en ventas/actions.ts). El monto
-// que se ingresa acá es positivo (lo que se descuenta); se guarda como
-// negativo en precio_campo/precio_digital para que, al agregarla como
-// línea de venta (cantidad 1), su subtotal reste del total sin tocar
-// ningún cálculo de precios/totales ya existente. control_inventario
-// queda en false (no mueve stock) y activo en false (para que las demás
-// pantallas de productos la ignoren) — la visibilidad real es
-// promocion_activa.
+// se vende junto a él, y en múltiplos de promocion_cantidad_minima (ej.
+// "lleva 12 y la 13 gratis" -> con 24 en la venta se agregan 2 gratis).
+// Precio siempre 0 (no hay monto que configurar ni que se desactualice
+// si cambia el precio del producto atado). control_inventario queda en
+// false porque la promoción no tiene stock propio — su descuento de
+// inventario se registra contra promocion_de_producto_id (ver
+// ventas/actions.ts) — y activo en false para que las demás pantallas
+// de productos la ignoren; la visibilidad real es promocion_activa.
 export async function crearPromocion(formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await requireLogisticaOAdmin(supabase);
 
   const nombre = String(formData.get("nombre") ?? "").trim();
   const productoId = String(formData.get("promocion_de_producto_id") ?? "");
-  const monto = Number(formData.get("monto") ?? 0);
+  const cantidadMinima = Number(formData.get("cantidad_minima") || 1);
   const activa = formData.get("promocion_activa") === "on";
+  const inicio = String(formData.get("promocion_inicio") ?? "").trim() || null;
+  const fin = String(formData.get("promocion_fin") ?? "").trim() || null;
 
   if (!nombre || !productoId) {
     redirect(
       `/promociones?error=${encodeURIComponent("Ingresa un nombre y selecciona el producto atado a la promoción.")}`,
     );
   }
-  if (!(monto > 0)) {
+  if (!(cantidadMinima > 0)) {
     redirect(
-      `/promociones?error=${encodeURIComponent("El monto de la promoción debe ser mayor a 0.")}`,
+      `/promociones?error=${encodeURIComponent("La cantidad mínima debe ser mayor a 0.")}`,
+    );
+  }
+  if (inicio && fin && new Date(fin) <= new Date(inicio)) {
+    redirect(
+      `/promociones?error=${encodeURIComponent("El fin de la campaña debe ser posterior al inicio.")}`,
     );
   }
 
@@ -50,14 +57,17 @@ export async function crearPromocion(formData: FormData) {
     empresa_id: empresaId,
     nombre,
     unidad_medida_id: producto.unidad_medida_id,
-    precio_campo: -monto,
-    precio_digital: -monto,
+    precio_campo: 0,
+    precio_digital: 0,
     control_inventario: false,
     precio_editable: false,
     activo: false,
     es_promocion: true,
     promocion_de_producto_id: productoId,
+    promocion_cantidad_minima: cantidadMinima,
     promocion_activa: activa,
+    promocion_inicio: inicio,
+    promocion_fin: fin,
   });
 
   if (error) {
@@ -73,20 +83,32 @@ export async function actualizarPromocion(id: string, formData: FormData) {
   await requireLogisticaOAdmin(supabase);
 
   const nombre = String(formData.get("nombre") ?? "").trim();
-  const monto = Number(formData.get("monto") ?? 0);
+  const cantidadMinima = Number(formData.get("cantidad_minima") || 1);
+  const inicio = String(formData.get("promocion_inicio") ?? "").trim() || null;
+  const fin = String(formData.get("promocion_fin") ?? "").trim() || null;
 
   if (!nombre) {
     redirect(`/promociones?error=${encodeURIComponent("Ingresa un nombre.")}`);
   }
-  if (!(monto > 0)) {
+  if (!(cantidadMinima > 0)) {
     redirect(
-      `/promociones?error=${encodeURIComponent("El monto de la promoción debe ser mayor a 0.")}`,
+      `/promociones?error=${encodeURIComponent("La cantidad mínima debe ser mayor a 0.")}`,
+    );
+  }
+  if (inicio && fin && new Date(fin) <= new Date(inicio)) {
+    redirect(
+      `/promociones?error=${encodeURIComponent("El fin de la campaña debe ser posterior al inicio.")}`,
     );
   }
 
   const { error } = await supabase
     .from("productos")
-    .update({ nombre, precio_campo: -monto, precio_digital: -monto })
+    .update({
+      nombre,
+      promocion_cantidad_minima: cantidadMinima,
+      promocion_inicio: inicio,
+      promocion_fin: fin,
+    })
     .eq("id", id)
     .eq("es_promocion", true);
 
