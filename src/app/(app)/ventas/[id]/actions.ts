@@ -22,6 +22,8 @@ type ProductoInfoVenta = {
   es_promocion: boolean;
   promocion_de_producto_id: string | null;
   promocion_cantidad_minima: number;
+  promocion_cantidad_regalo: number;
+  promocion_precio: number;
 };
 
 export async function updateVentaDetalle(ventaId: string, formData: FormData) {
@@ -108,7 +110,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       ? await supabase
           .from("productos")
           .select(
-            "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+            "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_cantidad_regalo, promocion_precio",
           )
           .in("id", [...idsBase])
       : { data: [] as ProductoInfoVenta[] };
@@ -126,7 +128,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       ? await supabase
           .from("productos")
           .select(
-            "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+            "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_cantidad_regalo, promocion_precio",
           )
           .in("id", idsFaltantes)
       : { data: [] as ProductoInfoVenta[] };
@@ -138,17 +140,19 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const infoDe = (id: string) => productosInfo.find((p) => p.id === id);
 
   // El cliente nunca decide la cantidad ni el precio de una promoción: el
-  // precio siempre es 0 y la cantidad se calcula del lado del servidor a
-  // partir de lo que se vendió del producto atado —
-  // floor(cantidad_atada / cantidad_mínima), soportando múltiplos.
+  // precio es el configurado en la promoción y la cantidad se calcula del
+  // lado del servidor a partir de lo que se vendió del producto atado —
+  // floor(cantidad_atada / cantidad_mínima) multiplicado por la cantidad a
+  // regalar, soportando múltiplos.
   enviadas = enviadas.map((l) => {
     const info = l.producto_id ? infoDe(l.producto_id) : undefined;
     if (!info?.es_promocion) return l;
     const lineaAtada = enviadas.find((o) => o.producto_id === info.promocion_de_producto_id);
     const cantidadPromo = lineaAtada
-      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima)
+      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima) *
+        info.promocion_cantidad_regalo
       : 0;
-    return { ...l, cantidad: cantidadPromo, precio_unitario: 0 };
+    return { ...l, cantidad: cantidadPromo, precio_unitario: info.promocion_precio };
   });
 
   // Una promoción recién agregada (sin id todavía) solo tiene sentido si

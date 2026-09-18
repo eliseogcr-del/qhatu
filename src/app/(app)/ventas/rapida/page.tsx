@@ -26,7 +26,7 @@ export default async function VentaRapidaPage({
       supabase
         .from("productos")
         .select(
-          "id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_inicio, promocion_fin",
+          "id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_cantidad_regalo, promocion_precio, promocion_inicio, promocion_fin",
         )
         // Productos normales activos, más promociones activas (activo
         // siempre queda en false para las promociones, ver 20260918010000).

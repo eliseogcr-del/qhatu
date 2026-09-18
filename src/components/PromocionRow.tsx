@@ -22,6 +22,8 @@ export default function PromocionRow({
   nombre,
   productoNombre,
   cantidadMinima,
+  cantidadRegalo,
+  precio,
   inicio,
   fin,
   activa,
@@ -31,6 +33,8 @@ export default function PromocionRow({
   nombre: string;
   productoNombre: string;
   cantidadMinima: number;
+  cantidadRegalo: number;
+  precio: number;
   inicio: string | null;
   fin: string | null;
   activa: boolean;
@@ -43,7 +47,7 @@ export default function PromocionRow({
   if (editando) {
     return (
       <tr className="border-b-2 border-gray-200 bg-amber-50 last:border-0">
-        <td colSpan={7} className="px-4 py-3">
+        <td colSpan={9} className="px-4 py-3">
           <form action={onActualizar} className="flex flex-wrap items-center gap-3">
             <input
               name="nombre"
@@ -61,6 +65,26 @@ export default function PromocionRow({
               defaultValue={cantidadMinima}
               required
               title="Cantidad mínima"
+              className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+            />
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              name="cantidad_regalo"
+              defaultValue={cantidadRegalo}
+              required
+              title="Cantidad a regalar"
+              className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+            />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="precio"
+              defaultValue={precio}
+              required
+              title="Precio"
               className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
             />
             <input
@@ -103,6 +127,8 @@ export default function PromocionRow({
       <td className="px-4 py-3 font-medium text-gray-900">{nombre}</td>
       <td className="px-4 py-3 text-gray-600">{productoNombre}</td>
       <td className="px-4 py-3 text-gray-600">{cantidadMinima}</td>
+      <td className="px-4 py-3 text-gray-600">{cantidadRegalo}</td>
+      <td className="px-4 py-3 text-gray-600">{precio.toFixed(2)}</td>
       <td className="px-4 py-3 text-gray-600">{formatearFecha(inicio)}</td>
       <td className="px-4 py-3 text-gray-600">{formatearFecha(fin)}</td>
       <td className="px-4 py-3">
