@@ -6,7 +6,12 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 import { crearNotaVentaAutomatica } from "@/utils/supabase/comprobantes";
-import { preciosBloqueados, resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
+import {
+  preciosBloqueados,
+  resolverPrecios,
+  esAlmacenDigital,
+  descuentoHabilitado,
+} from "@/utils/supabase/precios";
 
 export async function createVenta(formData: FormData) {
   const supabase = await createClient();
@@ -102,7 +107,9 @@ export async function createVenta(formData: FormData) {
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
-  const descuento = Number(formData.get("descuento") || 0);
+  const descuento = (await descuentoHabilitado(supabase, empresaId))
+    ? Number(formData.get("descuento") || 0)
+    : 0;
   if (!(descuento >= 0)) {
     redirect(
       `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El descuento no puede ser negativo.")}`,
@@ -362,7 +369,9 @@ export async function createVentaDirecta(formData: FormData) {
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const descuento = Number(formData.get("descuento") || 0);
+  const descuento = (await descuentoHabilitado(supabase, empresaId))
+    ? Number(formData.get("descuento") || 0)
+    : 0;
   if (!(descuento >= 0)) {
     redirect(`/ventas/directa?error=${encodeURIComponent("El descuento no puede ser negativo.")}`);
   }

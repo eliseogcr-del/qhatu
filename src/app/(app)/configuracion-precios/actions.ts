@@ -26,6 +26,27 @@ export async function actualizarBloqueoPrecios(formData: FormData) {
   redirect("/configuracion-precios?guardado=1");
 }
 
+export async function actualizarDescuentoHabilitado(formData: FormData) {
+  const supabase = await createClient();
+  const { empresaId } = await requireAdmin(supabase);
+
+  const habilitado = formData.get("descuento_habilitado") === "on";
+
+  const { error } = await supabase
+    .from("configuracion_precios")
+    .upsert(
+      { empresa_id: empresaId, descuento_habilitado: habilitado },
+      { onConflict: "empresa_id" },
+    );
+
+  if (error) {
+    redirect(`/configuracion-precios?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/configuracion-precios");
+  redirect("/configuracion-precios?guardado=1");
+}
+
 export async function crearPrecioEspecial(formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);

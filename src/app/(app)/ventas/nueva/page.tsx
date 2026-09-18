@@ -3,7 +3,10 @@ import { formatFecha } from "@/lib/fecha";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
+import {
+  preciosBloqueados as obtenerPreciosBloqueados,
+  descuentoHabilitado as obtenerDescuentoHabilitado,
+} from "@/utils/supabase/precios";
 import VentaForm from "@/components/VentaForm";
 import { createVenta } from "../actions";
 
@@ -156,6 +159,7 @@ export default async function NuevaVentaPage({
             monedaPedido={pedido.moneda}
             lineasPedido={lineasPedido}
             preciosBloqueados={await obtenerPreciosBloqueados(supabase, empresaId)}
+            descuentoHabilitado={await obtenerDescuentoHabilitado(supabase, empresaId)}
           />
         </div>
       </div>

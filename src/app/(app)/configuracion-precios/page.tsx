@@ -8,6 +8,7 @@ import FiltroTexto from "@/components/FiltroTexto";
 import PrecioEspecialRow from "@/components/PrecioEspecialRow";
 import {
   actualizarBloqueoPrecios,
+  actualizarDescuentoHabilitado,
   actualizarPrecioEspecial,
   crearPrecioEspecial,
   eliminarPrecioEspecial,
@@ -57,7 +58,7 @@ export default async function ConfiguracionPreciosPage({
   ] = await Promise.all([
       supabase
         .from("configuracion_precios")
-        .select("precios_bloqueados")
+        .select("precios_bloqueados, descuento_habilitado")
         .eq("empresa_id", empresaId)
         .maybeSingle(),
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
@@ -71,6 +72,7 @@ export default async function ConfiguracionPreciosPage({
     ]);
 
   const preciosBloqueados = config?.precios_bloqueados ?? true;
+  const descuentoHabilitado = config?.descuento_habilitado ?? false;
 
   return (
     <div className="p-8">
@@ -117,6 +119,29 @@ export default async function ConfiguracionPreciosPage({
             <p className="text-xs text-gray-500">
               Desmarca esto solo si necesitas volver a permitir que se
               escriba el precio a mano en esos formularios.
+            </p>
+            <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
+          </form>
+        </div>
+
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Descuento en Ventas
+          </h2>
+          <form action={actualizarDescuentoHabilitado} className="space-y-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="descuento_habilitado"
+                defaultChecked={descuentoHabilitado}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              Habilitar el campo Descuento al registrar/editar una venta
+            </label>
+            <p className="text-xs text-gray-500">
+              Deshabilitado por defecto: el campo no aparece y el
+              descuento siempre queda en 0. Actívalo solo si necesitas
+              que se pueda aplicar un descuento manual.
             </p>
             <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
           </form>

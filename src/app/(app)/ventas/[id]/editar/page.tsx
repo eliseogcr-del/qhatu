@@ -4,7 +4,10 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
-import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
+import {
+  preciosBloqueados as obtenerPreciosBloqueados,
+  descuentoHabilitado as obtenerDescuentoHabilitado,
+} from "@/utils/supabase/precios";
 import EditarVentaForm from "@/components/EditarVentaForm";
 import { updateVentaDetalle } from "../actions";
 
@@ -49,6 +52,7 @@ export default async function EditarVentaPage({
     { data: inventario },
     { data: unidadesMedida },
     preciosBloqueados,
+    descuentoHabilitado,
   ] = await Promise.all([
       supabase
         .from("venta_detalle")
@@ -71,6 +75,7 @@ export default async function EditarVentaPage({
         .eq("activo", true)
         .order("descripcion"),
       obtenerPreciosBloqueados(supabase, empresaId),
+      obtenerDescuentoHabilitado(supabase, empresaId),
     ]);
 
   const stockPorProducto = Object.fromEntries(
@@ -126,6 +131,7 @@ export default async function EditarVentaPage({
             clienteId={venta.cliente_id}
             almacenId={venta.almacen_id}
             preciosBloqueados={preciosBloqueados}
+            descuentoHabilitado={descuentoHabilitado}
           />
         </div>
       </div>
