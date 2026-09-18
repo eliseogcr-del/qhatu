@@ -48,3 +48,34 @@ export function inicioDiaLima(fecha: string): string {
 export function finDiaLima(fecha: string): string {
   return `${fecha}T23:59:59.999${OFFSET_LIMA}`;
 }
+
+// Un <input type="datetime-local"> entrega "AAAA-MM-DDTHH:mm" ingenuo, sin
+// zona horaria — guardarlo tal cual en una columna timestamptz hace que
+// Postgres lo interprete en la zona de la sesión (UTC), corriendo la hora
+// ~5 horas hacia atrás (medianoche en Lima se guardaba como si fuera
+// medianoche UTC, que en Lima ya es la tarde del día anterior). Anclarlo a
+// Lima explícitamente antes de guardar evita ese corrimiento.
+export function datetimeLocalALima(valor: string): string {
+  const conSegundos = valor.length === 16 ? `${valor}:00` : valor;
+  return `${conSegundos}${OFFSET_LIMA}`;
+}
+
+// Inverso de datetimeLocalALima: a partir de un timestamptz guardado,
+// arma el "AAAA-MM-DDTHH:mm" que espera un <input type="datetime-local">
+// para prellenarlo, calculando sus partes en la zona de Lima explícita —
+// nunca la del navegador o el servidor, que no necesariamente coincide.
+export function timestampAInputLocalLima(iso: string): string {
+  const formateador = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const partes = Object.fromEntries(
+    formateador.formatToParts(new Date(iso)).map((p) => [p.type, p.value]),
+  );
+  return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}`;
+}

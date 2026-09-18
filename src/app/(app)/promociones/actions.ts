@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { requireLogisticaOAdmin } from "@/utils/supabase/session";
+import { datetimeLocalALima } from "@/lib/fecha";
 
 // Una promoción es un producto "espejo" atado a un producto real: solo
 // se vende junto a él, y en múltiplos de promocion_cantidad_minima (ej.
@@ -27,8 +28,13 @@ export async function crearPromocion(formData: FormData) {
   const cantidadRegalo = Number(formData.get("cantidad_regalo") || 1);
   const precio = Number(formData.get("precio") || 0);
   const activa = formData.get("promocion_activa") === "on";
-  const inicio = String(formData.get("promocion_inicio") ?? "").trim() || null;
-  const fin = String(formData.get("promocion_fin") ?? "").trim() || null;
+  const inicioRaw = String(formData.get("promocion_inicio") ?? "").trim();
+  const finRaw = String(formData.get("promocion_fin") ?? "").trim();
+  // El <input type="datetime-local"> entrega la hora que el usuario ve en
+  // pantalla, sin zona horaria — hay que anclarla a Lima antes de guardar
+  // para que no se corra ~5 horas al interpretarla como UTC.
+  const inicio = inicioRaw ? datetimeLocalALima(inicioRaw) : null;
+  const fin = finRaw ? datetimeLocalALima(finRaw) : null;
 
   if (!nombre || !productoId) {
     redirect(
@@ -101,8 +107,10 @@ export async function actualizarPromocion(id: string, formData: FormData) {
   const cantidadMinima = Number(formData.get("cantidad_minima") || 1);
   const cantidadRegalo = Number(formData.get("cantidad_regalo") || 1);
   const precio = Number(formData.get("precio") || 0);
-  const inicio = String(formData.get("promocion_inicio") ?? "").trim() || null;
-  const fin = String(formData.get("promocion_fin") ?? "").trim() || null;
+  const inicioRaw = String(formData.get("promocion_inicio") ?? "").trim();
+  const finRaw = String(formData.get("promocion_fin") ?? "").trim();
+  const inicio = inicioRaw ? datetimeLocalALima(inicioRaw) : null;
+  const fin = finRaw ? datetimeLocalALima(finRaw) : null;
 
   if (!nombre) {
     redirect(`/promociones?error=${encodeURIComponent("Ingresa un nombre.")}`);
