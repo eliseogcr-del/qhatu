@@ -18,7 +18,18 @@ type Producto = {
   precio_editable: boolean;
   es_promocion: boolean;
   promocion_de_producto_id: string | null;
+  promocion_cantidad_minima: number;
 };
+
+// Cuántas unidades gratis corresponden: la cantidad vendida del producto
+// atado, dividida entre la cantidad mínima, redondeada hacia abajo (ej.
+// 24 pizzas con mínima 12 -> 2 gratis). El servidor vuelve a calcular
+// esto al guardar, esto solo refleja lo mismo en pantalla.
+function cantidadPromoCalculada(promo: Producto, lineas: Linea[]): number {
+  const lineaAtada = lineas.find((l) => l.producto_id === promo.promocion_de_producto_id);
+  if (!lineaAtada) return 0;
+  return Math.floor(lineaAtada.cantidad / promo.promocion_cantidad_minima);
+}
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
 type Linea = {
@@ -152,7 +163,10 @@ export default function VentaDirectaForm({
   useEffect(() => {
     if (!preciosBloqueados) return;
     lineas.forEach((l) => {
-      if (l.producto_id) resolverPrecioLinea(l.key, l.producto_id, l.unidad_medida_id);
+      const p = productos.find((pp) => pp.id === l.producto_id);
+      if (l.producto_id && !p?.es_promocion) {
+        resolverPrecioLinea(l.key, l.producto_id, l.unidad_medida_id);
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId, almacenSeleccionado, preciosBloqueados]);
@@ -176,11 +190,15 @@ export default function VentaDirectaForm({
     updateLinea(key, {
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
-      // Una promoción siempre es cantidad 1 — no tiene sentido aplicarla
-      // más de una vez por la misma compra del producto que la habilita.
-      ...(producto?.es_promocion ? { cantidad: 1 } : {}),
     });
-    resolverPrecioLinea(key, productoId, unidadMedidaId);
+    if (producto?.es_promocion) {
+      // El precio de una promoción siempre es 0 y su cantidad se calcula
+      // sola a partir de lo vendido del producto atado (ver
+      // cantidadPromoCalculada) — no hay precio que consultar.
+      updateLinea(key, { precio_unitario: 0 });
+    } else {
+      resolverPrecioLinea(key, productoId, unidadMedidaId);
+    }
   };
 
   const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
@@ -207,18 +225,13 @@ export default function VentaDirectaForm({
     return false;
   })();
 
-  // Una promoción solo tiene sentido junto al producto que la habilita —
-  // el servidor vuelve a validar esto al guardar, esto es solo para
-  // avisar antes de intentarlo.
+  // Una promoción solo tiene sentido si el producto que la habilita
+  // alcanza su cantidad mínima (ej. "lleva 12 y la 13 es gratis") — el
+  // servidor vuelve a validar esto al guardar, esto es solo para avisar
+  // antes de intentarlo.
   const promocionSinProducto = lineas
     .map((l) => productos.find((p) => p.id === l.producto_id))
-    .find(
-      (p) =>
-        p?.es_promocion &&
-        !lineas.some(
-          (l) => l.producto_id === p.promocion_de_producto_id && l.cantidad > 0,
-        ),
-    );
+    .find((p) => p?.es_promocion && cantidadPromoCalculada(p, lineas) <= 0);
 
   return (
     <form
@@ -346,12 +359,24 @@ export default function VentaDirectaForm({
                   className={inputClass}
                 />
                 {productoElegido?.es_promocion && (
-                  <p className="mt-1 text-xs font-medium text-emerald-700">Promoción</p>
+                  <p className="mt-1 text-xs font-medium text-emerald-700">
+                    Promoción — se agregan{" "}
+                    {cantidadPromoCalculada(productoElegido, lineas)} gratis
+                  </p>
                 )}
               </Field>
               <Field label="Cantidad">
                 {productoElegido?.es_promocion ? (
-                  <div className={inputBloqueadoClass}>1</div>
+                  <>
+                    <div className={inputBloqueadoClass}>
+                      {cantidadPromoCalculada(productoElegido, lineas)}
+                    </div>
+                    <input
+                      type="hidden"
+                      name="cantidad[]"
+                      value={cantidadPromoCalculada(productoElegido, lineas)}
+                    />
+                  </>
                 ) : (
                   <input
                     type="number"
@@ -366,9 +391,6 @@ export default function VentaDirectaForm({
                     }
                     className={inputClass}
                   />
-                )}
-                {productoElegido?.es_promocion && (
-                  <input type="hidden" name="cantidad[]" value={1} />
                 )}
                 {factor !== 1 && (
                   <p className="mt-1 text-xs text-gray-400">
@@ -399,11 +421,23 @@ export default function VentaDirectaForm({
                 </select>
               </Field>
               <Field label="Precio unitario">
-                {preciosBloqueados && !productoElegido?.precio_editable ? (
-                  <div className={`${inputBloqueadoClass} flex items-center gap-1.5`}>
-                    <Lock size={12} className="shrink-0 text-gray-400" />
-                    {linea.precio_unitario.toFixed(2)}
-                  </div>
+                {productoElegido?.es_promocion ? (
+                  <>
+                    <div className={inputBloqueadoClass}>0.00</div>
+                    <input type="hidden" name="precio_unitario[]" value={0} />
+                  </>
+                ) : preciosBloqueados && !productoElegido?.precio_editable ? (
+                  <>
+                    <div className={`${inputBloqueadoClass} flex items-center gap-1.5`}>
+                      <Lock size={12} className="shrink-0 text-gray-400" />
+                      {linea.precio_unitario.toFixed(2)}
+                    </div>
+                    <input
+                      type="hidden"
+                      name="precio_unitario[]"
+                      value={linea.precio_unitario}
+                    />
+                  </>
                 ) : (
                   <input
                     type="number"
@@ -419,18 +453,15 @@ export default function VentaDirectaForm({
                     className={inputClass}
                   />
                 )}
-                {preciosBloqueados && !productoElegido?.precio_editable && (
-                  <input
-                    type="hidden"
-                    name="precio_unitario[]"
-                    value={linea.precio_unitario}
-                  />
-                )}
               </Field>
               <Field label="Subtotal">
                 <input
                   disabled
-                  value={(linea.cantidad * linea.precio_unitario).toFixed(2)}
+                  value={(
+                    (productoElegido?.es_promocion
+                      ? cantidadPromoCalculada(productoElegido, lineas)
+                      : linea.cantidad) * linea.precio_unitario
+                  ).toFixed(2)}
                   className={`${inputClass} bg-gray-50 text-gray-500`}
                 />
               </Field>

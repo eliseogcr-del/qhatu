@@ -3,17 +3,36 @@
 import { useState, useTransition } from "react";
 import { Pencil, X, Check } from "lucide-react";
 
+function aInputLocal(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatearFecha(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("es-PE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
 export default function PromocionRow({
   nombre,
   productoNombre,
-  monto,
+  cantidadMinima,
+  inicio,
+  fin,
   activa,
   onActualizar,
   onAlternarActiva,
 }: {
   nombre: string;
   productoNombre: string;
-  monto: number;
+  cantidadMinima: number;
+  inicio: string | null;
+  fin: string | null;
   activa: boolean;
   onActualizar: (formData: FormData) => void;
   onAlternarActiva: (activa: boolean) => void | Promise<void>;
@@ -24,7 +43,7 @@ export default function PromocionRow({
   if (editando) {
     return (
       <tr className="border-b-2 border-gray-200 bg-amber-50 last:border-0">
-        <td colSpan={5} className="px-4 py-3">
+        <td colSpan={7} className="px-4 py-3">
           <form action={onActualizar} className="flex flex-wrap items-center gap-3">
             <input
               name="nombre"
@@ -38,10 +57,25 @@ export default function PromocionRow({
               type="number"
               step="0.01"
               min="0.01"
-              name="monto"
-              defaultValue={monto}
+              name="cantidad_minima"
+              defaultValue={cantidadMinima}
               required
-              className="w-28 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+              title="Cantidad mínima"
+              className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+            />
+            <input
+              type="datetime-local"
+              name="promocion_inicio"
+              defaultValue={aInputLocal(inicio)}
+              title="Inicio de campaña"
+              className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+            />
+            <input
+              type="datetime-local"
+              name="promocion_fin"
+              defaultValue={aInputLocal(fin)}
+              title="Fin de campaña"
+              className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
             />
             <button
               type="submit"
@@ -68,7 +102,9 @@ export default function PromocionRow({
     <tr className="border-b-2 border-gray-200 last:border-0">
       <td className="px-4 py-3 font-medium text-gray-900">{nombre}</td>
       <td className="px-4 py-3 text-gray-600">{productoNombre}</td>
-      <td className="px-4 py-3 text-gray-600">{monto.toFixed(2)}</td>
+      <td className="px-4 py-3 text-gray-600">{cantidadMinima}</td>
+      <td className="px-4 py-3 text-gray-600">{formatearFecha(inicio)}</td>
+      <td className="px-4 py-3 text-gray-600">{formatearFecha(fin)}</td>
       <td className="px-4 py-3">
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input

@@ -15,6 +15,15 @@ import {
   descuentoHabilitado,
 } from "@/utils/supabase/precios";
 
+type ProductoInfoVenta = {
+  id: string;
+  nombre: string;
+  control_inventario: boolean;
+  es_promocion: boolean;
+  promocion_de_producto_id: string | null;
+  promocion_cantidad_minima: number;
+};
+
 export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const supabase = await createClient();
   const { userId, empresaId } = await getEmpresaSession(supabase);
@@ -85,6 +94,79 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const factorDe = (unidadMedidaId: string | null) =>
     unidadMedidaId ? (factorPorUnidad.get(unidadMedidaId) ?? 1) : 1;
 
+  // Se junta todo producto que aparece en el envío o que ya estaba en la
+  // venta, para resolver promociones y control de inventario en una sola
+  // pasada — se completa abajo con el producto atado de cualquier
+  // promoción que no haya quedado incluida (ej. si esa línea ya no viene
+  // en el envío).
+  const idsBase = new Set<string>();
+  enviadas.forEach((l) => l.producto_id && idsBase.add(l.producto_id));
+  (detalleOriginal ?? []).forEach((d) => idsBase.add(d.producto_id));
+
+  const { data: productosInfoBase } =
+    idsBase.size > 0
+      ? await supabase
+          .from("productos")
+          .select(
+            "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+          )
+          .in("id", [...idsBase])
+      : { data: [] as ProductoInfoVenta[] };
+
+  const idsFaltantes = [
+    ...new Set(
+      (productosInfoBase ?? [])
+        .filter((p) => p.es_promocion && p.promocion_de_producto_id && !idsBase.has(p.promocion_de_producto_id))
+        .map((p) => p.promocion_de_producto_id as string),
+    ),
+  ];
+
+  const { data: productosInfoExtra } =
+    idsFaltantes.length > 0
+      ? await supabase
+          .from("productos")
+          .select(
+            "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+          )
+          .in("id", idsFaltantes)
+      : { data: [] as ProductoInfoVenta[] };
+
+  const productosInfo: ProductoInfoVenta[] = [
+    ...(productosInfoBase ?? []),
+    ...(productosInfoExtra ?? []),
+  ];
+  const infoDe = (id: string) => productosInfo.find((p) => p.id === id);
+
+  // El cliente nunca decide la cantidad ni el precio de una promoción: el
+  // precio siempre es 0 y la cantidad se calcula del lado del servidor a
+  // partir de lo que se vendió del producto atado —
+  // floor(cantidad_atada / cantidad_mínima), soportando múltiplos.
+  enviadas = enviadas.map((l) => {
+    const info = l.producto_id ? infoDe(l.producto_id) : undefined;
+    if (!info?.es_promocion) return l;
+    const lineaAtada = enviadas.find((o) => o.producto_id === info.promocion_de_producto_id);
+    const cantidadPromo = lineaAtada
+      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima)
+      : 0;
+    return { ...l, cantidad: cantidadPromo, precio_unitario: 0 };
+  });
+
+  // Una promoción recién agregada (sin id todavía) solo tiene sentido si
+  // el producto atado alcanza su cantidad mínima en esta misma edición.
+  // Si ya existía y deja de alcanzarla, se reduce sola más abajo — misma
+  // lógica que cualquier otra reducción de cantidad, no un error.
+  const promocionSinProducto = enviadas.find((l) => {
+    if (l.id || !l.producto_id) return false;
+    return infoDe(l.producto_id)?.es_promocion && !(l.cantidad > 0);
+  });
+  if (promocionSinProducto) {
+    redirect(
+      `/ventas/${ventaId}/editar?error=${encodeURIComponent(
+        `"${infoDe(promocionSinProducto.producto_id)?.nombre}" es una promoción y necesita que el producto atado alcance su cantidad mínima en esta venta.`,
+      )}`,
+    );
+  }
+
   const productoIdsActivos = enviadas
     .filter((l) => l.producto_id && l.cantidad > 0)
     .map((l) => l.producto_id);
@@ -94,30 +176,11 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     );
   }
 
-  // Se adelanta esta consulta (antes solo cubría las líneas que cambian,
-  // más abajo) porque una promoción invierte la validación normal:
-  // necesita precio negativo en vez de positivo, y solo tiene sentido si
-  // el producto que la habilita también sigue en la venta.
-  const { data: productosPromoInfo } =
-    productoIdsActivos.length > 0
-      ? await supabase
-          .from("productos")
-          .select("id, nombre, es_promocion, promocion_de_producto_id")
-          .in("id", [...new Set(productoIdsActivos)])
-      : {
-          data: [] as {
-            id: string;
-            nombre: string;
-            es_promocion: boolean;
-            promocion_de_producto_id: string | null;
-          }[],
-        };
-
   if (
     enviadas.some((l) => {
       if (!l.producto_id || !(l.cantidad > 0)) return false;
-      const info = productosPromoInfo?.find((p) => p.id === l.producto_id);
-      return info?.es_promocion ? !(l.precio_unitario < 0) : !(l.precio_unitario > 0);
+      if (infoDe(l.producto_id)?.es_promocion) return false;
+      return !(l.precio_unitario > 0);
     })
   ) {
     redirect(
@@ -125,26 +188,14 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     );
   }
 
-  const promocionSinProducto = productoIdsActivos
-    .map((id) => productosPromoInfo?.find((p) => p.id === id))
-    .find(
-      (p) => p?.es_promocion && !productoIdsActivos.includes(p.promocion_de_producto_id ?? ""),
-    );
-  if (promocionSinProducto) {
-    redirect(
-      `/ventas/${ventaId}/editar?error=${encodeURIComponent(
-        `"${promocionSinProducto.nombre}" es una promoción y necesita que su producto asociado también esté en la venta.`,
-      )}`,
-    );
-  }
-
   // Las líneas ya existentes conservan su precio guardado (no se tocan
   // acá salvo que la propia línea cambie); una línea nueva sí se recalcula
   // con la misma lógica que la sugirió en el formulario, para no confiar
-  // en lo que haya llegado del cliente.
+  // en lo que haya llegado del cliente. Una promoción nunca entra acá: su
+  // precio siempre es 0.
   if (await preciosBloqueados(supabase, empresaId)) {
     const lineasNuevasParaPrecio = enviadas.filter(
-      (l) => !l.id && l.producto_id && l.cantidad > 0,
+      (l) => !l.id && l.producto_id && l.cantidad > 0 && !infoDe(l.producto_id)?.es_promocion,
     );
     if (lineasNuevasParaPrecio.length > 0) {
       const digital = await esAlmacenDigital(supabase, venta.almacen_id);
@@ -179,10 +230,16 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   // Si una línea baja de cantidad por debajo de lo que decía el pedido
   // original, hay que saber por qué (el producto vuelve a stock, no es
-  // merma) — se valida acá, antes de escribir nada.
+  // merma) — se valida acá, antes de escribir nada. Una promoción queda
+  // afuera: su cantidad se recalculó sola arriba, no es una decisión
+  // manual que necesite justificarse.
   for (const linea of lineasModificadas) {
     const original = detalleOriginal!.find((d) => d.id === linea.id)!;
-    if (linea.cantidad < original.cantidad && !linea.tipoAjuste) {
+    if (
+      linea.cantidad < original.cantidad &&
+      !linea.tipoAjuste &&
+      !infoDe(linea.producto_id)?.es_promocion
+    ) {
       const productoNombre =
         (original.productos as unknown as { nombre: string } | null)?.nombre ?? "el producto";
       redirect(
@@ -224,35 +281,34 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     );
   }
 
-  const productoIdsInvolucrados = [
-    ...new Set([
-      ...lineasQuitadas.map((l) => l.producto_id),
-      ...lineasNuevas.map((l) => l.producto_id),
-      ...lineasModificadas.map((l) => l.producto_id),
-    ]),
-  ];
-
-  const { data: productosInfo } = productoIdsInvolucrados.length > 0
-    ? await supabase
-        .from("productos")
-        .select("id, nombre, control_inventario")
-        .in("id", productoIdsInvolucrados)
-    : { data: [] as { id: string; nombre: string; control_inventario: boolean }[] };
+  // Ya no hace falta otra consulta para control de inventario: productosInfo
+  // (armado arriba) ya cubre todo producto involucrado, incluido el
+  // producto atado de cualquier promoción.
+  //
+  // Una promoción no tiene stock propio (control_inventario siempre
+  // false): su consumo se atribuye al producto atado.
+  const productoControladoDestino = (productoId: string): string | null => {
+    const info = infoDe(productoId);
+    if (!info) return null;
+    return info.es_promocion ? info.promocion_de_producto_id : info.id;
+  };
+  const estaControlado = (productoId: string | null) =>
+    !!productoId && !!infoDe(productoId)?.control_inventario;
 
   // Antes de escribir nada: las líneas nuevas y los aumentos de cantidad
   // en líneas modificadas descuentan stock adicional — hay que confirmar
   // que el almacén realmente lo tiene (bajar cantidad, en cambio, devuelve
   // stock y no necesita validarse).
-  const lineasQueDescuentan: { productoId: string; productoNombre: string; cantidad: number }[] =
-    [];
+  const consumoAdicional = new Map<string, number>();
+  const sumarConsumo = (productoId: string, cantidad: number) => {
+    if (cantidad <= 0) return;
+    consumoAdicional.set(productoId, (consumoAdicional.get(productoId) ?? 0) + cantidad);
+  };
+
   for (const linea of lineasNuevas) {
-    const producto = productosInfo?.find((p) => p.id === linea.producto_id);
-    if (producto?.control_inventario) {
-      lineasQueDescuentan.push({
-        productoId: linea.producto_id,
-        productoNombre: producto.nombre,
-        cantidad: linea.cantidad * factorDe(linea.unidad_medida_id),
-      });
+    const destino = productoControladoDestino(linea.producto_id);
+    if (destino && estaControlado(destino)) {
+      sumarConsumo(destino, linea.cantidad * factorDe(linea.unidad_medida_id));
     }
   }
   for (const linea of lineasModificadas) {
@@ -261,16 +317,18 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     const baseNueva = linea.cantidad * factorDe(linea.unidad_medida_id);
     const delta = Math.round((baseNueva - baseOriginal) * 100) / 100;
     if (delta > 0) {
-      const producto = productosInfo?.find((p) => p.id === linea.producto_id);
-      if (producto?.control_inventario) {
-        lineasQueDescuentan.push({
-          productoId: linea.producto_id,
-          productoNombre: producto.nombre,
-          cantidad: delta,
-        });
+      const destino = productoControladoDestino(linea.producto_id);
+      if (destino && estaControlado(destino)) {
+        sumarConsumo(destino, delta);
       }
     }
   }
+
+  const lineasQueDescuentan = [...consumoAdicional.entries()].map(([productoId, cantidad]) => ({
+    productoId,
+    productoNombre: infoDe(productoId)?.nombre ?? productoId,
+    cantidad,
+  }));
 
   const errorStock = await validarStockDisponible(
     supabase,
@@ -284,7 +342,8 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
 
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
 
-  // Líneas quitadas: se borran y se revierte su salida de stock.
+  // Líneas quitadas: se borran y se revierte su salida de stock (contra
+  // el producto atado si era una promoción).
   for (const linea of lineasQuitadas) {
     const { error: deleteError } = await supabase
       .from("venta_detalle")
@@ -297,13 +356,13 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       );
     }
 
-    const producto = productosInfo?.find((p) => p.id === linea.producto_id);
     const productoNombre =
       (linea.productos as unknown as { nombre: string } | null)?.nombre ?? null;
+    const destino = productoControladoDestino(linea.producto_id);
 
-    if (producto?.control_inventario && linea.cantidad_entregada > 0) {
+    if (destino && estaControlado(destino) && linea.cantidad_entregada > 0) {
       movimientosKardex.push({
-        productoId: linea.producto_id,
+        productoId: destino,
         almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: linea.cantidad_entregada * factorDe(linea.unidad_medida_id),
@@ -343,11 +402,11 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       .select("id")
       .single();
 
-    const producto = productosInfo?.find((p) => p.id === linea.producto_id);
+    const destino = productoControladoDestino(linea.producto_id);
 
-    if (producto?.control_inventario) {
+    if (destino && estaControlado(destino)) {
       movimientosKardex.push({
-        productoId: linea.producto_id,
+        productoId: destino,
         almacenId: venta.almacen_id,
         tipoMovimiento: "venta",
         cantidad: -(linea.cantidad * factorDe(linea.unidad_medida_id)),
@@ -362,7 +421,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       entidadId: ventaId,
       tipoMovimiento: TIPO_AUDITORIA.ventaAgregarProducto,
       productoId: linea.producto_id,
-      productoNombre: producto?.nombre ?? null,
+      productoNombre: infoDe(linea.producto_id)?.nombre ?? null,
       cantidad: linea.cantidad,
       precioUnitario: linea.precio_unitario,
       monto: subtotal,
@@ -391,7 +450,6 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
       );
     }
 
-    const producto = productosInfo?.find((p) => p.id === linea.producto_id);
     const productoNombre =
       (original.productos as unknown as { nombre: string } | null)?.nombre ?? null;
     const baseOriginal = original.cantidad_entregada * factorDe(original.unidad_medida_id);
@@ -408,9 +466,11 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         }`
       : null;
 
-    if (producto?.control_inventario && deltaBase !== 0) {
+    const destino = productoControladoDestino(linea.producto_id);
+
+    if (destino && estaControlado(destino) && deltaBase !== 0) {
       movimientosKardex.push({
-        productoId: linea.producto_id,
+        productoId: destino,
         almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: -deltaBase,
@@ -489,7 +549,7 @@ export async function anularVenta(ventaId: string) {
   const { data: detalle } = await supabase
     .from("venta_detalle")
     .select(
-      "id, producto_id, cantidad_entregada, unidad_medida_id, productos(control_inventario)",
+      "id, producto_id, cantidad_entregada, unidad_medida_id, productos(control_inventario, es_promocion, promocion_de_producto_id)",
     )
     .eq("venta_id", ventaId);
 
@@ -504,18 +564,54 @@ export async function anularVenta(ventaId: string) {
     (unidadesInfo ?? []).map((u) => [u.id, u.cantidad as number]),
   );
 
+  // Una promoción no tiene stock propio: al anular la venta, su salida de
+  // inventario se revierte contra el producto atado, no contra su propia
+  // fila — hay que consultar el control_inventario de ese producto atado
+  // aparte, porque el embed de arriba solo trae el de la promoción.
+  const idsProductosAtados = [
+    ...new Set(
+      (detalle ?? [])
+        .map(
+          (d) =>
+            d.productos as unknown as {
+              es_promocion: boolean;
+              promocion_de_producto_id: string | null;
+            } | null,
+        )
+        .filter((p) => p?.es_promocion)
+        .map((p) => p!.promocion_de_producto_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const { data: productosAtadosInfo } =
+    idsProductosAtados.length > 0
+      ? await supabase.from("productos").select("id, control_inventario").in("id", idsProductosAtados)
+      : { data: [] as { id: string; control_inventario: boolean }[] };
+  const controlDelAtado = new Map(
+    (productosAtadosInfo ?? []).map((p) => [p.id, p.control_inventario]),
+  );
+
   const movimientosKardex: Parameters<typeof registrarMovimientosKardex>[3] = [];
   for (const linea of detalle ?? []) {
-    const llevaInventario = (
-      linea.productos as unknown as { control_inventario: boolean } | null
-    )?.control_inventario;
+    const info = linea.productos as unknown as {
+      control_inventario: boolean;
+      es_promocion: boolean;
+      promocion_de_producto_id: string | null;
+    } | null;
 
-    if (llevaInventario && linea.cantidad_entregada > 0) {
+    const destino = info?.es_promocion ? info.promocion_de_producto_id : linea.producto_id;
+    const llevaInventario = info?.es_promocion
+      ? destino
+        ? (controlDelAtado.get(destino) ?? false)
+        : false
+      : info?.control_inventario;
+
+    if (destino && llevaInventario && linea.cantidad_entregada > 0) {
       const factor = linea.unidad_medida_id
         ? (factorPorUnidad.get(linea.unidad_medida_id) ?? 1)
         : 1;
       movimientosKardex.push({
-        productoId: linea.producto_id,
+        productoId: destino,
         almacenId: venta.almacen_id,
         tipoMovimiento: "ajuste",
         cantidad: linea.cantidad_entregada * factor,
