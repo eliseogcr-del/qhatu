@@ -13,6 +13,8 @@ type Producto = {
   unidad_medida_id: string | null;
   unidad_venta_defecto_id: string | null;
   precio_editable: boolean;
+  es_promocion: boolean;
+  promocion_de_producto_id: string | null;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -127,6 +129,9 @@ export default function EditarVentaForm({
     actualizarLinea(key, {
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
+      // Una promoción siempre es cantidad 1 — no tiene sentido aplicarla
+      // más de una vez por la misma compra del producto que la habilita.
+      ...(producto?.es_promocion ? { cantidad: 1 } : {}),
     });
     // El precio se sugiere siempre al elegir el producto, esté bloqueado o
     // no — lo único que cambia según el bloqueo es si después se puede
@@ -199,6 +204,20 @@ export default function EditarVentaForm({
   const requiereMotivo = (l: Linea) => !l.esNueva && l.cantidad < l.cantidadPedido;
   const faltaMotivo = lineas.some((l) => requiereMotivo(l) && !l.tipoAjuste);
 
+  // Una promoción solo tiene sentido junto al producto que la habilita —
+  // el servidor vuelve a validar esto al guardar, esto es solo para
+  // avisar antes de intentarlo.
+  const promocionSinProducto = lineas
+    .filter((l) => l.cantidad > 0)
+    .map((l) => productos.find((p) => p.id === l.producto_id))
+    .find(
+      (p) =>
+        p?.es_promocion &&
+        !lineas.some(
+          (l) => l.producto_id === p.promocion_de_producto_id && l.cantidad > 0,
+        ),
+    );
+
   return (
     <form
       action={action}
@@ -214,6 +233,13 @@ export default function EditarVentaForm({
           e.preventDefault();
           setAviso(
             "Indica el motivo por el que se redujo la cantidad de un producto por debajo de lo pedido.",
+          );
+          return;
+        }
+        if (promocionSinProducto) {
+          e.preventDefault();
+          setAviso(
+            `"${promocionSinProducto.nombre}" es una promoción y necesita que su producto asociado también esté en la venta.`,
           );
         }
       }}
@@ -255,12 +281,17 @@ export default function EditarVentaForm({
                 Producto
               </label>
               {linea.esNueva ? (
-                <ProductoCombobox
-                  productos={productos}
-                  value={linea.producto_id}
-                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                />
+                <>
+                  <ProductoCombobox
+                    productos={productos}
+                    value={linea.producto_id}
+                    onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  />
+                  {productoElegido?.es_promocion && (
+                    <p className="mt-1 text-xs font-medium text-emerald-700">Promoción</p>
+                  )}
+                </>
               ) : (
                 <>
                   <input type="hidden" name="producto_id[]" value={linea.producto_id} />
@@ -277,20 +308,29 @@ export default function EditarVentaForm({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Cantidad
               </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="cantidad[]"
-                readOnly={quitada}
-                value={quitada ? 0 : linea.cantidad || ""}
-                onChange={(e) =>
-                  actualizarLinea(linea.key, { cantidad: Number(e.target.value) })
-                }
-                className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none ${
-                  quitada ? "bg-gray-50 text-gray-400" : "bg-white"
-                }`}
-              />
+              {productoElegido?.es_promocion && !quitada ? (
+                <>
+                  <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                    1
+                  </div>
+                  <input type="hidden" name="cantidad[]" value={1} />
+                </>
+              ) : (
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="cantidad[]"
+                  readOnly={quitada}
+                  value={quitada ? 0 : linea.cantidad || ""}
+                  onChange={(e) =>
+                    actualizarLinea(linea.key, { cantidad: Number(e.target.value) })
+                  }
+                  className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none ${
+                    quitada ? "bg-gray-50 text-gray-400" : "bg-white"
+                  }`}
+                />
+              )}
               {factor !== 1 && (
                 <p className="mt-1 text-xs text-gray-400">= {cantidadBase} unidades</p>
               )}

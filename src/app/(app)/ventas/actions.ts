@@ -314,22 +314,54 @@ export async function createVentaDirecta(formData: FormData) {
     );
   }
 
-  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
+  const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
+  if (productoIdsUnicos.size !== lineasConProducto.length) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
+    );
+  }
+
+  // Se adelanta esta consulta (antes solo traía control_inventario, más
+  // abajo) porque una promoción invierte la validación normal: necesita
+  // precio negativo en vez de positivo, y solo tiene sentido si el
+  // producto que la habilita también está en la venta.
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select("id, nombre, control_inventario, es_promocion, promocion_de_producto_id")
+    .in("id", [...productoIdsUnicos]);
+
+  if (
+    lineasConProducto.some((l) => {
+      const info = productosInfo?.find((p) => p.id === l.producto_id);
+      if (!(l.cantidad > 0)) return true;
+      return info?.es_promocion ? !(l.precio_unitario < 0) : !(l.precio_unitario > 0);
+    })
+  ) {
     redirect(
       `/ventas/directa?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
+    );
+  }
+
+  const promocionSinProducto = lineasConProducto
+    .map((l) => productosInfo?.find((p) => p.id === l.producto_id))
+    .find(
+      (p) =>
+        p?.es_promocion &&
+        !lineasConProducto.some(
+          (l) => l.producto_id === p.promocion_de_producto_id && l.cantidad > 0,
+        ),
+    );
+  if (promocionSinProducto) {
+    redirect(
+      `/ventas/directa?error=${encodeURIComponent(
+        `"${promocionSinProducto.nombre}" es una promoción y necesita que su producto asociado también esté en la venta.`,
+      )}`,
     );
   }
 
   if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
     redirect(
       `/ventas/directa?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
-    );
-  }
-
-  const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
-  if (productoIdsUnicos.size !== lineasConProducto.length) {
-    redirect(
-      `/ventas/directa?error=${encodeURIComponent("Hay un producto repetido en la venta. Cada producto debe aparecer una sola vez.")}`,
     );
   }
 
@@ -380,11 +412,6 @@ export async function createVentaDirecta(formData: FormData) {
       `/ventas/directa?error=${encodeURIComponent("El descuento no puede ser mayor al total de la venta.")}`,
     );
   }
-
-  const { data: productosInfo } = await supabase
-    .from("productos")
-    .select("id, nombre, control_inventario")
-    .in("id", [...productoIdsUnicos]);
 
   const lineasControladas = lineas
     .filter((l) => productosInfo?.find((p) => p.id === l.producto_id)?.control_inventario)

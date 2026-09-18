@@ -16,6 +16,8 @@ type Producto = {
   unidad_medida_id: string | null;
   unidad_venta_defecto_id: string | null;
   precio_editable: boolean;
+  es_promocion: boolean;
+  promocion_de_producto_id: string | null;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -174,6 +176,9 @@ export default function VentaDirectaForm({
     updateLinea(key, {
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
+      // Una promoción siempre es cantidad 1 — no tiene sentido aplicarla
+      // más de una vez por la misma compra del producto que la habilita.
+      ...(producto?.es_promocion ? { cantidad: 1 } : {}),
     });
     resolverPrecioLinea(key, productoId, unidadMedidaId);
   };
@@ -202,6 +207,19 @@ export default function VentaDirectaForm({
     return false;
   })();
 
+  // Una promoción solo tiene sentido junto al producto que la habilita —
+  // el servidor vuelve a validar esto al guardar, esto es solo para
+  // avisar antes de intentarlo.
+  const promocionSinProducto = lineas
+    .map((l) => productos.find((p) => p.id === l.producto_id))
+    .find(
+      (p) =>
+        p?.es_promocion &&
+        !lineas.some(
+          (l) => l.producto_id === p.promocion_de_producto_id && l.cantidad > 0,
+        ),
+    );
+
   return (
     <form
       action={action}
@@ -210,6 +228,13 @@ export default function VentaDirectaForm({
           e.preventDefault();
           setAvisoDuplicado(
             "Hay un producto repetido en la venta. Quita la línea duplicada antes de guardar.",
+          );
+          return;
+        }
+        if (promocionSinProducto) {
+          e.preventDefault();
+          setAvisoDuplicado(
+            `"${promocionSinProducto.nombre}" es una promoción y necesita que su producto asociado también esté en la venta.`,
           );
         }
       }}
@@ -320,21 +345,31 @@ export default function VentaDirectaForm({
                   onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
                 />
+                {productoElegido?.es_promocion && (
+                  <p className="mt-1 text-xs font-medium text-emerald-700">Promoción</p>
+                )}
               </Field>
               <Field label="Cantidad">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  name="cantidad[]"
-                  value={linea.cantidad || ""}
-                  onChange={(e) =>
-                    updateLinea(linea.key, {
-                      cantidad: Number(e.target.value),
-                    })
-                  }
-                  className={inputClass}
-                />
+                {productoElegido?.es_promocion ? (
+                  <div className={inputBloqueadoClass}>1</div>
+                ) : (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="cantidad[]"
+                    value={linea.cantidad || ""}
+                    onChange={(e) =>
+                      updateLinea(linea.key, {
+                        cantidad: Number(e.target.value),
+                      })
+                    }
+                    className={inputClass}
+                  />
+                )}
+                {productoElegido?.es_promocion && (
+                  <input type="hidden" name="cantidad[]" value={1} />
+                )}
                 {factor !== 1 && (
                   <p className="mt-1 text-xs text-gray-400">
                     = {cantidadBase} unidades

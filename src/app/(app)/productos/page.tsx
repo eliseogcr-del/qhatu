@@ -18,6 +18,10 @@ export default async function ProductosPage({
     .select(
       "id, nombre, marca, grupo, precio_campo, precio_digital, precio_venta_moneda, control_inventario, activo",
     )
+    // Las promociones (ver módulo Promociones) se administran aparte —
+    // acá se ocultan para no poder tocarlas por accidente con el
+    // interruptor genérico de "activo" de este listado.
+    .eq("es_promocion", false)
     .order("nombre");
 
   if (q) query = query.ilike("nombre", `%${q}%`);

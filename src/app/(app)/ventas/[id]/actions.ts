@@ -94,9 +94,47 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
     );
   }
 
-  if (enviadas.some((l) => l.producto_id && l.cantidad > 0 && !(l.precio_unitario > 0))) {
+  // Se adelanta esta consulta (antes solo cubría las líneas que cambian,
+  // más abajo) porque una promoción invierte la validación normal:
+  // necesita precio negativo en vez de positivo, y solo tiene sentido si
+  // el producto que la habilita también sigue en la venta.
+  const { data: productosPromoInfo } =
+    productoIdsActivos.length > 0
+      ? await supabase
+          .from("productos")
+          .select("id, nombre, es_promocion, promocion_de_producto_id")
+          .in("id", [...new Set(productoIdsActivos)])
+      : {
+          data: [] as {
+            id: string;
+            nombre: string;
+            es_promocion: boolean;
+            promocion_de_producto_id: string | null;
+          }[],
+        };
+
+  if (
+    enviadas.some((l) => {
+      if (!l.producto_id || !(l.cantidad > 0)) return false;
+      const info = productosPromoInfo?.find((p) => p.id === l.producto_id);
+      return info?.es_promocion ? !(l.precio_unitario < 0) : !(l.precio_unitario > 0);
+    })
+  ) {
     redirect(
       `/ventas/${ventaId}/editar?error=${encodeURIComponent("Todo producto con cantidad debe tener un precio unitario mayor a 0.")}`,
+    );
+  }
+
+  const promocionSinProducto = productoIdsActivos
+    .map((id) => productosPromoInfo?.find((p) => p.id === id))
+    .find(
+      (p) => p?.es_promocion && !productoIdsActivos.includes(p.promocion_de_producto_id ?? ""),
+    );
+  if (promocionSinProducto) {
+    redirect(
+      `/ventas/${ventaId}/editar?error=${encodeURIComponent(
+        `"${promocionSinProducto.nombre}" es una promoción y necesita que su producto asociado también esté en la venta.`,
+      )}`,
     );
   }
 
