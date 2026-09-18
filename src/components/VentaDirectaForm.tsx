@@ -129,16 +129,62 @@ export default function VentaDirectaForm({
     };
   }, [clienteId]);
 
-  const productosDisponibles = productos.filter((p) => {
+  // Solo productos reales van al buscador — una promoción nunca se elige
+  // a mano, aparece y desaparece sola (ver sincronizarPromociones) apenas
+  // el producto que la habilita alcanza su cantidad mínima en la venta.
+  const productosSeleccionables = productos.filter((p) => {
+    if (p.es_promocion) return false;
     if (!p.control_inventario) return true;
     if (!almacenSeleccionado) return true;
     return (stockPorAlmacen[`${p.id}::${almacenSeleccionado}`] ?? 0) > 0;
   });
 
+  // Recorre cada promoción y agrega, actualiza o quita su línea según la
+  // cantidad que tenga en ese momento el producto que la habilita — se
+  // corre después de cualquier cambio a `lineas` para que la promoción
+  // siempre quede sincronizada sin que el usuario tenga que buscarla ni
+  // tocarla a mano.
+  const sincronizarPromociones = (base: Linea[]): Linea[] => {
+    let next = base;
+    productos
+      .filter((p) => p.es_promocion)
+      .forEach((promo) => {
+        const idxAtada = next.findIndex(
+          (l) => l.producto_id === promo.promocion_de_producto_id,
+        );
+        const cantidadPromo = cantidadPromoCalculada(promo, next);
+        const idxPromo = next.findIndex((l) => l.producto_id === promo.id);
+
+        if (cantidadPromo > 0) {
+          if (idxPromo === -1) {
+            nextKey += 1;
+            const nueva: Linea = {
+              key: `promo${nextKey}`,
+              producto_id: promo.id,
+              cantidad: cantidadPromo,
+              precio_unitario: 0,
+              unidad_medida_id: promo.unidad_venta_defecto_id ?? promo.unidad_medida_id ?? "",
+            };
+            const posicion = idxAtada === -1 ? next.length : idxAtada + 1;
+            next = [...next.slice(0, posicion), nueva, ...next.slice(posicion)];
+          } else if (next[idxPromo].cantidad !== cantidadPromo) {
+            next = next.map((l, i) =>
+              i === idxPromo ? { ...l, cantidad: cantidadPromo, precio_unitario: 0 } : l,
+            );
+          }
+        } else if (idxPromo !== -1) {
+          next = next.filter((_, i) => i !== idxPromo);
+        }
+      });
+    return next;
+  };
+
+  const fijarLineas = (updater: (prev: Linea[]) => Linea[]) => {
+    setLineas((prev) => sincronizarPromociones(updater(prev)));
+  };
+
   const updateLinea = (key: string, patch: Partial<Linea>) => {
-    setLineas((prev) =>
-      prev.map((l) => (l.key === key ? { ...l, ...patch } : l)),
-    );
+    fijarLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   };
 
   const resolverPrecioLinea = async (
@@ -191,14 +237,7 @@ export default function VentaDirectaForm({
       producto_id: productoId,
       unidad_medida_id: unidadMedidaId,
     });
-    if (producto?.es_promocion) {
-      // El precio de una promoción siempre es 0 y su cantidad se calcula
-      // sola a partir de lo vendido del producto atado (ver
-      // cantidadPromoCalculada) — no hay precio que consultar.
-      updateLinea(key, { precio_unitario: 0 });
-    } else {
-      resolverPrecioLinea(key, productoId, unidadMedidaId);
-    }
+    resolverPrecioLinea(key, productoId, unidadMedidaId);
   };
 
   const seleccionarUnidadMedida = (key: string, unidadMedidaId: string) => {
@@ -225,14 +264,6 @@ export default function VentaDirectaForm({
     return false;
   })();
 
-  // Una promoción solo tiene sentido si el producto que la habilita
-  // alcanza su cantidad mínima (ej. "lleva 12 y la 13 es gratis") — el
-  // servidor vuelve a validar esto al guardar, esto es solo para avisar
-  // antes de intentarlo.
-  const promocionSinProducto = lineas
-    .map((l) => productos.find((p) => p.id === l.producto_id))
-    .find((p) => p?.es_promocion && cantidadPromoCalculada(p, lineas) <= 0);
-
   return (
     <form
       action={action}
@@ -243,12 +274,6 @@ export default function VentaDirectaForm({
             "Hay un producto repetido en la venta. Quita la línea duplicada antes de guardar.",
           );
           return;
-        }
-        if (promocionSinProducto) {
-          e.preventDefault();
-          setAvisoDuplicado(
-            `"${promocionSinProducto.nombre}" es una promoción y necesita que su producto asociado también esté en la venta.`,
-          );
         }
       }}
       className="space-y-8"
@@ -303,7 +328,7 @@ export default function VentaDirectaForm({
                 value={almacenSeleccionado}
                 onChange={(e) => {
                   setAlmacenSeleccionado(e.target.value);
-                  setLineas((prev) =>
+                  fijarLineas((prev) =>
                     prev.map((l) => ({ ...l, producto_id: "", precio_unitario: 0 })),
                   );
                 }}
@@ -327,7 +352,7 @@ export default function VentaDirectaForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Productos vendidos
         </h2>
-        {almacenSeleccionado && productosDisponibles.length === 0 && (
+        {almacenSeleccionado && productosSeleccionables.length === 0 && (
           <p className="text-sm text-amber-600">
             Ese almacén no tiene productos con stock disponible en este momento.
           </p>
@@ -352,30 +377,30 @@ export default function VentaDirectaForm({
               className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_120px_150px_140px_140px_auto]"
             >
               <Field label="Producto">
-                <ProductoCombobox
-                  productos={productosDisponibles}
-                  value={linea.producto_id}
-                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
-                  className={inputClass}
-                />
+                {productoElegido?.es_promocion ? (
+                  <>
+                    <div className={inputBloqueadoClass}>{productoElegido.nombre}</div>
+                    <input type="hidden" name="producto_id[]" value={linea.producto_id} />
+                  </>
+                ) : (
+                  <ProductoCombobox
+                    productos={productosSeleccionables}
+                    value={linea.producto_id}
+                    onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
+                    className={inputClass}
+                  />
+                )}
                 {productoElegido?.es_promocion && (
                   <p className="mt-1 text-xs font-medium text-emerald-700">
-                    Promoción — se agregan{" "}
-                    {cantidadPromoCalculada(productoElegido, lineas)} gratis
+                    Promoción — se agregó sola, regalo por la cantidad vendida
                   </p>
                 )}
               </Field>
               <Field label="Cantidad">
                 {productoElegido?.es_promocion ? (
                   <>
-                    <div className={inputBloqueadoClass}>
-                      {cantidadPromoCalculada(productoElegido, lineas)}
-                    </div>
-                    <input
-                      type="hidden"
-                      name="cantidad[]"
-                      value={cantidadPromoCalculada(productoElegido, lineas)}
-                    />
+                    <div className={inputBloqueadoClass}>{linea.cantidad}</div>
+                    <input type="hidden" name="cantidad[]" value={linea.cantidad} />
                   </>
                 ) : (
                   <input
@@ -406,19 +431,33 @@ export default function VentaDirectaForm({
                 )}
               </Field>
               <Field label="Unidad de medida">
-                <select
-                  name="unidad_medida_id[]"
-                  value={linea.unidad_medida_id}
-                  onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">—</option>
-                  {unidadesMedida.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.descripcion}
-                    </option>
-                  ))}
-                </select>
+                {productoElegido?.es_promocion ? (
+                  <>
+                    <div className={inputBloqueadoClass}>
+                      {unidadesMedida.find((u) => u.id === linea.unidad_medida_id)?.descripcion ??
+                        "—"}
+                    </div>
+                    <input
+                      type="hidden"
+                      name="unidad_medida_id[]"
+                      value={linea.unidad_medida_id}
+                    />
+                  </>
+                ) : (
+                  <select
+                    name="unidad_medida_id[]"
+                    value={linea.unidad_medida_id}
+                    onChange={(e) => seleccionarUnidadMedida(linea.key, e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">—</option>
+                    {unidadesMedida.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.descripcion}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </Field>
               <Field label="Precio unitario">
                 {productoElegido?.es_promocion ? (
@@ -457,27 +496,25 @@ export default function VentaDirectaForm({
               <Field label="Subtotal">
                 <input
                   disabled
-                  value={(
-                    (productoElegido?.es_promocion
-                      ? cantidadPromoCalculada(productoElegido, lineas)
-                      : linea.cantidad) * linea.precio_unitario
-                  ).toFixed(2)}
+                  value={(linea.cantidad * linea.precio_unitario).toFixed(2)}
                   className={`${inputClass} bg-gray-50 text-gray-500`}
                 />
               </Field>
-              <button
-                type="button"
-                onClick={() =>
-                  setLineas((prev) =>
-                    prev.length > 1
-                      ? prev.filter((l) => l.key !== linea.key)
-                      : prev,
-                  )
-                }
-                className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 hover:bg-gray-100"
-              >
-                Quitar
-              </button>
+              {!productoElegido?.es_promocion && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    fijarLineas((prev) =>
+                      prev.length > 1
+                        ? prev.filter((l) => l.key !== linea.key)
+                        : prev,
+                    )
+                  }
+                  className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-500 hover:bg-gray-100"
+                >
+                  Quitar
+                </button>
+              )}
             </div>
             );
           })}
@@ -485,7 +522,7 @@ export default function VentaDirectaForm({
 
         <button
           type="button"
-          onClick={() => setLineas((prev) => [...prev, newLinea()])}
+          onClick={() => fijarLineas((prev) => [...prev, newLinea()])}
           className="text-sm font-medium text-gray-700 underline hover:text-gray-900"
         >
           + Agregar producto
