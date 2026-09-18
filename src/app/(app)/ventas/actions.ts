@@ -630,18 +630,6 @@ export async function createVentaRapida(formData: FormData) {
     );
   }
 
-  if (lineasConProducto.some((l) => !(l.cantidad > 0) || !(l.precio_unitario > 0))) {
-    redirect(
-      `/ventas/rapida?error=${encodeURIComponent("Cada producto debe tener una cantidad y un precio unitario mayores a 0.")}`,
-    );
-  }
-
-  if (lineasConProducto.some((l) => !l.unidad_medida_id)) {
-    redirect(
-      `/ventas/rapida?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
-    );
-  }
-
   const productoIdsUnicos = new Set(lineasConProducto.map((l) => l.producto_id));
   if (productoIdsUnicos.size !== lineasConProducto.length) {
     redirect(
@@ -649,23 +637,79 @@ export async function createVentaRapida(formData: FormData) {
     );
   }
 
-  let lineasConPrecio = lineasConProducto;
+  // Se adelanta esta consulta (antes solo traía control_inventario, más
+  // abajo) porque una promoción se resuelve distinto: su cantidad y su
+  // precio no vienen del formulario, se calculan acá.
+  const { data: productosInfo } = await supabase
+    .from("productos")
+    .select(
+      "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+    )
+    .in("id", [...productoIdsUnicos]);
+
+  // El cliente nunca decide la cantidad ni el precio de una promoción: el
+  // precio siempre es 0 y la cantidad se calcula del lado del servidor a
+  // partir de lo que se vendió del producto atado —
+  // floor(cantidad_atada / cantidad_mínima), soportando múltiplos (24
+  // pizzas con mínima 12 -> 2 gratis). Lo que venga del formulario para
+  // esas dos columnas en una línea de promoción se descarta.
+  const lineasConPromoResuelta = lineasConProducto.map((l) => {
+    const info = productosInfo?.find((p) => p.id === l.producto_id);
+    if (!info?.es_promocion) return l;
+    const lineaAtada = lineasConProducto.find(
+      (o) => o.producto_id === info.promocion_de_producto_id,
+    );
+    const cantidadPromo = lineaAtada
+      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima)
+      : 0;
+    return { ...l, cantidad: cantidadPromo, precio_unitario: 0 };
+  });
+
+  if (
+    lineasConPromoResuelta.some((l) => {
+      const info = productosInfo?.find((p) => p.id === l.producto_id);
+      if (info?.es_promocion) return !(l.cantidad > 0);
+      return !(l.cantidad > 0) || !(l.precio_unitario > 0);
+    })
+  ) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent(
+        "Cada producto debe tener una cantidad y un precio unitario mayores a 0. Si una promoción no alcanza su cantidad mínima, quítala de la venta.",
+      )}`,
+    );
+  }
+
+  if (lineasConPromoResuelta.some((l) => !l.unidad_medida_id)) {
+    redirect(
+      `/ventas/rapida?error=${encodeURIComponent("Selecciona la unidad de medida de cada producto.")}`,
+    );
+  }
+
+  let lineasConPrecio = lineasConPromoResuelta;
   if (await preciosBloqueados(supabase, empresaId)) {
     const digital = await esAlmacenDigital(supabase, almacenId);
     const precios = await resolverPrecios(supabase, {
       empresaId,
       clienteId,
       esDigital: digital,
-      lineas: lineasConProducto.map((l) => ({
+      lineas: lineasConPromoResuelta.map((l) => ({
         productoId: l.producto_id,
         unidadMedidaId: l.unidad_medida_id,
       })),
     });
-    lineasConPrecio = lineasConProducto.map((l) => ({
+    lineasConPrecio = lineasConPromoResuelta.map((l) => ({
       ...l,
       precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
     }));
   }
+  // El precio de una promoción siempre es 0 — nunca lo que resuelva la
+  // lista de precios (que además ya guarda 0 en precio_campo/precio_digital
+  // para estas filas, ver promociones/actions.ts).
+  lineasConPrecio = lineasConPrecio.map((l) =>
+    productosInfo?.find((p) => p.id === l.producto_id)?.es_promocion
+      ? { ...l, precio_unitario: 0 }
+      : l,
+  );
 
   const { data: unidadesInfo } = await supabase
     .from("unidades_medida")
@@ -693,18 +737,35 @@ export async function createVentaRapida(formData: FormData) {
     );
   }
 
-  const { data: productosInfo } = await supabase
-    .from("productos")
-    .select("id, nombre, control_inventario")
-    .in("id", [...productoIdsUnicos]);
+  // El consumo controlado se agrupa por producto: una promoción no tiene
+  // stock propio (control_inventario siempre false), descuenta contra el
+  // producto atado — así que su cantidad se suma ahí, junto con lo que ya
+  // consume la línea normal de ese mismo producto.
+  const consumoControlado = new Map<string, number>();
+  lineas.forEach((l) => {
+    const info = productosInfo?.find((p) => p.id === l.producto_id);
+    if (!info) return;
+    const productoControladoId = info.es_promocion
+      ? info.promocion_de_producto_id
+      : info.control_inventario
+        ? info.id
+        : null;
+    if (!productoControladoId) return;
+    const tiedInfo = info.es_promocion
+      ? productosInfo?.find((p) => p.id === productoControladoId)
+      : info;
+    if (!tiedInfo?.control_inventario) return;
+    consumoControlado.set(
+      productoControladoId,
+      (consumoControlado.get(productoControladoId) ?? 0) + l.cantidad_base,
+    );
+  });
 
-  const lineasControladas = lineas
-    .filter((l) => productosInfo?.find((p) => p.id === l.producto_id)?.control_inventario)
-    .map((l) => ({
-      productoId: l.producto_id,
-      productoNombre: productosInfo!.find((p) => p.id === l.producto_id)!.nombre,
-      cantidad: l.cantidad_base,
-    }));
+  const lineasControladas = [...consumoControlado.entries()].map(([productoId, cantidad]) => ({
+    productoId,
+    productoNombre: productosInfo!.find((p) => p.id === productoId)!.nombre,
+    cantidad,
+  }));
 
   const errorStock = await validarStockDisponible(
     supabase,
@@ -798,11 +859,25 @@ export async function createVentaRapida(formData: FormData) {
     const ventaDetalleId = ventaDetalleRows?.[i]?.id;
     if (!ventaDetalleId) return;
 
-    const llevaInventario = productosInfo?.find(
-      (p) => p.id === linea.producto_id,
-    )?.control_inventario;
+    const info = productosInfo?.find((p) => p.id === linea.producto_id);
 
-    if (llevaInventario) {
+    // Una promoción no tiene stock propio: su salida de inventario se
+    // registra contra el producto atado, no contra su propia fila.
+    if (info?.es_promocion) {
+      const tiedInfo = productosInfo?.find((p) => p.id === info.promocion_de_producto_id);
+      if (tiedInfo?.control_inventario && linea.cantidad_base > 0) {
+        movimientosKardex.push({
+          productoId: info.promocion_de_producto_id!,
+          almacenId,
+          tipoMovimiento: "venta",
+          cantidad: -linea.cantidad_base,
+          referenciaId: ventaDetalleId,
+        });
+      }
+      return;
+    }
+
+    if (info?.control_inventario) {
       movimientosKardex.push({
         productoId: linea.producto_id,
         almacenId,

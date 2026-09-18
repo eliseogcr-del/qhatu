@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
+import { filtrarPromocionesVigentes } from "@/utils/promociones";
 import VentaRapidaForm from "@/components/VentaRapidaForm";
 import { createVentaRapida } from "../actions";
 
@@ -24,8 +25,13 @@ export default async function VentaRapidaPage({
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
-        .select("id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable")
-        .eq("activo", true)
+        .select(
+          "id, nombre, control_inventario, unidad_medida_id, unidad_venta_defecto_id, precio_editable, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_inicio, promocion_fin",
+        )
+        // Productos normales activos, más promociones activas (activo
+        // siempre queda en false para las promociones, ver 20260918010000).
+        // La vigencia por fecha (promocion_inicio/fin) se filtra abajo.
+        .or("activo.eq.true,and(es_promocion.eq.true,promocion_activa.eq.true)")
         .order("nombre"),
       supabase.from("inventario").select("producto_id, almacen_id, stock_actual"),
       supabase
@@ -39,6 +45,8 @@ export default async function VentaRapidaPage({
   const stockPorAlmacen = Object.fromEntries(
     (inventario ?? []).map((i) => [`${i.producto_id}::${i.almacen_id}`, i.stock_actual]),
   );
+
+  const productosVigentes = filtrarPromocionesVigentes(productos ?? []);
 
   // Cliente genérico para las ventas al paso en la calle (la mayoría no
   // son clientes con ficha propia) — si existe, se preselecciona para no
@@ -57,7 +65,7 @@ export default async function VentaRapidaPage({
           guardado={guardado === "1"}
           clientes={clientes ?? []}
           clienteFrecuenteId={clienteFrecuenteId}
-          productos={productos ?? []}
+          productos={productosVigentes}
           unidadesMedida={unidadesMedida ?? []}
           stockPorAlmacen={stockPorAlmacen}
           almacenSesion={almacenId}
