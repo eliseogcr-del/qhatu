@@ -8,12 +8,15 @@ import { requireLogisticaOAdmin } from "@/utils/supabase/session";
 // Una promoción es un producto "espejo" atado a un producto real: solo
 // se vende junto a él, y en múltiplos de promocion_cantidad_minima (ej.
 // "lleva 12 y la 13 gratis" -> con 24 en la venta se agregan 2 gratis).
-// Precio siempre 0 (no hay monto que configurar ni que se desactualice
-// si cambia el precio del producto atado). control_inventario queda en
-// false porque la promoción no tiene stock propio — su descuento de
-// inventario se registra contra promocion_de_producto_id (ver
-// ventas/actions.ts) — y activo en false para que las demás pantallas
-// de productos la ignoren; la visibilidad real es promocion_activa.
+// Por cada múltiplo alcanzado se regala promocion_cantidad_regalo
+// unidades (normalmente 1, pero soporta "compra 12, llévate 2 gratis")
+// al precio unitario promocion_precio (normalmente 0, pero soporta
+// "compra 12, paga la mitad" con un precio > 0 pero menor al normal).
+// control_inventario queda en false porque la promoción no tiene stock
+// propio — su descuento de inventario se registra contra
+// promocion_de_producto_id (ver ventas/actions.ts) — y activo en false
+// para que las demás pantallas de productos la ignoren; la visibilidad
+// real es promocion_activa.
 export async function crearPromocion(formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await requireLogisticaOAdmin(supabase);
@@ -21,6 +24,8 @@ export async function crearPromocion(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const productoId = String(formData.get("promocion_de_producto_id") ?? "");
   const cantidadMinima = Number(formData.get("cantidad_minima") || 1);
+  const cantidadRegalo = Number(formData.get("cantidad_regalo") || 1);
+  const precio = Number(formData.get("precio") || 0);
   const activa = formData.get("promocion_activa") === "on";
   const inicio = String(formData.get("promocion_inicio") ?? "").trim() || null;
   const fin = String(formData.get("promocion_fin") ?? "").trim() || null;
@@ -34,6 +39,14 @@ export async function crearPromocion(formData: FormData) {
     redirect(
       `/promociones?error=${encodeURIComponent("La cantidad mínima debe ser mayor a 0.")}`,
     );
+  }
+  if (!(cantidadRegalo > 0)) {
+    redirect(
+      `/promociones?error=${encodeURIComponent("La cantidad a regalar debe ser mayor a 0.")}`,
+    );
+  }
+  if (!(precio >= 0)) {
+    redirect(`/promociones?error=${encodeURIComponent("El precio no puede ser negativo.")}`);
   }
   if (inicio && fin && new Date(fin) <= new Date(inicio)) {
     redirect(
@@ -65,6 +78,8 @@ export async function crearPromocion(formData: FormData) {
     es_promocion: true,
     promocion_de_producto_id: productoId,
     promocion_cantidad_minima: cantidadMinima,
+    promocion_cantidad_regalo: cantidadRegalo,
+    promocion_precio: precio,
     promocion_activa: activa,
     promocion_inicio: inicio,
     promocion_fin: fin,
@@ -84,6 +99,8 @@ export async function actualizarPromocion(id: string, formData: FormData) {
 
   const nombre = String(formData.get("nombre") ?? "").trim();
   const cantidadMinima = Number(formData.get("cantidad_minima") || 1);
+  const cantidadRegalo = Number(formData.get("cantidad_regalo") || 1);
+  const precio = Number(formData.get("precio") || 0);
   const inicio = String(formData.get("promocion_inicio") ?? "").trim() || null;
   const fin = String(formData.get("promocion_fin") ?? "").trim() || null;
 
@@ -94,6 +111,14 @@ export async function actualizarPromocion(id: string, formData: FormData) {
     redirect(
       `/promociones?error=${encodeURIComponent("La cantidad mínima debe ser mayor a 0.")}`,
     );
+  }
+  if (!(cantidadRegalo > 0)) {
+    redirect(
+      `/promociones?error=${encodeURIComponent("La cantidad a regalar debe ser mayor a 0.")}`,
+    );
+  }
+  if (!(precio >= 0)) {
+    redirect(`/promociones?error=${encodeURIComponent("El precio no puede ser negativo.")}`);
   }
   if (inicio && fin && new Date(fin) <= new Date(inicio)) {
     redirect(
@@ -106,6 +131,8 @@ export async function actualizarPromocion(id: string, formData: FormData) {
     .update({
       nombre,
       promocion_cantidad_minima: cantidadMinima,
+      promocion_cantidad_regalo: cantidadRegalo,
+      promocion_precio: precio,
       promocion_inicio: inicio,
       promocion_fin: fin,
     })

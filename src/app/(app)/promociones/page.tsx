@@ -26,7 +26,7 @@ export default async function PromocionesPage({
     supabase
       .from("productos")
       .select(
-        "id, nombre, promocion_activa, promocion_de_producto_id, promocion_cantidad_minima, promocion_inicio, promocion_fin",
+        "id, nombre, promocion_activa, promocion_de_producto_id, promocion_cantidad_minima, promocion_cantidad_regalo, promocion_precio, promocion_inicio, promocion_fin",
       )
       .eq("empresa_id", empresaId)
       .eq("es_promocion", true)
@@ -43,11 +43,13 @@ export default async function PromocionesPage({
           <h1 className="text-2xl font-semibold text-gray-900">Promociones</h1>
         </div>
         <p className="-mt-6 text-sm text-gray-500">
-          Una promoción es un producto de regalo con precio 0: al vender al
-          menos la cantidad mínima del producto atado, se agrega sola con la
-          cantidad de unidades gratis que correspondan (ej. &quot;lleva 12 y
-          la 13 es gratis&quot; = cantidad mínima 12; con 24 se agregan 2
-          gratis). Además de estar activa, si defines inicio y/o fin de
+          Al vender al menos la cantidad mínima del producto atado, la
+          promoción se agrega sola a la venta con la cantidad a regalar que
+          corresponda al precio unitario configurado (ej. &quot;lleva 12 y
+          la 13 gratis&quot; = cantidad mínima 12, cantidad a regalar 1,
+          precio 0; con 24 se agregan 2). También sirve para descuentos como
+          &quot;paga la mitad&quot;, con un precio mayor a 0 pero menor al
+          normal. Además de estar activa, si defines inicio y/o fin de
           campaña solo se aplica dentro de ese rango de fecha y hora.
         </p>
 
@@ -103,6 +105,32 @@ export default async function PromocionesPage({
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Cantidad a regalar
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                name="cantidad_regalo"
+                required
+                defaultValue={1}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Precio</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="precio"
+                required
+                defaultValue={0}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
@@ -139,9 +167,10 @@ export default async function PromocionesPage({
             </div>
           </form>
           <p className="mt-2 text-xs text-gray-500">
-            El precio de la promoción siempre es 0: se registra como una
-            línea de regalo aparte, no como un descuento sobre el producto
-            atado.
+            Se registra como una línea aparte en la venta, no como un
+            descuento sobre el producto atado — el precio es por unidad
+            (0 para gratis, o un monto menor para un descuento tipo &quot;paga
+            la mitad&quot;).
           </p>
         </div>
 
@@ -152,6 +181,8 @@ export default async function PromocionesPage({
                 <th className="px-4 py-3 font-bold">Nombre</th>
                 <th className="px-4 py-3 font-bold">Producto atado</th>
                 <th className="px-4 py-3 font-bold">Cantidad mínima</th>
+                <th className="px-4 py-3 font-bold">Cantidad a regalar</th>
+                <th className="px-4 py-3 font-bold">Precio</th>
                 <th className="px-4 py-3 font-bold">Inicio</th>
                 <th className="px-4 py-3 font-bold">Fin</th>
                 <th className="px-4 py-3 font-bold">Estado</th>
@@ -168,6 +199,8 @@ export default async function PromocionesPage({
                     "—"
                   }
                   cantidadMinima={p.promocion_cantidad_minima}
+                  cantidadRegalo={p.promocion_cantidad_regalo}
+                  precio={p.promocion_precio}
                   inicio={p.promocion_inicio}
                   fin={p.promocion_fin}
                   activa={p.promocion_activa}
@@ -177,7 +210,7 @@ export default async function PromocionesPage({
               ))}
               {promociones?.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
                     Aún no hay promociones configuradas.
                   </td>
                 </tr>

@@ -327,16 +327,17 @@ export async function createVentaDirecta(formData: FormData) {
   const { data: productosInfo } = await supabase
     .from("productos")
     .select(
-      "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+      "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_cantidad_regalo, promocion_precio",
     )
     .in("id", [...productoIdsUnicos]);
 
   // El cliente nunca decide la cantidad ni el precio de una promoción: el
-  // precio siempre es 0 y la cantidad se calcula del lado del servidor a
-  // partir de lo que se vendió del producto atado —
-  // floor(cantidad_atada / cantidad_mínima), soportando múltiplos (24
-  // pizzas con mínima 12 -> 2 gratis). Lo que venga del formulario para
-  // esas dos columnas en una línea de promoción se descarta.
+  // precio es el configurado en la promoción y la cantidad se calcula del
+  // lado del servidor a partir de lo que se vendió del producto atado —
+  // floor(cantidad_atada / cantidad_mínima) multiplicado por la cantidad a
+  // regalar (24 pizzas con mínima 12 y regalo 1 -> 2 gratis). Lo que venga
+  // del formulario para esas dos columnas en una línea de promoción se
+  // descarta.
   const lineasConPromoResuelta = lineasConProducto.map((l) => {
     const info = productosInfo?.find((p) => p.id === l.producto_id);
     if (!info?.es_promocion) return l;
@@ -344,9 +345,10 @@ export async function createVentaDirecta(formData: FormData) {
       (o) => o.producto_id === info.promocion_de_producto_id,
     );
     const cantidadPromo = lineaAtada
-      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima)
+      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima) *
+        info.promocion_cantidad_regalo
       : 0;
-    return { ...l, cantidad: cantidadPromo, precio_unitario: 0 };
+    return { ...l, cantidad: cantidadPromo, precio_unitario: info.promocion_precio };
   });
 
   if (
@@ -386,14 +388,14 @@ export async function createVentaDirecta(formData: FormData) {
       precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
     }));
   }
-  // El precio de una promoción siempre es 0 — nunca lo que resuelva la
-  // lista de precios (que además ya guarda 0 en precio_campo/precio_digital
-  // para estas filas, ver promociones/actions.ts).
-  lineasConPrecio = lineasConPrecio.map((l) =>
-    productosInfo?.find((p) => p.id === l.producto_id)?.es_promocion
-      ? { ...l, precio_unitario: 0 }
-      : l,
-  );
+  // El precio de una promoción es el configurado en la promoción misma —
+  // nunca lo que resuelva la lista de precios (que ni siquiera aplica:
+  // precio_campo/precio_digital quedan en 0 para estas filas, ver
+  // promociones/actions.ts).
+  lineasConPrecio = lineasConPrecio.map((l) => {
+    const info = productosInfo?.find((p) => p.id === l.producto_id);
+    return info?.es_promocion ? { ...l, precio_unitario: info.promocion_precio } : l;
+  });
 
   const { data: unidadesInfo } = await supabase
     .from("unidades_medida")
@@ -643,16 +645,17 @@ export async function createVentaRapida(formData: FormData) {
   const { data: productosInfo } = await supabase
     .from("productos")
     .select(
-      "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima",
+      "id, nombre, control_inventario, es_promocion, promocion_de_producto_id, promocion_cantidad_minima, promocion_cantidad_regalo, promocion_precio",
     )
     .in("id", [...productoIdsUnicos]);
 
   // El cliente nunca decide la cantidad ni el precio de una promoción: el
-  // precio siempre es 0 y la cantidad se calcula del lado del servidor a
-  // partir de lo que se vendió del producto atado —
-  // floor(cantidad_atada / cantidad_mínima), soportando múltiplos (24
-  // pizzas con mínima 12 -> 2 gratis). Lo que venga del formulario para
-  // esas dos columnas en una línea de promoción se descarta.
+  // precio es el configurado en la promoción y la cantidad se calcula del
+  // lado del servidor a partir de lo que se vendió del producto atado —
+  // floor(cantidad_atada / cantidad_mínima) multiplicado por la cantidad a
+  // regalar (24 pizzas con mínima 12 y regalo 1 -> 2 gratis). Lo que venga
+  // del formulario para esas dos columnas en una línea de promoción se
+  // descarta.
   const lineasConPromoResuelta = lineasConProducto.map((l) => {
     const info = productosInfo?.find((p) => p.id === l.producto_id);
     if (!info?.es_promocion) return l;
@@ -660,9 +663,10 @@ export async function createVentaRapida(formData: FormData) {
       (o) => o.producto_id === info.promocion_de_producto_id,
     );
     const cantidadPromo = lineaAtada
-      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima)
+      ? Math.floor(lineaAtada.cantidad / info.promocion_cantidad_minima) *
+        info.promocion_cantidad_regalo
       : 0;
-    return { ...l, cantidad: cantidadPromo, precio_unitario: 0 };
+    return { ...l, cantidad: cantidadPromo, precio_unitario: info.promocion_precio };
   });
 
   if (
@@ -702,14 +706,14 @@ export async function createVentaRapida(formData: FormData) {
       precio_unitario: precios.get(l.producto_id) ?? l.precio_unitario,
     }));
   }
-  // El precio de una promoción siempre es 0 — nunca lo que resuelva la
-  // lista de precios (que además ya guarda 0 en precio_campo/precio_digital
-  // para estas filas, ver promociones/actions.ts).
-  lineasConPrecio = lineasConPrecio.map((l) =>
-    productosInfo?.find((p) => p.id === l.producto_id)?.es_promocion
-      ? { ...l, precio_unitario: 0 }
-      : l,
-  );
+  // El precio de una promoción es el configurado en la promoción misma —
+  // nunca lo que resuelva la lista de precios (que ni siquiera aplica:
+  // precio_campo/precio_digital quedan en 0 para estas filas, ver
+  // promociones/actions.ts).
+  lineasConPrecio = lineasConPrecio.map((l) => {
+    const info = productosInfo?.find((p) => p.id === l.producto_id);
+    return info?.es_promocion ? { ...l, precio_unitario: info.promocion_precio } : l;
+  });
 
   const { data: unidadesInfo } = await supabase
     .from("unidades_medida")

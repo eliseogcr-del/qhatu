@@ -19,16 +19,21 @@ type Producto = {
   es_promocion: boolean;
   promocion_de_producto_id: string | null;
   promocion_cantidad_minima: number;
+  promocion_cantidad_regalo: number;
+  promocion_precio: number;
 };
 
-// Cuántas unidades gratis corresponden: la cantidad vendida del producto
-// atado, dividida entre la cantidad mínima, redondeada hacia abajo (ej.
-// 24 pizzas con mínima 12 -> 2 gratis). El servidor vuelve a calcular
-// esto al guardar, esto solo refleja lo mismo en pantalla.
+// Cuántas unidades corresponden: los múltiplos de la cantidad mínima que
+// alcanzó el producto atado, cada uno multiplicado por la cantidad a
+// regalar configurada (ej. cantidad mínima 12, cantidad a regalar 2 ->
+// con 24 en la venta se agregan 4). El servidor vuelve a calcular esto
+// al guardar, esto solo refleja lo mismo en pantalla.
 function cantidadPromoCalculada(promo: Producto, lineas: Linea[]): number {
   const lineaAtada = lineas.find((l) => l.producto_id === promo.promocion_de_producto_id);
   if (!lineaAtada) return 0;
-  return Math.floor(lineaAtada.cantidad / promo.promocion_cantidad_minima);
+  return (
+    Math.floor(lineaAtada.cantidad / promo.promocion_cantidad_minima) * promo.promocion_cantidad_regalo
+  );
 }
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -162,14 +167,19 @@ export default function VentaDirectaForm({
               key: `promo${nextKey}`,
               producto_id: promo.id,
               cantidad: cantidadPromo,
-              precio_unitario: 0,
+              precio_unitario: promo.promocion_precio,
               unidad_medida_id: promo.unidad_venta_defecto_id ?? promo.unidad_medida_id ?? "",
             };
             const posicion = idxAtada === -1 ? next.length : idxAtada + 1;
             next = [...next.slice(0, posicion), nueva, ...next.slice(posicion)];
-          } else if (next[idxPromo].cantidad !== cantidadPromo) {
+          } else if (
+            next[idxPromo].cantidad !== cantidadPromo ||
+            next[idxPromo].precio_unitario !== promo.promocion_precio
+          ) {
             next = next.map((l, i) =>
-              i === idxPromo ? { ...l, cantidad: cantidadPromo, precio_unitario: 0 } : l,
+              i === idxPromo
+                ? { ...l, cantidad: cantidadPromo, precio_unitario: promo.promocion_precio }
+                : l,
             );
           }
         } else if (idxPromo !== -1) {
@@ -462,8 +472,12 @@ export default function VentaDirectaForm({
               <Field label="Precio unitario">
                 {productoElegido?.es_promocion ? (
                   <>
-                    <div className={inputBloqueadoClass}>0.00</div>
-                    <input type="hidden" name="precio_unitario[]" value={0} />
+                    <div className={inputBloqueadoClass}>{linea.precio_unitario.toFixed(2)}</div>
+                    <input
+                      type="hidden"
+                      name="precio_unitario[]"
+                      value={linea.precio_unitario}
+                    />
                   </>
                 ) : preciosBloqueados && !productoElegido?.precio_editable ? (
                   <>

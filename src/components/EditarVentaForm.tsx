@@ -16,6 +16,8 @@ type Producto = {
   es_promocion: boolean;
   promocion_de_producto_id: string | null;
   promocion_cantidad_minima: number;
+  promocion_cantidad_regalo: number;
+  promocion_precio: number;
 };
 type UnidadMedida = { id: string; descripcion: string; cantidad: number };
 
@@ -33,14 +35,17 @@ type Linea = {
   detalleAjuste: string;
 };
 
-// Cuántas unidades gratis corresponden: la cantidad vendida del producto
-// atado, dividida entre la cantidad mínima, redondeada hacia abajo (ej.
-// 24 pizzas con mínima 12 -> 2 gratis). El servidor vuelve a calcular
-// esto al guardar, esto solo refleja lo mismo en pantalla.
+// Cuántas unidades corresponden: los múltiplos de la cantidad mínima que
+// alcanzó el producto atado, cada uno multiplicado por la cantidad a
+// regalar configurada (ej. cantidad mínima 12, cantidad a regalar 2 ->
+// con 24 en la venta se agregan 4). El servidor vuelve a calcular esto
+// al guardar, esto solo refleja lo mismo en pantalla.
 function cantidadPromoCalculada(promo: Producto, lineas: Linea[]): number {
   const lineaAtada = lineas.find((l) => l.producto_id === promo.promocion_de_producto_id);
   if (!lineaAtada) return 0;
-  return Math.floor(lineaAtada.cantidad / promo.promocion_cantidad_minima);
+  return (
+    Math.floor(lineaAtada.cantidad / promo.promocion_cantidad_minima) * promo.promocion_cantidad_regalo
+  );
 }
 
 let nextKey = 0;
@@ -142,10 +147,11 @@ export default function EditarVentaForm({
       unidad_medida_id: unidadMedidaId,
     });
     if (producto?.es_promocion) {
-      // El precio de una promoción siempre es 0 y su cantidad se calcula
-      // sola a partir de lo vendido del producto atado (ver
-      // cantidadPromoCalculada) — no hay precio que consultar.
-      actualizarLinea(key, { precio_unitario: 0 });
+      // El precio de una promoción es el configurado en la promoción
+      // misma y su cantidad se calcula sola a partir de lo vendido del
+      // producto atado (ver cantidadPromoCalculada) — no hay precio que
+      // consultar.
+      actualizarLinea(key, { precio_unitario: producto.promocion_precio });
       return;
     }
     // El precio se sugiere siempre al elegir el producto, esté bloqueado o
@@ -384,8 +390,12 @@ export default function EditarVentaForm({
               </label>
               {productoElegido?.es_promocion ? (
                 <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                  0.00
-                  <input type="hidden" name="precio_unitario[]" value={0} />
+                  {linea.precio_unitario.toFixed(2)}
+                  <input
+                    type="hidden"
+                    name="precio_unitario[]"
+                    value={linea.precio_unitario}
+                  />
                 </div>
               ) : preciosBloqueados && !productoElegido?.precio_editable ? (
                 <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
