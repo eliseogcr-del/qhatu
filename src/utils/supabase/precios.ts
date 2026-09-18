@@ -116,3 +116,19 @@ export async function preciosBloqueados(
     .maybeSingle();
   return data?.precios_bloqueados ?? true;
 }
+
+// Deshabilitado por defecto (aunque la empresa nunca haya guardado la fila
+// de configuración) — hasta que un admin lo habilite, el campo Descuento
+// ni siquiera aparece en los formularios de venta y el servidor fuerza el
+// descuento a 0 sin importar lo que llegue en el formData.
+export async function descuentoHabilitado(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  empresaId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("configuracion_precios")
+    .select("descuento_habilitado")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  return data?.descuento_habilitado ?? false;
+}

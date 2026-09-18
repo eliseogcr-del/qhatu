@@ -50,6 +50,7 @@ export default function EditarVentaForm({
   clienteId,
   almacenId,
   preciosBloqueados,
+  descuentoHabilitado,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -77,6 +78,8 @@ export default function EditarVentaForm({
   // conserva siempre su precio guardado; esto solo afecta si se puede
   // editar a mano y qué precio se sugiere para una línea nueva.
   preciosBloqueados: boolean;
+  // Configuración de Precios → Descuento en Ventas; deshabilitado por defecto.
+  descuentoHabilitado: boolean;
 }) {
   const [descuento, setDescuento] = useState(descuentoInicial);
   const [lineas, setLineas] = useState<Linea[]>(
@@ -436,20 +439,22 @@ export default function EditarVentaForm({
           <span>Total</span>
           <span>{moneda} {total.toFixed(2)}</span>
         </div>
-        <div className="flex items-center justify-between text-gray-600">
-          <label htmlFor="descuento">Descuento</label>
-          <input
-            id="descuento"
-            type="number"
-            step="0.01"
-            min="0"
-            name="descuento"
-            value={descuento || ""}
-            onChange={(e) => setDescuento(Number(e.target.value) || 0)}
-            placeholder="0"
-            className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
+        {descuentoHabilitado && (
+          <div className="flex items-center justify-between text-gray-600">
+            <label htmlFor="descuento">Descuento</label>
+            <input
+              id="descuento"
+              type="number"
+              step="0.01"
+              min="0"
+              name="descuento"
+              value={descuento || ""}
+              onChange={(e) => setDescuento(Number(e.target.value) || 0)}
+              placeholder="0"
+              className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1 text-right text-sm focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+        )}
         <div className="flex justify-between font-semibold text-gray-900">
           <span>Neto a pagar</span>
           <span>{moneda} {netoAPagar.toFixed(2)}</span>

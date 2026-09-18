@@ -8,7 +8,12 @@ import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supa
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
 import { TIPO_AJUSTE_VENTA_LABEL, type TipoAjusteVenta } from "@/lib/ajuste-venta-tipos";
-import { preciosBloqueados, resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
+import {
+  preciosBloqueados,
+  resolverPrecios,
+  esAlmacenDigital,
+  descuentoHabilitado,
+} from "@/utils/supabase/precios";
 
 export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const supabase = await createClient();
@@ -157,7 +162,9 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         .reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0) * 100,
     ) / 100;
 
-  const nuevoDescuento = Number(formData.get("descuento") || 0);
+  const nuevoDescuento = (await descuentoHabilitado(supabase, empresaId))
+    ? Number(formData.get("descuento") || 0)
+    : 0;
   if (!(nuevoDescuento >= 0)) {
     redirect(
       `/ventas/${ventaId}/editar?error=${encodeURIComponent("El descuento no puede ser negativo.")}`,
