@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// El rol "producción" tiene un almacén fijo de verdad (a diferencia de
+// repartidor, que no tiene almacén y por eso RLS ya le devuelve todo vacío
+// en cualquier otra pantalla) — sin este bloqueo, entrar a mano a
+// /ventas, /pedidos, /compras, etc. le mostraría datos reales de ese
+// almacén. Esto es la barrera de navegación; RLS sigue siendo la barrera
+// real de datos por debajo.
+const PRODUCCION_PERMITIDO = ["/produccion", "/dashboard", "/login", "/auth"];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -39,6 +47,23 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  if (user) {
+    const { data: usuario } = await supabase
+      .from("usuarios")
+      .select("rol")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (
+      usuario?.rol === "produccion" &&
+      !PRODUCCION_PERMITIDO.some((p) => request.nextUrl.pathname.startsWith(p))
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/produccion";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
