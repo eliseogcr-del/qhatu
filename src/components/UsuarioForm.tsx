@@ -66,6 +66,21 @@ export default function UsuarioForm({
 }) {
   const values = initialValues ?? emptyValues;
   const [rol, setRol] = useState(values.rol);
+  const [almacenId, setAlmacenId] = useState(values.almacenId ?? "");
+
+  // Producción casi siempre se elabora en el almacén principal — al elegir
+  // ese perfil (y solo si todavía no hay un almacén elegido, para no pisar
+  // el de un usuario que ya se está editando) se preselecciona solo, sin
+  // obligar a buscarlo cada vez que se da de alta a alguien de planta.
+  const handleRolChange = (nuevoRol: string) => {
+    setRol(nuevoRol);
+    if (nuevoRol === "produccion" && !almacenId) {
+      const principal = almacenes.find(
+        (a) => a.nombre.trim().toLowerCase() === "almacén principal",
+      );
+      if (principal) setAlmacenId(principal.id);
+    }
+  };
 
   return (
     <form action={action} className="space-y-6">
@@ -154,7 +169,7 @@ export default function UsuarioForm({
           <select
             name="rol"
             value={rol}
-            onChange={(e) => setRol(e.target.value)}
+            onChange={(e) => handleRolChange(e.target.value)}
             className={inputClass}
           >
             {ROLES.map((r) => (
@@ -171,7 +186,8 @@ export default function UsuarioForm({
           <select
             name="almacen_id"
             required
-            defaultValue={values.almacenId ?? ""}
+            value={almacenId}
+            onChange={(e) => setAlmacenId(e.target.value)}
             className={inputClass}
           >
             <option value="" disabled>
@@ -195,6 +211,14 @@ export default function UsuarioForm({
           Logística ve y opera en Reparto, Traslados, Abastecimiento en
           campo, Inventario y Kardex de todos los almacenes — no entra a
           Usuarios, Facturación ni Auditoría.
+        </p>
+      )}
+
+      {rol === "produccion" && (
+        <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
+          Producción solo ve y registra el módulo de Producción, siempre
+          para su propio almacén — no accede a ventas, compras ni al resto
+          del sistema.
         </p>
       )}
 

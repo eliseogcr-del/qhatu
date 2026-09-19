@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { requireLogisticaOAdmin } from "@/utils/supabase/session";
+import { requireProduccionOAdmin } from "@/utils/supabase/session";
 import ProduccionForm from "@/components/ProduccionForm";
 import { createProduccion } from "../actions";
 
@@ -12,15 +12,19 @@ export default async function NuevaProduccionPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  const { empresaId } = await requireLogisticaOAdmin(supabase);
+  const { empresaId, almacenId } = await requireProduccionOAdmin(supabase);
 
   const [{ data: almacenes }, { data: productos }] = await Promise.all([
-    supabase
-      .from("almacenes")
-      .select("id, nombre")
-      .eq("empresa_id", empresaId)
-      .eq("activo", true)
-      .order("nombre"),
+    // Un usuario con almacén fijo (rol "producción") no elige: el
+    // servidor lo asigna solo (ver createProduccion/resolverAlmacenId).
+    almacenId
+      ? Promise.resolve({ data: null })
+      : supabase
+          .from("almacenes")
+          .select("id, nombre")
+          .eq("empresa_id", empresaId)
+          .eq("activo", true)
+          .order("nombre"),
     supabase
       .from("productos")
       .select("id, nombre")
@@ -51,7 +55,7 @@ export default async function NuevaProduccionPage({
           <ProduccionForm
             action={createProduccion}
             error={error}
-            almacenes={almacenes ?? []}
+            almacenes={almacenes ?? undefined}
             productos={productos ?? []}
           />
         </div>

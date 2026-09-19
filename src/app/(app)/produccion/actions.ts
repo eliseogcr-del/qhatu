@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { requireLogisticaOAdmin } from "@/utils/supabase/session";
+import { requireProduccionOAdmin, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 
@@ -13,9 +13,13 @@ import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 // kardex "produccion".
 export async function createProduccion(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await requireLogisticaOAdmin(supabase);
+  const session = await requireProduccionOAdmin(supabase);
+  const { userId, empresaId } = session;
 
-  const almacenId = String(formData.get("almacen_id") ?? "");
+  // Un usuario con rol "producción" tiene almacén fijo: se usa ese,
+  // ignorando cualquier valor del formulario; admin/logística sí eligen
+  // libremente desde el selector.
+  const almacenId = resolverAlmacenId(session, formData);
   const nota = String(formData.get("nota") ?? "").trim() || null;
 
   if (!almacenId) {
@@ -111,7 +115,7 @@ export async function createProduccion(formData: FormData) {
 // auditoría (a diferencia de crear, que no se audita).
 export async function updateProduccionDetalle(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await requireLogisticaOAdmin(supabase);
+  const { userId, empresaId } = await requireProduccionOAdmin(supabase);
 
   const produccionId = String(formData.get("produccion_id") ?? "");
 

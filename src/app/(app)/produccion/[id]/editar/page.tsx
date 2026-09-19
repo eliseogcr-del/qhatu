@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { requireLogisticaOAdmin } from "@/utils/supabase/session";
+import { requireProduccionOAdmin } from "@/utils/supabase/session";
 import EditarProduccionForm from "@/components/EditarProduccionForm";
 import { updateProduccionDetalle } from "../../actions";
 
@@ -16,7 +16,7 @@ export default async function EditarProduccionPage({
   const { id } = await params;
   const { error, volver } = await searchParams;
   const supabase = await createClient();
-  await requireLogisticaOAdmin(supabase);
+  await requireProduccionOAdmin(supabase);
 
   const [{ data: produccion }, { data: productos }] = await Promise.all([
     supabase
