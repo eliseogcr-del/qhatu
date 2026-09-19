@@ -12,6 +12,7 @@ const HEADERS = [
   "Método de pago",
   "Tipo",
   "Referencia",
+  "Registrado por",
   "Estado",
 ];
 
@@ -37,8 +38,8 @@ export async function GET(request: NextRequest) {
     .from("cobranzas")
     .select(
       q
-        ? "fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedidos!inner(clientes!inner(nombre))"
-        : "fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedidos(clientes(nombre))",
+        ? "fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedidos!inner(clientes!inner(nombre)), usuarios(nombre)"
+        : "fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedidos(clientes(nombre)), usuarios(nombre)",
     )
     .order("fecha", { ascending: false });
 
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
     const cliente = (
       c.pedidos as unknown as { clientes: { nombre: string } | null } | null
     )?.clientes;
+    const usuario = c.usuarios as unknown as { nombre: string | null } | null;
     return [
       cliente?.nombre ?? "—",
       formatFecha(c.fecha),
@@ -63,6 +65,7 @@ export async function GET(request: NextRequest) {
       METODO_PAGO_LABEL[c.metodo_pago as MetodoPago] ?? c.metodo_pago,
       TIPO_PAGO_LABEL[c.tipo_pago] ?? c.tipo_pago,
       c.referencia ?? "—",
+      usuario?.nombre ?? "—",
       c.estado === "anulada" ? "Anulada" : "Activa",
     ];
   });

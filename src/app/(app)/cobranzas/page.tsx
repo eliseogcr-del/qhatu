@@ -36,8 +36,8 @@ export default async function CobranzasPage({
     .from("cobranzas")
     .select(
       q
-        ? "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos!inner(clientes!inner(nombre))"
-        : "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos(clientes(nombre))",
+        ? "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos!inner(clientes!inner(nombre)), usuarios(nombre)"
+        : "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos(clientes(nombre)), usuarios(nombre)",
     )
     .order("fecha", { ascending: false });
 
@@ -162,6 +162,7 @@ export default async function CobranzasPage({
                 <th className="px-4 py-3 font-bold">Método</th>
                 <th className="px-4 py-3 font-bold">Tipo</th>
                 <th className="px-4 py-3 font-bold">Referencia</th>
+                <th className="px-4 py-3 font-bold">Registrado por</th>
                 <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -171,6 +172,7 @@ export default async function CobranzasPage({
                 const cliente = (
                   cobranza.pedidos as unknown as { clientes: { nombre: string } | null } | null
                 )?.clientes;
+                const usuario = cobranza.usuarios as unknown as { nombre: string | null } | null;
                 return (
                   <tr
                     key={cobranza.id}
@@ -194,6 +196,9 @@ export default async function CobranzasPage({
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {cobranza.referencia ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {usuario?.nombre ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -233,7 +238,7 @@ export default async function CobranzasPage({
 
               {cobranzas?.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
                     {hayFiltros
                       ? "Ningún cobro coincide con los filtros."
                       : "Aún no hay cobranzas registradas."}
