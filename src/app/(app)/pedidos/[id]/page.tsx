@@ -72,7 +72,7 @@ export default async function PedidoDetallePage({
 
   const { data: cobranzas } = await supabase
     .from("cobranzas")
-    .select("id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado")
+    .select("id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, usuarios(nombre)")
     .eq(venta ? "venta_id" : "pedido_id", venta ? venta.id : id)
     .order("fecha", { ascending: false });
 
@@ -332,11 +332,14 @@ export default async function PedidoDetallePage({
                   <th className="py-2 font-bold">Método</th>
                   <th className="py-2 font-bold">Tipo</th>
                   <th className="py-2 font-bold">Referencia</th>
+                  <th className="py-2 font-bold">Registrado por</th>
                   <th className="py-2 font-bold">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {cobranzas.map((c) => (
+                {cobranzas.map((c) => {
+                  const usuario = c.usuarios as unknown as { nombre: string | null } | null;
+                  return (
                   <tr
                     key={c.id}
                     className={`border-b-2 border-gray-200 last:border-0 ${c.estado === "anulada" ? "opacity-50" : ""}`}
@@ -352,6 +355,7 @@ export default async function PedidoDetallePage({
                     </td>
                     <td className="py-2 text-gray-600">{c.tipo_pago}</td>
                     <td className="py-2 text-gray-600">{c.referencia ?? "—"}</td>
+                    <td className="py-2 text-gray-600">{usuario?.nombre ?? "—"}</td>
                     <td className="py-2">
                       <span
                         className={
@@ -364,7 +368,8 @@ export default async function PedidoDetallePage({
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           ) : (

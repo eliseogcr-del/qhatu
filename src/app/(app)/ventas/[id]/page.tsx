@@ -46,7 +46,7 @@ export default async function VentaDetallePage({
       .eq("venta_id", id),
     supabase
       .from("cobranzas")
-      .select("id, fecha, monto, moneda, metodo_pago, referencia, estado")
+      .select("id, fecha, monto, moneda, metodo_pago, referencia, estado, usuarios(nombre)")
       .eq("venta_id", id)
       .order("fecha", { ascending: false }),
     supabase
@@ -523,13 +523,16 @@ export default async function VentaDetallePage({
                   <th className="py-2 font-bold">Monto</th>
                   <th className="py-2 font-bold">Método</th>
                   <th className="py-2 font-bold">Referencia</th>
+                  <th className="py-2 font-bold">Registrado por</th>
                   <th className="py-2 font-bold">Estado</th>
                   <th className="py-2 font-bold">Evidencia</th>
                   <th className="py-2" />
                 </tr>
               </thead>
               <tbody>
-                {cobranzas.map((c) => (
+                {cobranzas.map((c) => {
+                  const usuario = c.usuarios as unknown as { nombre: string | null } | null;
+                  return (
                   <tr
                     key={c.id}
                     className={`border-b-2 border-gray-200 last:border-0 ${c.estado === "anulada" ? "opacity-50" : ""}`}
@@ -544,6 +547,7 @@ export default async function VentaDetallePage({
                       {METODO_PAGO_LABEL[c.metodo_pago as MetodoPago] ?? c.metodo_pago}
                     </td>
                     <td className="py-2 text-gray-600">{c.referencia ?? "—"}</td>
+                    <td className="py-2 text-gray-600">{usuario?.nombre ?? "—"}</td>
                     <td className="py-2">
                       <span
                         className={
@@ -583,7 +587,8 @@ export default async function VentaDetallePage({
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           ) : (
