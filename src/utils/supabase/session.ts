@@ -101,3 +101,20 @@ export async function requireComercial(
   }
   return session;
 }
+
+// Producción: además de admin/logística (que pueden registrar producción
+// para cualquier almacén), el rol "producción" también entra pero queda
+// amarrado a su propio almacén fijo (ver requiereAlmacen/resolverAlmacenId)
+// — a diferencia de requireLogisticaOAdmin, que gate-a Compras y
+// Promociones, secciones fuera del alcance de este rol.
+export async function requireProduccionOAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (!["admin", "logistica", "produccion"].includes(session.rol)) {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para acceder a esta sección.")}`,
+    );
+  }
+  return session;
+}

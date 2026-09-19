@@ -46,7 +46,9 @@ export default function ProduccionForm({
 }: {
   action: (formData: FormData) => void;
   error?: string;
-  almacenes: Almacen[];
+  // Se omite (undefined) cuando quien registra tiene almacén fijo (rol
+  // "producción") — el servidor lo asigna solo, no hace falta elegirlo.
+  almacenes?: Almacen[];
   productos: Producto[];
 }) {
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
@@ -108,20 +110,22 @@ export default function ProduccionForm({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Datos de la producción
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Almacén">
-            <select name="almacen_id" required defaultValue="" className={inputClass}>
-              <option value="" disabled>
-                Selecciona un almacén
-              </option>
-              {almacenes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
+        {almacenes && almacenes.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Almacén">
+              <select name="almacen_id" required defaultValue="" className={inputClass}>
+                <option value="" disabled>
+                  Selecciona un almacén
                 </option>
-              ))}
-            </select>
-          </Field>
-        </div>
+                {almacenes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        )}
         <Field label="Nota (opcional)">
           <input
             name="nota"

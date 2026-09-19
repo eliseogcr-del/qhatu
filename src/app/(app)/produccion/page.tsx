@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatFechaHora, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { Plus, Pencil } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { requireLogisticaOAdmin } from "@/utils/supabase/session";
+import { requireProduccionOAdmin } from "@/utils/supabase/session";
 import ProduccionFiltroForm from "@/components/ProduccionFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 
@@ -13,7 +13,7 @@ export default async function ProduccionPage({
 }) {
   const { desde, hasta, producto_id: productoId } = await searchParams;
   const supabase = await createClient();
-  await requireLogisticaOAdmin(supabase);
+  await requireProduccionOAdmin(supabase);
 
   // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
   // defecto. Si el usuario borra los campos de fecha y filtra, quedan como

@@ -45,6 +45,10 @@ const QUICK_LINKS_REPARTIDOR = [
   { href: "/mis-repartos", label: "Mis repartos", icon: Route },
 ];
 
+const QUICK_LINKS_PRODUCCION = [
+  { href: "/produccion", label: "Producción", icon: Factory },
+];
+
 // Almacén móvil: solo lo que hace falta en ruta. Pedidos, Inventario,
 // Kardex y Reportes quedan fuera del día a día de un vendedor de ruta.
 // "Venta rápida" (no "Venta directa") es a propósito: es la pantalla
@@ -73,6 +77,7 @@ function quickLinksPorRol(rol: string, almacenEsDigital: boolean) {
   if (rol === "admin") return QUICK_LINKS_COMPLETO;
   if (rol === "logistica") return QUICK_LINKS_LOGISTICA;
   if (rol === "repartidor") return QUICK_LINKS_REPARTIDOR;
+  if (rol === "produccion") return QUICK_LINKS_PRODUCCION;
   return almacenEsDigital ? QUICK_LINKS_VENDEDOR_DIGITAL : QUICK_LINKS_VENDEDOR;
 }
 
