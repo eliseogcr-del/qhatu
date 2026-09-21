@@ -13,7 +13,7 @@ export default async function UsuariosPage() {
 
   const { data: usuarios, error } = await supabase
     .from("usuarios")
-    .select("id, username, nombre, rol, activo, almacenes(nombre)")
+    .select("id, username, nombre, rol, activo, almacenes!almacen_id(nombre)")
     .eq("empresa_id", empresaId)
     .order("nombre");
 

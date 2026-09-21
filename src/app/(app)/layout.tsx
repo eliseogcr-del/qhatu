@@ -20,7 +20,7 @@ export default async function AppLayout({
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("nombre, rol, almacenes(nombre, es_digital)")
+    .select("nombre, rol, almacenes!almacen_id(nombre, es_digital)")
     .eq("id", user.id)
     .maybeSingle();
 
