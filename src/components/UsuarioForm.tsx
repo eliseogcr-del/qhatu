@@ -222,6 +222,14 @@ export default function UsuarioForm({
         </p>
       )}
 
+      {rol === "contador" && (
+        <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
+          Contador solo ve el módulo de Comprobantes, de todos los
+          almacenes — no accede a ventas, pedidos, cobranzas ni al resto
+          del sistema.
+        </p>
+      )}
+
       {rol === "repartidor" && (
         <>
           <p className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">

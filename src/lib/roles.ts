@@ -1,4 +1,11 @@
-export const ROLES = ["admin", "vendedor", "logistica", "repartidor", "produccion"] as const;
+export const ROLES = [
+  "admin",
+  "vendedor",
+  "logistica",
+  "repartidor",
+  "produccion",
+  "contador",
+] as const;
 
 export type Rol = (typeof ROLES)[number];
 
@@ -8,6 +15,7 @@ export const ROL_LABEL: Record<Rol, string> = {
   logistica: "Logística",
   repartidor: "Repartidor",
   produccion: "Producción",
+  contador: "Contador",
 };
 
 // Vendedor y producción quedan amarrados a un almacén fijo — admin y

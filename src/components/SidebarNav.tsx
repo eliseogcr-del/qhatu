@@ -127,6 +127,11 @@ const PRODUCCION_MODULO = {
   items: [{ href: "/produccion", label: "Producción", icon: Factory }],
 };
 
+const COMPROBANTES_MODULO = {
+  label: "Comprobantes",
+  items: [{ href: "/comprobantes", label: "Comprobantes", icon: FileText }],
+};
+
 // Acceso directo a un formulario de venta sin pedido previo, para que un
 // vendedor registre la venta en un solo paso sin pasar por el listado de
 // Ventas ni por "Nueva venta". El almacén móvil usa "Venta rápida" (Venta
@@ -180,6 +185,7 @@ function gruposPorRol(rol: string, almacenEsDigital: boolean) {
     return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA, FINANZAS_LOGISTICA];
   if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
   if (rol === "produccion") return [GENERAL, PRODUCCION_MODULO];
+  if (rol === "contador") return [GENERAL, COMPROBANTES_MODULO];
   // vendedor (y cualquier valor no reconocido): un almacén móvil solo ve
   // Cotizaciones, Traslados, Abastecimiento en campo (para registrar lo
   // que recibe en ruta) y Ventas, más un acceso rápido a Venta directa

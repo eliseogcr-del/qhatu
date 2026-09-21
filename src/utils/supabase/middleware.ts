@@ -9,6 +9,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // real de datos por debajo.
 const PRODUCCION_PERMITIDO = ["/produccion", "/dashboard", "/login", "/auth"];
 
+// El rol "contador" solo debe ver el módulo de Comprobantes — mismo
+// mecanismo de barrera de navegación que producción.
+const CONTADOR_PERMITIDO = ["/comprobantes", "/dashboard", "/login", "/auth"];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -62,6 +66,15 @@ export async function updateSession(request: NextRequest) {
     ) {
       const url = request.nextUrl.clone();
       url.pathname = "/produccion";
+      return NextResponse.redirect(url);
+    }
+
+    if (
+      usuario?.rol === "contador" &&
+      !CONTADOR_PERMITIDO.some((p) => request.nextUrl.pathname.startsWith(p))
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/comprobantes";
       return NextResponse.redirect(url);
     }
   }
