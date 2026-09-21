@@ -10,20 +10,11 @@
 -- ventas/actions.ts). Como logística no tiene almacen_id fijo
 -- (current_almacen_id() es null) y es_admin() es false para su rol, el
 -- insert violaba esta policy — la venta nunca llegaba a crearse.
+-- El update ya se había corregido antes en 20260916040000_pedidos_update_por_rol.sql
+-- (misma condición) — solo faltaba el insert.
 drop policy if exists "pedidos: insert por almacen" on public.pedidos;
 create policy "pedidos: insert por rol" on public.pedidos
   for insert with check (
-    empresa_id = public.current_empresa_id()
-    and (public.puede_ver_todos_almacenes() or almacen_id = public.current_almacen_id())
-  );
-
-drop policy if exists "pedidos: update por almacen" on public.pedidos;
-create policy "pedidos: update por rol" on public.pedidos
-  for update using (
-    empresa_id = public.current_empresa_id()
-    and (public.puede_ver_todos_almacenes() or almacen_id = public.current_almacen_id())
-  )
-  with check (
     empresa_id = public.current_empresa_id()
     and (public.puede_ver_todos_almacenes() or almacen_id = public.current_almacen_id())
   );
