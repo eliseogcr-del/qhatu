@@ -10,6 +10,12 @@ export const TIPO_COMPROBANTE_LABEL: Record<number, string> = {
   [TIPO_NOTA_VENTA]: "Nota de venta",
 };
 
+// Orden pensado para el filtro "Tipo de documento" del módulo de
+// Comprobantes — no incluye 8 (Guía de Remisión Transportista), que la
+// empresa nunca emite (ver 20260916030000_guia_remision.sql: solo
+// traslada su propia mercadería, nunca hace de transportista de terceros).
+export const TIPOS_DOCUMENTO_FILTRO = [2, 1, TIPO_NOTA_VENTA, 3, 4, 7] as const;
+
 // La nota de venta no tiene enlace_pdf en BD (no la genera Nubefact) — se
 // imprime desde una página propia de la app. El resto de tipos siguen
 // usando el enlace que Nubefact devolvió.

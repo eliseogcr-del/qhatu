@@ -9,12 +9,16 @@ export default function ComprobantesFiltroForm({
   desde,
   hasta,
   estado,
+  tipo,
+  opcionesTipo,
   hayFiltros,
 }: {
   q: string;
   desde: string;
   hasta: string;
   estado: string;
+  tipo: string;
+  opcionesTipo: { value: string; label: string }[];
   hayFiltros: boolean;
 }) {
   const router = useRouter();
@@ -23,12 +27,19 @@ export default function ComprobantesFiltroForm({
   const primerRender = useRef(true);
   const [abierto, setAbierto] = useState(!hayFiltros);
 
-  const navegar = (params: { q: string; desde: string; hasta: string; estado: string }) => {
+  const navegar = (params: {
+    q: string;
+    desde: string;
+    hasta: string;
+    estado: string;
+    tipo: string;
+  }) => {
     const usp = new URLSearchParams();
     if (params.q) usp.set("q", params.q);
     if (params.desde) usp.set("desde", params.desde);
     if (params.hasta) usp.set("hasta", params.hasta);
     if (params.estado) usp.set("estado", params.estado);
+    if (params.tipo) usp.set("tipo", params.tipo);
     router.push(`${pathname}?${usp.toString()}`);
   };
 
@@ -40,7 +51,7 @@ export default function ComprobantesFiltroForm({
       return;
     }
     const timeout = setTimeout(() => {
-      navegar({ q: query, desde, hasta, estado });
+      navegar({ q: query, desde, hasta, estado, tipo });
     }, 400);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,11 +99,26 @@ export default function ComprobantesFiltroForm({
         </div>
       </div>
       <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de documento</label>
+        <select
+          value={tipo}
+          onChange={(e) => navegar({ q: query, desde, hasta, estado, tipo: e.target.value })}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        >
+          <option value="">Todos</option>
+          {opcionesTipo.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Desde</label>
         <input
           type="date"
           value={desde}
-          onChange={(e) => navegar({ q: query, desde: e.target.value, hasta, estado })}
+          onChange={(e) => navegar({ q: query, desde: e.target.value, hasta, estado, tipo })}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
       </div>
@@ -101,7 +127,7 @@ export default function ComprobantesFiltroForm({
         <input
           type="date"
           value={hasta}
-          onChange={(e) => navegar({ q: query, desde, hasta: e.target.value, estado })}
+          onChange={(e) => navegar({ q: query, desde, hasta: e.target.value, estado, tipo })}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         />
       </div>
@@ -109,13 +135,15 @@ export default function ComprobantesFiltroForm({
         <label className="mb-1 block text-sm font-medium text-gray-700">Estado</label>
         <select
           value={estado}
-          onChange={(e) => navegar({ q: query, desde, hasta, estado: e.target.value })}
+          onChange={(e) => navegar({ q: query, desde, hasta, estado: e.target.value, tipo })}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         >
           <option value="">Todos</option>
           <option value="emitido">Emitido</option>
+          <option value="aceptada">Aceptada</option>
           <option value="pendiente">Pendiente</option>
           <option value="error">Error</option>
+          <option value="rechazada">Rechazada</option>
           <option value="anulado">Anulado</option>
         </select>
       </div>
@@ -124,7 +152,7 @@ export default function ComprobantesFiltroForm({
           type="button"
           onClick={() => {
             setQuery("");
-            navegar({ q: "", desde: "", hasta: "", estado: "" });
+            navegar({ q: "", desde: "", hasta: "", estado: "", tipo: "" });
           }}
           className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
         >
