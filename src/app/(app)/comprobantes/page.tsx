@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import { formatFecha, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComprobantesAcceso } from "@/utils/supabase/session";
@@ -51,6 +51,14 @@ export default async function ComprobantesPage({
   const supabase = await createClient();
   await requireComprobantesAcceso(supabase);
 
+  // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
+  // defecto, igual que en Ventas — si el usuario borra los campos de fecha
+  // y filtra, quedan como string vacío (presentes pero sin valor) y ahí sí
+  // se ve todo el historial.
+  const hoy = hoyLima();
+  const desdeEfectivo = desde === undefined ? hoy : desde;
+  const hastaEfectivo = hasta === undefined ? hoy : hasta;
+
   const tipoNumero = tipo ? Number(tipo) : null;
   const incluirComprobantes = !tipoNumero || tipoNumero !== TIPO_GUIA_REMISION;
   const incluirGuiasRemision = !tipoNumero || tipoNumero === TIPO_GUIA_REMISION;
@@ -69,8 +77,8 @@ export default async function ComprobantesPage({
       .order("fecha_emision", { ascending: false });
 
     if (q) query = query.ilike("ventas.clientes.nombre", `%${q}%`);
-    if (desde) query = query.gte("fecha_emision", inicioDiaLima(desde));
-    if (hasta) query = query.lte("fecha_emision", finDiaLima(hasta));
+    if (desdeEfectivo) query = query.gte("fecha_emision", inicioDiaLima(desdeEfectivo));
+    if (hastaEfectivo) query = query.lte("fecha_emision", finDiaLima(hastaEfectivo));
     if (estado) query = query.eq("estado", estado);
     if (tipoNumero) query = query.eq("tipo_comprobante", tipoNumero);
 
@@ -115,8 +123,8 @@ export default async function ComprobantesPage({
       .order("fecha_emision", { ascending: false });
 
     if (q) query = query.ilike("repartos.pedidos.clientes.nombre", `%${q}%`);
-    if (desde) query = query.gte("fecha_emision", inicioDiaLima(desde));
-    if (hasta) query = query.lte("fecha_emision", finDiaLima(hasta));
+    if (desdeEfectivo) query = query.gte("fecha_emision", inicioDiaLima(desdeEfectivo));
+    if (hastaEfectivo) query = query.lte("fecha_emision", finDiaLima(hastaEfectivo));
     if (estado) query = query.eq("estado", estado);
 
     const { data, error } = await query;
@@ -153,7 +161,7 @@ export default async function ComprobantesPage({
   );
 
   const error = errorComprobantes ?? errorGuias;
-  const hayFiltros = !!(q || desde || hasta || estado || tipo);
+  const hayFiltros = !!(q || desde !== undefined || hasta !== undefined || estado || tipo);
 
   return (
     <div className="p-8">
@@ -170,8 +178,8 @@ export default async function ComprobantesPage({
 
         <ComprobantesFiltroForm
           q={q ?? ""}
-          desde={desde ?? ""}
-          hasta={hasta ?? ""}
+          desde={desdeEfectivo}
+          hasta={hastaEfectivo}
           estado={estado ?? ""}
           tipo={tipo ?? ""}
           opcionesTipo={TIPOS_DOCUMENTO_FILTRO.map((t) => ({
