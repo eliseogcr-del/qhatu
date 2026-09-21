@@ -18,7 +18,7 @@ export default async function VentaRapidaPage({
   const { error, guardado } = await searchParams;
 
   const supabase = await createClient();
-  const { empresaId, almacenId } = await getEmpresaSession(supabase);
+  const { empresaId, almacenId, almacenIdOrigen } = await getEmpresaSession(supabase);
 
   const [{ data: clientes }, { data: productos }, { data: inventario }, { data: unidadesMedida }, preciosBloqueados] =
     await Promise.all([
@@ -68,7 +68,7 @@ export default async function VentaRapidaPage({
           productos={productosVigentes}
           unidadesMedida={unidadesMedida ?? []}
           stockPorAlmacen={stockPorAlmacen}
-          almacenSesion={almacenId}
+          almacenSesion={almacenId ?? almacenIdOrigen}
           preciosBloqueados={preciosBloqueados}
         />
       </div>

@@ -17,7 +17,7 @@ export default async function VentaDirectaPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const { empresaId, almacenId } = await getEmpresaSession(supabase);
+  const { empresaId, almacenId, almacenIdOrigen } = await getEmpresaSession(supabase);
   const [
     { data: clientes },
     { data: productos },
@@ -96,7 +96,7 @@ export default async function VentaDirectaPage({
             unidadesMedida={unidadesMedida ?? []}
             almacenes={almacenes ?? undefined}
             stockPorAlmacen={stockPorAlmacen}
-            almacenSesion={almacenId}
+            almacenSesion={almacenId ?? almacenIdOrigen}
             preciosBloqueados={preciosBloqueados}
             descuentoHabilitado={descuentoHabilitado}
           />

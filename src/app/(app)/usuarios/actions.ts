@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { requireAdmin } from "@/utils/supabase/session";
-import { ROLES, requiereAlmacen } from "@/lib/roles";
+import { ROLES, requiereAlmacen, puedeTenerAlmacenOrigen } from "@/lib/roles";
 
 // El username es lo único que la persona escribe para entrar — nunca un
 // correo. Supabase Auth igual necesita un email por dentro, así que si el
@@ -37,6 +37,8 @@ export async function createUsuario(formData: FormData) {
   const activo = formData.get("activo") === "on";
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
   const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
+  const almacenOrigenIdRaw = String(formData.get("almacen_origen_id") ?? "");
+  const almacenOrigenId = puedeTenerAlmacenOrigen(rol) ? almacenOrigenIdRaw || null : null;
   const dni = String(formData.get("dni") ?? "").trim() || null;
   const apellidos = String(formData.get("apellidos") ?? "").trim() || null;
   const licenciaConducir = String(formData.get("licencia_conducir") ?? "").trim() || null;
@@ -93,6 +95,7 @@ export async function createUsuario(formData: FormData) {
     rol,
     activo,
     almacen_id: almacenId,
+    almacen_origen_id: almacenOrigenId,
     dni,
     apellidos,
     licencia_conducir: licenciaConducir,
@@ -120,6 +123,8 @@ export async function updateUsuario(id: string, formData: FormData) {
   const activo = formData.get("activo") === "on";
   const almacenIdRaw = String(formData.get("almacen_id") ?? "");
   const almacenId = requiereAlmacen(rol) ? almacenIdRaw || null : null;
+  const almacenOrigenIdRaw = String(formData.get("almacen_origen_id") ?? "");
+  const almacenOrigenId = puedeTenerAlmacenOrigen(rol) ? almacenOrigenIdRaw || null : null;
   const dni = String(formData.get("dni") ?? "").trim() || null;
   const apellidos = String(formData.get("apellidos") ?? "").trim() || null;
   const licenciaConducir = String(formData.get("licencia_conducir") ?? "").trim() || null;
@@ -172,6 +177,7 @@ export async function updateUsuario(id: string, formData: FormData) {
       rol,
       activo,
       almacen_id: almacenId,
+      almacen_origen_id: almacenOrigenId,
       dni,
       apellidos,
       licencia_conducir: licenciaConducir,

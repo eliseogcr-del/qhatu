@@ -23,7 +23,9 @@ export default async function EditarUsuarioPage({
   const [{ data: usuario }, { data: almacenes }] = await Promise.all([
     supabase
       .from("usuarios")
-      .select("id, username, nombre, rol, activo, almacen_id, dni, apellidos, licencia_conducir")
+      .select(
+        "id, username, nombre, rol, activo, almacen_id, almacen_origen_id, dni, apellidos, licencia_conducir",
+      )
       .eq("id", id)
       .single(),
     supabase
@@ -64,6 +66,7 @@ export default async function EditarUsuarioPage({
               rol: usuario.rol,
               activo: usuario.activo,
               almacenId: usuario.almacen_id,
+              almacenOrigenId: usuario.almacen_origen_id,
               dni: usuario.dni,
               apellidos: usuario.apellidos,
               licenciaConducir: usuario.licencia_conducir,

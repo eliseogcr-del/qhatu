@@ -27,7 +27,7 @@ export async function getEmpresaSession(
 
   const { data: usuario, error } = await supabase
     .from("usuarios")
-    .select("empresa_id, rol, almacen_id")
+    .select("empresa_id, rol, almacen_id, almacen_origen_id")
     .eq("id", user.id)
     .single();
 
@@ -44,20 +44,30 @@ export async function getEmpresaSession(
     // null = admin (ve/opera en todos los almacenes); para un vendedor
     // siempre viene fijo por el administrador desde Usuarios.
     almacenId: usuario.almacen_id as string | null,
+    // Solo relevante para admin/logística (almacenId null) — almacén
+    // sugerido para preseleccionar el selector, y último recurso en
+    // pantallas sin selector propio (ej. Venta rápida). Ver
+    // resolverAlmacenId: nunca se usa si hay un almacenId fijo o si el
+    // formulario ya trae uno elegido a mano.
+    almacenIdOrigen: usuario.almacen_origen_id as string | null,
   };
 }
 
 // Resuelve a qué almacén pertenece el movimiento que se está registrando:
-// si el usuario tiene un almacén fijo (vendedor) se usa ese, ignorando
-// cualquier valor del formulario; si no lo tiene (admin, ve todos), se
-// toma del selector que el formulario debe incluir en ese caso.
+// si el usuario tiene un almacén fijo (vendedor/producción) se usa ese,
+// ignorando cualquier valor del formulario; si no lo tiene (admin/
+// logística, ven todos), se toma del selector que el formulario incluya
+// en ese caso, y si la pantalla ni siquiera tiene selector (Venta rápida)
+// se cae al almacén de origen sugerido en su perfil — nunca queda en null
+// a ciegas.
 export function resolverAlmacenId(
-  session: { almacenId: string | null },
+  session: { almacenId: string | null; almacenIdOrigen?: string | null },
   formData: FormData,
 ): string | null {
   if (session.almacenId) return session.almacenId;
   const value = formData.get("almacen_id");
-  return value ? String(value) : null;
+  if (value) return String(value);
+  return session.almacenIdOrigen ?? null;
 }
 
 // Bloquea el acceso a secciones sensibles (ej. auditoría) a quien no
