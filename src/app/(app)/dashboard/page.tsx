@@ -14,6 +14,7 @@ import {
   Factory,
   ScrollText,
   Zap,
+  FileText,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, getAuthUser } from "@/utils/supabase/session";
@@ -49,6 +50,10 @@ const QUICK_LINKS_PRODUCCION = [
   { href: "/produccion", label: "Producción", icon: Factory },
 ];
 
+const QUICK_LINKS_CONTADOR = [
+  { href: "/comprobantes", label: "Comprobantes", icon: FileText },
+];
+
 // Almacén móvil: solo lo que hace falta en ruta. Pedidos, Inventario,
 // Kardex y Reportes quedan fuera del día a día de un vendedor de ruta.
 // "Venta rápida" (no "Venta directa") es a propósito: es la pantalla
@@ -78,6 +83,7 @@ function quickLinksPorRol(rol: string, almacenEsDigital: boolean) {
   if (rol === "logistica") return QUICK_LINKS_LOGISTICA;
   if (rol === "repartidor") return QUICK_LINKS_REPARTIDOR;
   if (rol === "produccion") return QUICK_LINKS_PRODUCCION;
+  if (rol === "contador") return QUICK_LINKS_CONTADOR;
   return almacenEsDigital ? QUICK_LINKS_VENDEDOR_DIGITAL : QUICK_LINKS_VENDEDOR;
 }
 

@@ -118,3 +118,18 @@ export async function requireProduccionOAdmin(
   }
   return session;
 }
+
+// Comprobantes: además de admin/logística, el rol "contador" también
+// entra — es el único módulo al que tiene acceso (ver PRODUCCION_PERMITIDO
+// equivalente en middleware.ts para el bloqueo de navegación al resto).
+export async function requireComprobantesAcceso(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (!["admin", "logistica", "contador"].includes(session.rol)) {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para acceder a esta sección.")}`,
+    );
+  }
+  return session;
+}

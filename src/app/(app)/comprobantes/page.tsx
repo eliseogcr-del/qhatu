@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { requireComprobantesAcceso } from "@/utils/supabase/session";
 import {
   TIPO_COMPROBANTE_LABEL,
   TIPOS_DOCUMENTO_FILTRO,
@@ -48,6 +49,7 @@ export default async function ComprobantesPage({
 }) {
   const { q, desde, hasta, estado, tipo } = await searchParams;
   const supabase = await createClient();
+  await requireComprobantesAcceso(supabase);
 
   const tipoNumero = tipo ? Number(tipo) : null;
   const incluirComprobantes = !tipoNumero || tipoNumero !== TIPO_GUIA_REMISION;
