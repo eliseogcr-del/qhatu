@@ -14,7 +14,7 @@ export default async function NuevoPedidoPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const { empresaId, almacenId } = await getEmpresaSession(supabase);
+  const { empresaId, almacenId, almacenIdOrigen } = await getEmpresaSession(supabase);
   const [
     { data: clientes },
     { data: productos },
@@ -79,7 +79,7 @@ export default async function NuevoPedidoPage({
             unidadesMedida={unidadesMedida ?? []}
             almacenes={almacenes ?? undefined}
             stockPorAlmacen={stockPorAlmacen}
-            almacenSesion={almacenId}
+            almacenSesion={almacenId ?? almacenIdOrigen}
             preciosBloqueados={preciosBloqueados}
           />
         </div>

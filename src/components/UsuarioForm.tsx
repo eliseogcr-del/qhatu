@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Save } from "lucide-react";
-import { ROLES, ROL_LABEL, requiereAlmacen } from "@/lib/roles";
+import { ROLES, ROL_LABEL, requiereAlmacen, puedeTenerAlmacenOrigen } from "@/lib/roles";
 import SubmitButton from "./SubmitButton";
 
 const inputClass =
@@ -31,6 +31,7 @@ export type UsuarioInitialValues = {
   rol: string;
   activo: boolean;
   almacenId: string | null;
+  almacenOrigenId: string | null;
   dni: string | null;
   apellidos: string | null;
   licenciaConducir: string | null;
@@ -42,6 +43,7 @@ const emptyValues: UsuarioInitialValues = {
   rol: "vendedor",
   activo: true,
   almacenId: null,
+  almacenOrigenId: null,
   dni: null,
   apellidos: null,
   licenciaConducir: null,
@@ -67,18 +69,26 @@ export default function UsuarioForm({
   const values = initialValues ?? emptyValues;
   const [rol, setRol] = useState(values.rol);
   const [almacenId, setAlmacenId] = useState(values.almacenId ?? "");
+  const [almacenOrigenId, setAlmacenOrigenId] = useState(values.almacenOrigenId ?? "");
+
+  const principal = almacenes.find(
+    (a) => a.nombre.trim().toLowerCase() === "almacén principal",
+  );
 
   // Producción casi siempre se elabora en el almacén principal — al elegir
   // ese perfil (y solo si todavía no hay un almacén elegido, para no pisar
   // el de un usuario que ya se está editando) se preselecciona solo, sin
   // obligar a buscarlo cada vez que se da de alta a alguien de planta.
+  // Admin/logística no tienen almacén fijo, pero igual arrancan con
+  // "Almacén principal" como almacén de origen sugerido (editable) — ver
+  // puedeTenerAlmacenOrigen.
   const handleRolChange = (nuevoRol: string) => {
     setRol(nuevoRol);
-    if (nuevoRol === "produccion" && !almacenId) {
-      const principal = almacenes.find(
-        (a) => a.nombre.trim().toLowerCase() === "almacén principal",
-      );
-      if (principal) setAlmacenId(principal.id);
+    if (nuevoRol === "produccion" && !almacenId && principal) {
+      setAlmacenId(principal.id);
+    }
+    if (puedeTenerAlmacenOrigen(nuevoRol) && !almacenOrigenId && principal) {
+      setAlmacenOrigenId(principal.id);
     }
   };
 
@@ -202,6 +212,30 @@ export default function UsuarioForm({
           <p className="mt-1 text-xs text-gray-400">
             Sus pedidos/ventas/compras quedarán amarrados a este almacén y
             solo verá lo de ese local.
+          </p>
+        </Field>
+      )}
+
+      {puedeTenerAlmacenOrigen(rol) && (
+        <Field label="Almacén de origen (sugerido)">
+          <select
+            name="almacen_origen_id"
+            value={almacenOrigenId}
+            onChange={(e) => setAlmacenOrigenId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Sin almacén de origen</option>
+            {almacenes.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">
+            No lo amarra a un solo almacén — sigue viendo/operando en todos.
+            Solo se usa para preseleccionarlo en los formularios de venta y
+            como respaldo en pantallas sin selector propio (ej. Venta
+            rápida), para que nunca quede sin definir.
           </p>
         </Field>
       )}
