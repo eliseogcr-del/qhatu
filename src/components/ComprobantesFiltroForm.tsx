@@ -36,8 +36,11 @@ export default function ComprobantesFiltroForm({
   }) => {
     const usp = new URLSearchParams();
     if (params.q) usp.set("q", params.q);
-    if (params.desde) usp.set("desde", params.desde);
-    if (params.hasta) usp.set("hasta", params.hasta);
+    // desde/hasta: se mandan siempre (incluso vacíos) para distinguir "sin
+    // filtro explícito" (usa el día de hoy por defecto) de "el usuario los
+    // vació a propósito" — igual que en Ventas.
+    usp.set("desde", params.desde);
+    usp.set("hasta", params.hasta);
     if (params.estado) usp.set("estado", params.estado);
     if (params.tipo) usp.set("tipo", params.tipo);
     router.push(`${pathname}?${usp.toString()}`);
