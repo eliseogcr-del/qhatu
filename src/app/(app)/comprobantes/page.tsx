@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFecha, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
-import { FileText } from "lucide-react";
+import { FileDown, FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComprobantesAcceso } from "@/utils/supabase/session";
 import {
@@ -163,12 +163,29 @@ export default async function ComprobantesPage({
   const error = errorComprobantes ?? errorGuias;
   const hayFiltros = !!(q || desde !== undefined || hasta !== undefined || estado || tipo);
 
+  const exportParams = new URLSearchParams();
+  if (q) exportParams.set("q", q);
+  if (desdeEfectivo) exportParams.set("desde", desdeEfectivo);
+  if (hastaEfectivo) exportParams.set("hasta", hastaEfectivo);
+  if (estado) exportParams.set("estado", estado);
+  if (tipo) exportParams.set("tipo", tipo);
+  const exportQs = exportParams.toString();
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex items-center gap-3">
-          <FileText size={24} className="text-emerald-700" />
-          <h1 className="text-2xl font-semibold text-gray-900">Comprobantes electrónicos</h1>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <FileText size={24} className="text-emerald-700" />
+            <h1 className="text-2xl font-semibold text-gray-900">Comprobantes electrónicos</h1>
+          </div>
+          <a
+            href={`/comprobantes/export${exportQs ? `?${exportQs}` : ""}`}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <FileDown size={16} />
+            Exportar a Excel
+          </a>
         </div>
         <p className="mb-6 text-sm text-gray-500">
           Facturas y boletas emitidas a través de Nubefact, notas de venta
