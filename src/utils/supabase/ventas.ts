@@ -227,6 +227,20 @@ export async function fetchDetalleProductosVendidos(
     ]),
   );
 
+  // Una promoción vive como su propio producto (es_promocion=true, atado al
+  // producto real vía promocion_de_producto_id) — filtrar por el producto
+  // real debe traer también las líneas de la promoción atada, si no sus
+  // unidades regaladas (precio 0) desaparecen del reporte aunque sí sean
+  // parte de la venta y del stock que salió.
+  let productoIds: string[] | null = null;
+  if (productoId) {
+    const { data: promos } = await supabase
+      .from("productos")
+      .select("id")
+      .eq("promocion_de_producto_id", productoId);
+    productoIds = [productoId, ...(promos ?? []).map((p) => p.id)];
+  }
+
   let detalleQuery = supabase
     .from("venta_detalle")
     .select(
@@ -234,7 +248,7 @@ export async function fetchDetalleProductosVendidos(
     )
     .in("venta_id", ventaIds)
     .gt("cantidad_entregada", 0);
-  if (productoId) detalleQuery = detalleQuery.eq("producto_id", productoId);
+  if (productoIds) detalleQuery = detalleQuery.in("producto_id", productoIds);
 
   const [{ data: detalle }, { data: comprobantes }] = await Promise.all([
     detalleQuery,
