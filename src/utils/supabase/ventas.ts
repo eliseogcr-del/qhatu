@@ -150,7 +150,10 @@ export async function fetchVentasConSaldo(
         (v.pedidos as unknown as { usuarios: { nombre: string | null } | null } | null)?.usuarios
           ?.nombre ?? null,
       cobrado,
-      saldo: Math.round((v.total - v.descuento - cobrado) * 100) / 100,
+      // Una venta anulada no le debe nada a nadie, sin importar cuánto se
+      // haya cobrado antes de anularla — si no, seguía apareciendo (y
+      // sumando su importe) en el filtro "Solo pendientes de pago".
+      saldo: v.estado === "anulada" ? 0 : Math.round((v.total - v.descuento - cobrado) * 100) / 100,
       pagos: pagosPorVenta.get(v.id) ?? [],
       comprobante_tipo: comprobante?.tipo ?? null,
       comprobante_numero: comprobante ? `${comprobante.serie}-${comprobante.numero}` : null,

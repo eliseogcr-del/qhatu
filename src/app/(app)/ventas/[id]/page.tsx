@@ -104,8 +104,12 @@ export default async function VentaDetallePage({
   const cobrado = (cobranzas ?? [])
     .filter((c) => c.estado === "activa")
     .reduce((acc, c) => acc + c.monto, 0);
-  const saldo = Math.round((venta.total - venta.descuento - cobrado) * 100) / 100;
   const anulada = venta.estado === "anulada";
+  // Una venta anulada no le debe nada a nadie, sin importar cuánto se haya
+  // cobrado antes de anularla.
+  const saldo = anulada
+    ? 0
+    : Math.round((venta.total - venta.descuento - cobrado) * 100) / 100;
   const puedeEditar = !anulada && saldo > 0;
 
   return (
