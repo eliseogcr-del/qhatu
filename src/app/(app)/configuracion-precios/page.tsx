@@ -7,8 +7,7 @@ import ProductoCombobox from "@/components/ProductoCombobox";
 import FiltroTexto from "@/components/FiltroTexto";
 import PrecioEspecialRow from "@/components/PrecioEspecialRow";
 import {
-  actualizarBloqueoPrecios,
-  actualizarDescuentoHabilitado,
+  actualizarConfiguracionPrecios,
   actualizarPrecioEspecial,
   crearPrecioEspecial,
   eliminarPrecioEspecial,
@@ -103,46 +102,50 @@ export default async function ConfiguracionPreciosPage({
         )}
 
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Bloqueo de precios
-          </h2>
-          <form action={actualizarBloqueoPrecios} className="space-y-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                name="precios_bloqueados"
-                defaultChecked={preciosBloqueados}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              Bloquear el precio en Pedidos, Ventas y Cotizaciones (recomendado)
-            </label>
-            <p className="text-xs text-gray-500">
-              Desmarca esto solo si necesitas volver a permitir que se
-              escriba el precio a mano en esos formularios.
-            </p>
-            <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
-          </form>
-        </div>
+          <form action={actualizarConfiguracionPrecios} className="space-y-8">
+            <div>
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Bloqueo de precios
+              </h2>
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="precios_bloqueados"
+                    defaultChecked={preciosBloqueados}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  Bloquear el precio en Pedidos, Ventas y Cotizaciones (recomendado)
+                </label>
+                <p className="text-xs text-gray-500">
+                  Desmarca esto solo si necesitas volver a permitir que se
+                  escriba el precio a mano en esos formularios.
+                </p>
+              </div>
+            </div>
 
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Descuento en Ventas
-          </h2>
-          <form action={actualizarDescuentoHabilitado} className="space-y-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                name="descuento_habilitado"
-                defaultChecked={descuentoHabilitado}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              Habilitar el campo Descuento al registrar/editar una venta
-            </label>
-            <p className="text-xs text-gray-500">
-              Deshabilitado por defecto: el campo no aparece y el
-              descuento siempre queda en 0. Actívalo solo si necesitas
-              que se pueda aplicar un descuento manual.
-            </p>
+            <div>
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Descuento en Ventas
+              </h2>
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="descuento_habilitado"
+                    defaultChecked={descuentoHabilitado}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  Habilitar el campo Descuento al registrar/editar una venta
+                </label>
+                <p className="text-xs text-gray-500">
+                  Deshabilitado por defecto: el campo no aparece y el
+                  descuento siempre queda en 0. Actívalo solo si necesitas
+                  que se pueda aplicar un descuento manual.
+                </p>
+              </div>
+            </div>
+
             <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
           </form>
         </div>
