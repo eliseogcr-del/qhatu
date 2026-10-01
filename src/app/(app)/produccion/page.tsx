@@ -76,6 +76,14 @@ export default async function ProduccionPage({
       }));
   });
 
+  // Solo tiene sentido sumar cantidades cuando está filtrado a un único
+  // producto — igual que en el reporte de Productos vendidos.
+  const productoFiltrado = productoId
+    ? (productos ?? []).find((p) => p.id === productoId)
+    : null;
+  const totalCantidad = filas.reduce((acc, f) => acc + f.cantidad, 0);
+
+
   return (
     <div className="p-8">
       <div className="mx-auto max-w-5xl">
@@ -109,6 +117,14 @@ export default async function ProduccionPage({
         )}
 
         <ResultadosCount count={filas.length} />
+
+        {productoFiltrado && (
+          <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+            Cantidad total producida de{" "}
+            <span className="font-semibold">{productoFiltrado.nombre}</span>:{" "}
+            <span className="font-semibold">{totalCantidad}</span>
+          </p>
+        )}
 
         <div className="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
