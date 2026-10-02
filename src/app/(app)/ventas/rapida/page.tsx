@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
+import {
+  preciosBloqueados as obtenerPreciosBloqueados,
+  descuentoHabilitado as obtenerDescuentoHabilitado,
+} from "@/utils/supabase/precios";
 import { filtrarPromocionesVigentes } from "@/utils/promociones";
 import VentaRapidaForm from "@/components/VentaRapidaForm";
 import { createVentaRapida } from "../actions";
@@ -20,8 +23,14 @@ export default async function VentaRapidaPage({
   const supabase = await createClient();
   const { empresaId, almacenId, almacenIdOrigen } = await getEmpresaSession(supabase);
 
-  const [{ data: clientes }, { data: productos }, { data: inventario }, { data: unidadesMedida }, preciosBloqueados] =
-    await Promise.all([
+  const [
+    { data: clientes },
+    { data: productos },
+    { data: inventario },
+    { data: unidadesMedida },
+    preciosBloqueados,
+    descuentoHabilitado,
+  ] = await Promise.all([
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
         .from("productos")
@@ -40,6 +49,7 @@ export default async function VentaRapidaPage({
         .eq("activo", true)
         .order("descripcion"),
       obtenerPreciosBloqueados(supabase, empresaId),
+      obtenerDescuentoHabilitado(supabase, empresaId),
     ]);
 
   const stockPorAlmacen = Object.fromEntries(
@@ -70,6 +80,7 @@ export default async function VentaRapidaPage({
           stockPorAlmacen={stockPorAlmacen}
           almacenSesion={almacenId ?? almacenIdOrigen}
           preciosBloqueados={preciosBloqueados}
+          descuentoHabilitado={descuentoHabilitado}
         />
       </div>
     </div>

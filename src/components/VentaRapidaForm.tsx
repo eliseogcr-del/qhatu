@@ -109,6 +109,7 @@ export default function VentaRapidaForm({
   stockPorAlmacen,
   almacenSesion,
   preciosBloqueados,
+  descuentoHabilitado,
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -122,6 +123,7 @@ export default function VentaRapidaForm({
   stockPorAlmacen: Record<string, number>;
   almacenSesion: string | null;
   preciosBloqueados: boolean;
+  descuentoHabilitado: boolean;
 }) {
   const router = useRouter();
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
@@ -628,19 +630,21 @@ export default function VentaRapidaForm({
             <span>Total</span>
             <span>{total.toFixed(2)}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span>Descuento</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              name="descuento"
-              value={descuento || ""}
-              onChange={(e) => setDescuento(Number(e.target.value) || 0)}
-              placeholder="0"
-              className={claseDescuento}
-            />
-          </div>
+          {descuentoHabilitado && (
+            <div className="flex items-center justify-between">
+              <span>Descuento</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="descuento"
+                value={descuento || ""}
+                onChange={(e) => setDescuento(Number(e.target.value) || 0)}
+                placeholder="0"
+                className={claseDescuento}
+              />
+            </div>
+          )}
           <div className={claseNeto}>
             <span>Neto a pagar</span>
             <span>{netoAPagar.toFixed(2)}</span>

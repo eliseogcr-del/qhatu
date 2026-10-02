@@ -731,7 +731,9 @@ export async function createVentaRapida(formData: FormData) {
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const descuento = Number(formData.get("descuento") || 0);
+  const descuento = (await descuentoHabilitado(supabase, empresaId))
+    ? Number(formData.get("descuento") || 0)
+    : 0;
   if (!(descuento >= 0)) {
     redirect(`/ventas/rapida?error=${encodeURIComponent("El descuento no puede ser negativo.")}`);
   }
