@@ -81,12 +81,15 @@ export default async function VentasPage({
     // pantalla normal, admin/logística desde Venta directa) — antes solo
     // listaba rol "vendedor", así que una venta registrada por un admin
     // nunca se podía filtrar por esa persona, aunque la columna
-    // "Vendedor" sí mostrara correctamente quién la hizo.
+    // "Vendedor" sí mostrara correctamente quién la hizo. Se excluyen las
+    // cuentas de prueba/desarrollo (no son vendedores reales).
     supabase
       .from("usuarios")
       .select("id, nombre")
       .in("rol", ["vendedor", "admin", "logistica"])
       .eq("activo", true)
+      .not("username", "eq", "eliseogcr")
+      .not("nombre", "ilike", "%prueba%")
       .order("nombre"),
   ]);
 
