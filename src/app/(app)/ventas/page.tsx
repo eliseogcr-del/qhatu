@@ -77,11 +77,16 @@ export default async function VentasPage({
       vendedorId,
     }),
     almacenesQuery,
+    // Cualquier rol que pueda registrar una venta (vendedor desde su
+    // pantalla normal, admin/logística desde Venta directa) — antes solo
+    // listaba rol "vendedor", así que una venta registrada por un admin
+    // nunca se podía filtrar por esa persona, aunque la columna
+    // "Vendedor" sí mostrara correctamente quién la hizo.
     supabase
       .from("usuarios")
       .select("id, nombre")
-      .eq("rol", "vendedor")
-      .not("almacen_id", "is", null)
+      .in("rol", ["vendedor", "admin", "logistica"])
+      .eq("activo", true)
       .order("nombre"),
   ]);
 
