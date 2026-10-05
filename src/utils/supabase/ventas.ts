@@ -51,9 +51,9 @@ export async function fetchVentasConSaldo(
   let query = supabase
     .from("ventas")
     .select(
-      clienteNombre
-        ? "id, fecha, moneda, total, descuento, estado, clientes!inner(nombre), almacenes(nombre), pedidos(usuarios(nombre))"
-        : "id, fecha, moneda, total, descuento, estado, clientes(nombre), almacenes(nombre), pedidos(usuarios(nombre))",
+      `id, fecha, moneda, total, descuento, estado, almacenes(nombre), ${
+        clienteNombre ? "clientes!inner(nombre)" : "clientes(nombre)"
+      }, ${vendedorId ? "pedidos!inner(usuario_id, usuarios(nombre))" : "pedidos(usuarios(nombre))"}`,
     )
     .order("fecha", { ascending: false });
 
@@ -61,14 +61,12 @@ export async function fetchVentasConSaldo(
   if (fechaDesde) query = query.gte("fecha", inicioDiaLima(fechaDesde));
   if (fechaHasta) query = query.lte("fecha", finDiaLima(fechaHasta));
   if (almacenId) query = query.eq("almacen_id", almacenId);
-  if (vendedorId) {
-    const { data: vendedor } = await supabase
-      .from("usuarios")
-      .select("almacen_id")
-      .eq("id", vendedorId)
-      .maybeSingle();
-    query = query.eq("almacen_id", vendedor?.almacen_id ?? "00000000-0000-0000-0000-000000000000");
-  }
+  // Quién REGISTRÓ la venta (pedidos.usuario_id) — no el almacén de esa
+  // persona. Antes filtraba por almacén_id igual al almacén fijo del
+  // vendedor, así que cualquier otra venta de ese mismo almacén (ej. un
+  // admin que la registró a mano eligiendo ese almacén) también calzaba,
+  // aunque la columna "Vendedor" mostrara a otra persona.
+  if (vendedorId) query = query.eq("pedidos.usuario_id", vendedorId);
 
   const { data: ventas, error } = await query;
   if (error || !ventas) {
