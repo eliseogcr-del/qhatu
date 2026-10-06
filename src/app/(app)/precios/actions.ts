@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
+import { chunk } from "@/lib/chunk";
 
 // Se llama directamente desde los formularios de pedido/venta
 // directa/cotización (cliente) cada vez que cambia el cliente, el
@@ -53,11 +54,13 @@ export async function consultarSaldoCliente(clienteId: string): Promise<{
   if (!ventas || ventas.length === 0) return null;
 
   const ventaIds = ventas.map((v) => v.id);
-  const { data: cobranzas } = await supabase
-    .from("cobranzas")
-    .select("venta_id, monto")
-    .eq("estado", "activa")
-    .in("venta_id", ventaIds);
+  const cobranzas = (
+    await Promise.all(
+      chunk(ventaIds, 150).map((ids) =>
+        supabase.from("cobranzas").select("venta_id, monto").eq("estado", "activa").in("venta_id", ids),
+      ),
+    )
+  ).flatMap((r) => r.data ?? []);
 
   const cobradoPorVenta = new Map<string, number>();
   for (const c of cobranzas ?? []) {

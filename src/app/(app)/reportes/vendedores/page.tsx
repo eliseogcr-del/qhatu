@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import { chunk } from "@/lib/chunk";
 import ReportesVendedoresFiltroForm from "@/components/ReportesVendedoresFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 
@@ -36,14 +37,13 @@ export default async function ReporteVendedoresPage({
   const { data: ventas, error } = await ventasQuery;
 
   const ventaIds = (ventas ?? []).map((v) => v.id);
-  const { data: cobranzas } =
-    ventaIds.length > 0
-      ? await supabase
-          .from("cobranzas")
-          .select("venta_id, monto")
-          .in("venta_id", ventaIds)
-          .eq("estado", "activa")
-      : { data: [] as { venta_id: string | null; monto: number }[] };
+  const cobranzas = (
+    await Promise.all(
+      chunk(ventaIds, 150).map((ids) =>
+        supabase.from("cobranzas").select("venta_id, monto").in("venta_id", ids).eq("estado", "activa"),
+      ),
+    )
+  ).flatMap((r) => r.data ?? []);
 
   const cobradoPorVenta = new Map<string, number>();
   for (const c of cobranzas ?? []) {

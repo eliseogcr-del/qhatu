@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatFecha } from "@/lib/fecha";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { chunk } from "@/lib/chunk";
 import CobranzaForm from "@/components/CobranzaForm";
 import { UMBRAL_AVISO_BYTES, UMBRAL_BLOQUEO_BYTES } from "@/lib/cobranza-adjuntos";
 import { createCobranza } from "../actions";
@@ -25,14 +26,17 @@ export default async function NuevaCobranzaPage({
       .order("fecha", { ascending: false });
 
     const ventaIds = (ventas ?? []).map((v) => v.id);
-    const { data: cobranzas } =
-      ventaIds.length > 0
-        ? await supabase
-            .from("cobranzas")
-            .select("venta_id, monto")
-            .eq("estado", "activa")
-            .in("venta_id", ventaIds)
-        : { data: [] as { venta_id: string | null; monto: number }[] };
+    // Esta lista no tiene filtro de fecha (trae TODAS las ventas con
+    // saldo pendiente de la empresa) — con .in() de una sola vez se
+    // vuelve una URL demasiado larga pasadas unas pocas centenas de
+    // ventas y la consulta vuelve vacía en silencio. Se divide en bloques.
+    const cobranzas = (
+      await Promise.all(
+        chunk(ventaIds, 150).map((ids) =>
+          supabase.from("cobranzas").select("venta_id, monto").eq("estado", "activa").in("venta_id", ids),
+        ),
+      )
+    ).flatMap((r) => r.data ?? []);
 
     const cobradoPorVenta = new Map<string, number>();
     for (const c of cobranzas ?? []) {

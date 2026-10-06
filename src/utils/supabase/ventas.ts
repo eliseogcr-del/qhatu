@@ -1,21 +1,7 @@
 import { createClient } from "./server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
-
-// .in("columna", ids) manda todos los ids en la URL de la petición — con
-// un rango de ventas amplio (ej. "todos los almacenes/vendedores" de un
-// mes) esa lista pasa de cientos de UUIDs y la URL se vuelve demasiado
-// larga, así que PostgREST la rechaza y la consulta vuelve vacía en
-// silencio (sin lanzar error): el cobrado de cada venta queda en 0 sin
-// que nadie lo note. Se parte en bloques para que cada petición se quede
-// corta sin importar cuántas ventas haya.
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-  return chunks;
-}
+import { chunk } from "@/lib/chunk";
 
 export type PagoDetalle = {
   fecha: string;
@@ -259,22 +245,35 @@ export async function fetchDetalleProductosVendidos(
     productoIds = [productoId, ...(promos ?? []).map((p) => p.id)];
   }
 
-  let detalleQuery = supabase
-    .from("venta_detalle")
-    .select(
-      "id, venta_id, cantidad_entregada, precio_unitario, subtotal, productos(nombre), unidades_medida(descripcion)",
-    )
-    .in("venta_id", ventaIds)
-    .gt("cantidad_entregada", 0);
-  if (productoIds) detalleQuery = detalleQuery.in("producto_id", productoIds);
+  const idChunksDetalle = chunk(ventaIds, 150);
 
-  const [{ data: detalle }, { data: comprobantes }] = await Promise.all([
-    detalleQuery,
-    supabase
-      .from("comprobantes")
-      .select("venta_id, tipo_comprobante, serie, numero")
-      .in("venta_id", ventaIds)
-      .eq("estado", "emitido"),
+  const [detalle, comprobantes] = await Promise.all([
+    (
+      await Promise.all(
+        idChunksDetalle.map((ids) => {
+          let detalleQuery = supabase
+            .from("venta_detalle")
+            .select(
+              "id, venta_id, cantidad_entregada, precio_unitario, subtotal, productos(nombre), unidades_medida(descripcion)",
+            )
+            .in("venta_id", ids)
+            .gt("cantidad_entregada", 0);
+          if (productoIds) detalleQuery = detalleQuery.in("producto_id", productoIds);
+          return detalleQuery;
+        }),
+      )
+    ).flatMap((r) => r.data ?? []),
+    (
+      await Promise.all(
+        idChunksDetalle.map((ids) =>
+          supabase
+            .from("comprobantes")
+            .select("venta_id, tipo_comprobante, serie, numero")
+            .in("venta_id", ids)
+            .eq("estado", "emitido"),
+        ),
+      )
+    ).flatMap((r) => r.data ?? []),
   ]);
 
   const comprobantePorVenta = new Map<string, { tipo: number; serie: string; numero: number }>();
@@ -288,6 +287,7 @@ export async function fetchDetalleProductosVendidos(
       });
     }
   }
+
 
   const filas = (detalle ?? [])
     .map((d) => {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import { chunk } from "@/lib/chunk";
 import ReportesDashboardFiltroForm from "@/components/ReportesDashboardFiltroForm";
 import ReportesDashboardVendedores, {
   type VendedorResumen,
@@ -52,32 +53,31 @@ export default async function ReportesDashboardPage({
   const { data: ventas, error } = await ventasQuery;
 
   const ventaIds = (ventas ?? []).map((v) => v.id);
+  const idChunks = chunk(ventaIds, 150);
 
-  const [{ data: cobranzas }, { data: detalleVentas }] = await Promise.all([
-    ventaIds.length > 0
-      ? supabase
-          .from("cobranzas")
-          .select("venta_id, monto, metodo_pago")
-          .in("venta_id", ventaIds)
-          .eq("estado", "activa")
-      : Promise.resolve({
-          data: [] as { venta_id: string | null; monto: number; metodo_pago: string }[],
-        }),
-    ventaIds.length > 0
-      ? supabase
-          .from("venta_detalle")
-          .select("venta_id, producto_id, cantidad_entregada, subtotal, productos(nombre)")
-          .in("venta_id", ventaIds)
-          .gt("cantidad_entregada", 0)
-      : Promise.resolve({
-          data: [] as {
-            venta_id: string;
-            producto_id: string;
-            cantidad_entregada: number;
-            subtotal: number;
-            productos: { nombre: string } | null;
-          }[],
-        }),
+  const [cobranzas, detalleVentas] = await Promise.all([
+    (
+      await Promise.all(
+        idChunks.map((ids) =>
+          supabase
+            .from("cobranzas")
+            .select("venta_id, monto, metodo_pago")
+            .in("venta_id", ids)
+            .eq("estado", "activa"),
+        ),
+      )
+    ).flatMap((r) => r.data ?? []),
+    (
+      await Promise.all(
+        idChunks.map((ids) =>
+          supabase
+            .from("venta_detalle")
+            .select("venta_id, producto_id, cantidad_entregada, subtotal, productos(nombre)")
+            .in("venta_id", ids)
+            .gt("cantidad_entregada", 0),
+        ),
+      )
+    ).flatMap((r) => r.data ?? []),
   ]);
 
   const cobradoPorVenta = new Map<string, number>();
