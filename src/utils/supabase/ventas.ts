@@ -53,7 +53,7 @@ export async function fetchVentasConSaldo(
     .select(
       `id, fecha, moneda, total, descuento, estado, almacenes(nombre), ${
         clienteNombre ? "clientes!inner(nombre)" : "clientes(nombre)"
-      }, ${vendedorId ? "pedidos!inner(usuario_id, usuarios(nombre))" : "pedidos(usuarios(nombre))"}`,
+      }, pedidos(usuarios(nombre))`,
     )
     .order("fecha", { ascending: false });
 
@@ -62,11 +62,21 @@ export async function fetchVentasConSaldo(
   if (fechaHasta) query = query.lte("fecha", finDiaLima(fechaHasta));
   if (almacenId) query = query.eq("almacen_id", almacenId);
   // Quién REGISTRÓ la venta (pedidos.usuario_id) — no el almacén de esa
-  // persona. Antes filtraba por almacén_id igual al almacén fijo del
-  // vendedor, así que cualquier otra venta de ese mismo almacén (ej. un
-  // admin que la registró a mano eligiendo ese almacén) también calzaba,
-  // aunque la columna "Vendedor" mostrara a otra persona.
-  if (vendedorId) query = query.eq("pedidos.usuario_id", vendedorId);
+  // persona. Se resuelve aparte a una lista de pedido_id en vez de
+  // filtrar sobre la relación embebida pedidos!inner(...), que rompía en
+  // cascada el cálculo de cobrado/comprobante más abajo (ambos dependen
+  // de ventaIds, construido desde esta misma consulta).
+  if (vendedorId) {
+    const { data: pedidosDelVendedor } = await supabase
+      .from("pedidos")
+      .select("id")
+      .eq("usuario_id", vendedorId);
+    const pedidoIds = (pedidosDelVendedor ?? []).map((p) => p.id);
+    query = query.in(
+      "pedido_id",
+      pedidoIds.length > 0 ? pedidoIds : ["00000000-0000-0000-0000-000000000000"],
+    );
+  }
 
   const { data: ventas, error } = await query;
   if (error || !ventas) {
