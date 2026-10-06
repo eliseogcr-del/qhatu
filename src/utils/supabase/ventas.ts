@@ -2,6 +2,21 @@ import { createClient } from "./server";
 import { inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 
+// .in("columna", ids) manda todos los ids en la URL de la petición — con
+// un rango de ventas amplio (ej. "todos los almacenes/vendedores" de un
+// mes) esa lista pasa de cientos de UUIDs y la URL se vuelve demasiado
+// larga, así que PostgREST la rechaza y la consulta vuelve vacía en
+// silencio (sin lanzar error): el cobrado de cada venta queda en 0 sin
+// que nadie lo note. Se parte en bloques para que cada petición se quede
+// corta sin importar cuántas ventas haya.
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
 export type PagoDetalle = {
   fecha: string;
   monto: number;
@@ -84,23 +99,20 @@ export async function fetchVentasConSaldo(
   }
 
   const ventaIds = ventas.map((v) => v.id);
-  const { data: cobranzas } =
-    ventaIds.length > 0
-      ? await supabase
+  const idChunks = chunk(ventaIds, 150);
+
+  const cobranzas = (
+    await Promise.all(
+      idChunks.map((ids) =>
+        supabase
           .from("cobranzas")
           .select("venta_id, monto, fecha, metodo_pago, usuarios(nombre)")
-          .in("venta_id", ventaIds)
+          .in("venta_id", ids)
           .eq("estado", "activa")
-          .order("fecha", { ascending: true })
-      : {
-          data: [] as {
-            venta_id: string;
-            monto: number;
-            fecha: string;
-            metodo_pago: string;
-            usuarios: { nombre: string | null } | null;
-          }[],
-        };
+          .order("fecha", { ascending: true }),
+      ),
+    )
+  ).flatMap((r) => r.data ?? []);
 
   const cobradoPorVenta = new Map<string, number>();
   const pagosPorVenta = new Map<string, PagoDetalle[]>();
@@ -116,14 +128,17 @@ export async function fetchVentasConSaldo(
     pagosPorVenta.set(c.venta_id, lista);
   }
 
-  const { data: comprobantes } =
-    ventaIds.length > 0
-      ? await supabase
+  const comprobantes = (
+    await Promise.all(
+      idChunks.map((ids) =>
+        supabase
           .from("comprobantes")
           .select("venta_id, tipo_comprobante, serie, numero")
-          .in("venta_id", ventaIds)
-          .eq("estado", "emitido")
-      : { data: [] as { venta_id: string; tipo_comprobante: number; serie: string; numero: number }[] };
+          .in("venta_id", ids)
+          .eq("estado", "emitido"),
+      ),
+    )
+  ).flatMap((r) => r.data ?? []);
 
   // Si hay varios comprobantes emitidos para la misma venta (ej. nota de
   // venta + boleta), la factura/boleta manda sobre la nota de venta — es
