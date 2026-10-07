@@ -30,6 +30,13 @@ export function formatFechaSolo(fecha: string): string {
   return `${dia}/${mes}/${anio}`;
 }
 
+// A partir de un timestamptz guardado, el día calendario "AAAA-MM-DD" que
+// le corresponde en Lima — para agrupar ventas por día/semana (reporte de
+// Objetivos) sin que la hora UTC del servidor corra la fecha un día.
+export function soloFechaLima(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: ZONA_HORARIA });
+}
+
 // Perú no tiene horario de verano, así que su offset es siempre fijo.
 const OFFSET_LIMA = "-05:00";
 
@@ -64,6 +71,33 @@ export function datetimeLocalALima(valor: string): string {
 // arma el "AAAA-MM-DDTHH:mm" que espera un <input type="datetime-local">
 // para prellenarlo, calculando sus partes en la zona de Lima explícita —
 // nunca la del navegador o el servidor, que no necesariamente coincide.
+// Mes actual en Perú como "AAAA-MM", para prellenar el selector de
+// período del reporte de Objetivos con el mes en curso por defecto.
+export function mesActualLima(): string {
+  return hoyLima().slice(0, 7);
+}
+
+// Límite inferior/superior del mes calendario de Lima en UTC explícito —
+// mismo problema y misma solución que inicioDiaLima/finDiaLima, pero para
+// un rango de "AAAA-MM" completo en vez de un solo día.
+export function inicioMesLima(mes: string): string {
+  return inicioDiaLima(`${mes}-01`);
+}
+
+export function finMesLima(mes: string): string {
+  const [anio, mesNum] = mes.split("-").map(Number);
+  // Día 0 del mes siguiente = último día del mes actual.
+  const ultimoDia = new Date(Date.UTC(anio, mesNum, 0)).getUTCDate();
+  return finDiaLima(`${mes}-${String(ultimoDia).padStart(2, "0")}`);
+}
+
+// Cantidad de días del mes "AAAA-MM" (28-31) — se usa para derivar la
+// meta diaria/semanal a partir de la meta mensual cargada a mano.
+export function diasDelMes(mes: string): number {
+  const [anio, mesNum] = mes.split("-").map(Number);
+  return new Date(Date.UTC(anio, mesNum, 0)).getUTCDate();
+}
+
 export function timestampAInputLocalLima(iso: string): string {
   const formateador = new Intl.DateTimeFormat("en-CA", {
     timeZone: ZONA_HORARIA,

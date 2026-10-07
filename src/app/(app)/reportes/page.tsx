@@ -80,6 +80,12 @@ export default async function ReportesPage({
               Ventas por vendedor
             </Link>
             <Link
+              href="/reportes/objetivos"
+              className="font-medium text-gray-600 hover:underline"
+            >
+              Objetivos
+            </Link>
+            <Link
               href="/reportes/diferencias"
               className="font-medium text-gray-600 hover:underline"
             >
