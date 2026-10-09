@@ -145,6 +145,18 @@ export default async function MovimientoInventarioPage({
               </div>
             </div>
 
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Nota (opcional)
+              </label>
+              <textarea
+                name="nota"
+                rows={2}
+                placeholder="Motivo del ajuste, ej. merma por rotura, conteo físico, etc."
+                className={inputClass}
+              />
+            </div>
+
             <button
               type="submit"
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"

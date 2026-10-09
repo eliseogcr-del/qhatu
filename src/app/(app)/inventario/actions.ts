@@ -16,6 +16,7 @@ export async function registrarMovimientoManual(formData: FormData) {
   const direccion = String(formData.get("direccion") ?? "entrada");
   const unidadMedidaId = String(formData.get("unidad_medida_id") ?? "");
   const cantidad = Number(formData.get("cantidad") ?? 0);
+  const nota = String(formData.get("nota") ?? "").trim();
 
   if (!productoId || !almacenId || !unidadMedidaId || cantidad <= 0) {
     redirect(
@@ -42,6 +43,15 @@ export async function registrarMovimientoManual(formData: FormData) {
   const cantidadBase = Math.round(cantidad * unidad.cantidad * 100) / 100;
   const cantidadFirmada = direccion === "salida" ? -cantidadBase : cantidadBase;
 
+  // La nota del usuario (motivo del ajuste) y el detalle de conversión de
+  // unidad son independientes entre sí — se concatenan cuando ambos
+  // existen en vez de que uno pise al otro.
+  const detalleConversion =
+    unidad.cantidad !== 1
+      ? `Ingresado como ${cantidad} ${unidad.descripcion} (= ${cantidadBase} unidades).`
+      : null;
+  const detalle = [detalleConversion, nota || null].filter(Boolean).join(" ") || null;
+
   await registrarMovimientoKardex(supabase, {
     empresaId,
     productoId,
@@ -49,10 +59,7 @@ export async function registrarMovimientoManual(formData: FormData) {
     tipoMovimiento,
     cantidad: cantidadFirmada,
     usuarioId: userId,
-    detalle:
-      unidad.cantidad !== 1
-        ? `Ingresado como ${cantidad} ${unidad.descripcion} (= ${cantidadBase} unidades).`
-        : null,
+    detalle,
   });
 
   revalidatePath("/inventario");
