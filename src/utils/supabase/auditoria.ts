@@ -5,6 +5,7 @@ export const TIPO_AUDITORIA = {
   ventaQuitarProducto: "venta_quitar_producto",
   ventaModificarProducto: "venta_modificar_producto",
   ventaAnular: "venta_anular",
+  notaVentaAnular: "nota_venta_anular",
   cobranzaAnular: "cobranza_anular",
   produccionAgregarProducto: "produccion_agregar_producto",
   produccionQuitarProducto: "produccion_quitar_producto",

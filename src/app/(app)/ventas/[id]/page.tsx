@@ -414,12 +414,12 @@ export default async function VentaDetallePage({
             </form>
           )}
 
-          {comprobantes && comprobantes.length > 0 && !comprobantePrincipal && (
+          {principales.length > 0 && !comprobantePrincipal && (
             <p className="mt-3 text-xs text-gray-400">
               Último intento:{" "}
-              {comprobantes[0].estado === "error"
-                ? `error — ${comprobantes[0].error_mensaje ?? "sin detalle"}`
-                : comprobantes[0].estado}
+              {principales[0].estado === "error"
+                ? `error — ${principales[0].error_mensaje ?? "sin detalle"}`
+                : principales[0].estado}
             </p>
           )}
         </div>
@@ -460,35 +460,40 @@ export default async function VentaDetallePage({
                 </ConfirmFormButton>
               </div>
             </div>
-          ) : notaVenta?.estado === "anulado" ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900">
-                  {TIPO_COMPROBANTE_LABEL[notaVenta.tipo_comprobante]} {notaVenta.serie}-
-                  {notaVenta.numero}
-                </p>
-                <p className="text-sm text-red-600">Anulada</p>
-              </div>
-              <a
-                href={enlacePdfComprobante(notaVenta)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
-              >
-                <FileText size={14} />
-                Ver
-              </a>
-            </div>
-          ) : anulada ? (
-            <p className="text-sm text-gray-400">
-              Esta venta está anulada, no se puede emitir una nota de venta.
-            </p>
           ) : (
-            <form action={emitirNotaVenta.bind(null, id)}>
-              <SubmitButton icon={<Send size={16} />} pendingLabel="Emitiendo...">
-                Emitir nota de venta
-              </SubmitButton>
-            </form>
+            <div className="space-y-3">
+              {notaVenta?.estado === "anulado" && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {TIPO_COMPROBANTE_LABEL[notaVenta.tipo_comprobante]} {notaVenta.serie}-
+                      {notaVenta.numero}
+                    </p>
+                    <p className="text-sm text-red-600">Anulada</p>
+                  </div>
+                  <a
+                    href={enlacePdfComprobante(notaVenta)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                  >
+                    <FileText size={14} />
+                    Ver
+                  </a>
+                </div>
+              )}
+              {anulada ? (
+                <p className="text-sm text-gray-400">
+                  Esta venta está anulada, no se puede emitir una nota de venta.
+                </p>
+              ) : (
+                <form action={emitirNotaVenta.bind(null, id)}>
+                  <SubmitButton icon={<Send size={16} />} pendingLabel="Emitiendo...">
+                    {notaVenta?.estado === "anulado" ? "Emitir nueva nota de venta" : "Emitir nota de venta"}
+                  </SubmitButton>
+                </form>
+              )}
+            </div>
           )}
         </div>
 

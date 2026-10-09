@@ -10,6 +10,7 @@ import {
   crearNotaVentaAutomatica,
 } from "@/utils/supabase/comprobantes";
 import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
+import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import {
   llamarNubefact,
   tipoDocumentoNubefact,
@@ -395,7 +396,14 @@ export async function emitirNotaVenta(ventaId: string) {
 // externa para revertirla.
 export async function anularNotaVenta(comprobanteId: string, ventaId: string) {
   const supabase = await createClient();
-  await getEmpresaSession(supabase);
+  const { userId, empresaId } = await getEmpresaSession(supabase);
+
+  const { data: notaVenta } = await supabase
+    .from("comprobantes")
+    .select("serie, numero")
+    .eq("id", comprobanteId)
+    .eq("tipo_comprobante", TIPO_NOTA_VENTA)
+    .single();
 
   const { error } = await supabase
     .from("comprobantes")
@@ -406,6 +414,18 @@ export async function anularNotaVenta(comprobanteId: string, ventaId: string) {
   if (error) {
     redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error.message)}`);
   }
+
+  // A diferencia de una Boleta/Factura, esto es solo un cambio de estado
+  // local (no hay nota de crédito de por medio) — por eso, sin este
+  // registro, no quedaba ningún rastro de quién la anuló ni cuándo.
+  await registrarAuditoria(supabase, {
+    empresaId,
+    usuarioId: userId,
+    entidad: "venta",
+    entidadId: ventaId,
+    tipoMovimiento: TIPO_AUDITORIA.notaVentaAnular,
+    detalle: notaVenta ? `Anuló la nota de venta ${notaVenta.serie}-${notaVenta.numero}.` : null,
+  });
 
   revalidatePath(`/ventas/${ventaId}`);
   revalidatePath("/comprobantes");

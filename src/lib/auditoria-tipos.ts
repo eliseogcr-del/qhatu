@@ -3,6 +3,7 @@ export const TIPO_MOVIMIENTO_LABEL: Record<string, string> = {
   venta_quitar_producto: "Quitó producto de la venta",
   venta_modificar_producto: "Modificó producto de la venta",
   venta_anular: "Anuló la venta",
+  nota_venta_anular: "Anuló la nota de venta",
   cobranza_anular: "Anuló un cobro",
   produccion_agregar_producto: "Agregó producto a la producción",
   produccion_quitar_producto: "Quitó producto de la producción",
