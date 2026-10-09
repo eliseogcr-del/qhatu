@@ -15,9 +15,17 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
 
+  // Nunca un NextResponse de solo texto para los errores: eso saca a la
+  // persona de la app sin ningún botón para volver — mejor redirigir a la
+  // misma pantalla con el aviso de siempre.
+  const volver = (mensaje: string) =>
+    NextResponse.redirect(
+      new URL(`/configuracion-precios?error=${encodeURIComponent(mensaje)}`, request.url),
+    );
+
   const clienteId = request.nextUrl.searchParams.get("cliente_id");
   if (!clienteId) {
-    return new NextResponse("Falta el cliente.", { status: 400 });
+    return volver("Elige un cliente de la lista antes de exportar la plantilla.");
   }
 
   const { data: cliente } = await supabase
@@ -27,7 +35,7 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (!cliente) {
-    return new NextResponse("Cliente no encontrado.", { status: 404 });
+    return volver("Ese cliente ya no existe — elige otro.");
   }
 
   const [{ data: productos, error: errorProductos }, { data: especiales, error: errorEspeciales }] =
@@ -51,10 +59,7 @@ export async function GET(request: NextRequest) {
     ]);
 
   if (errorProductos || errorEspeciales) {
-    return new NextResponse(
-      `No se pudo armar la plantilla: ${(errorProductos ?? errorEspeciales)?.message}`,
-      { status: 500 },
-    );
+    return volver(`No se pudo armar la plantilla: ${(errorProductos ?? errorEspeciales)?.message}`);
   }
 
   const precioPorProducto = new Map((especiales ?? []).map((e) => [e.producto_id, e.precio]));

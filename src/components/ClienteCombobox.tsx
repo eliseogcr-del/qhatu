@@ -46,15 +46,32 @@ export default function ClienteCombobox({
     return base.slice(0, 20);
   }, [query, clientesLocal]);
 
+  // Si se escribió un nombre pero nunca se hizo click en la sugerencia
+  // (ej. se tipeó y se mandó el formulario directo), sin esto el campo se
+  // veía lleno pero el id detrás quedaba vacío — el formulario fallaba
+  // como si no se hubiera elegido ningún cliente. Si lo tipeado matchea
+  // uno solo, se asume que es ese; si es ambiguo o no hay texto, no se
+  // adivina.
+  function resolverAlSalir() {
+    if (clienteId) return;
+    if (!query.trim()) return;
+    if (filtrados.length === 1) {
+      setClienteId(filtrados[0].id);
+      setQuery(filtrados[0].nombre);
+    }
+  }
+
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
+        resolverAlSalir();
       }
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId, query, filtrados]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -68,6 +85,12 @@ export default function ClienteCombobox({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
+        onBlur={() => {
+          // Los clicks en una opción de la lista no llegan a disparar este
+          // blur (ver onMouseDown implícito del button, que corre antes) —
+          // acá cae el caso de salir con Tab u otro foco sin usar el mouse.
+          resolverAlSalir();
+        }}
         placeholder={placeholder}
         autoComplete="off"
         className={className}
