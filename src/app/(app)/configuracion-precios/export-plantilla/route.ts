@@ -30,19 +30,32 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Cliente no encontrado.", { status: 404 });
   }
 
-  const [{ data: productos }, { data: especiales }] = await Promise.all([
-    supabase
-      .from("productos")
-      .select("id, nombre, unidad_medida_id, unidades_medida(descripcion)")
-      .eq("control_inventario", true)
-      .eq("activo", true)
-      .order("nombre"),
-    supabase
-      .from("precios_especiales_cliente")
-      .select("producto_id, precio")
-      .eq("empresa_id", empresaId)
-      .eq("cliente_id", clienteId),
-  ]);
+  const [{ data: productos, error: errorProductos }, { data: especiales, error: errorEspeciales }] =
+    await Promise.all([
+      // productos tiene DOS columnas que apuntan a unidades_medida
+      // (unidad_medida_id y unidad_venta_defecto_id) — sin el
+      // "!unidad_medida_id" el embed queda ambiguo y PostgREST devuelve
+      // error (que acá quedaba sin revisar, dejando la plantilla vacía en
+      // silencio).
+      supabase
+        .from("productos")
+        .select("id, nombre, unidad_medida_id, unidades_medida!unidad_medida_id(descripcion)")
+        .eq("control_inventario", true)
+        .eq("activo", true)
+        .order("nombre"),
+      supabase
+        .from("precios_especiales_cliente")
+        .select("producto_id, precio")
+        .eq("empresa_id", empresaId)
+        .eq("cliente_id", clienteId),
+    ]);
+
+  if (errorProductos || errorEspeciales) {
+    return new NextResponse(
+      `No se pudo armar la plantilla: ${(errorProductos ?? errorEspeciales)?.message}`,
+      { status: 500 },
+    );
+  }
 
   const precioPorProducto = new Map((especiales ?? []).map((e) => [e.producto_id, e.precio]));
 
