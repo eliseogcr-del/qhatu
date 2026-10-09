@@ -1,4 +1,4 @@
-import { Tags, Save } from "lucide-react";
+import { Tags, Save, Download, Upload } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import SubmitButton from "@/components/SubmitButton";
@@ -11,6 +11,7 @@ import {
   actualizarPrecioEspecial,
   crearPrecioEspecial,
   eliminarPrecioEspecial,
+  importarPlantillaPrecios,
 } from "./actions";
 
 export default async function ConfiguracionPreciosPage({
@@ -24,6 +25,7 @@ export default async function ConfiguracionPreciosPage({
     unidad_medida_id?: string;
     precio?: string;
     q?: string;
+    detalle?: string;
   }>;
 }) {
   const {
@@ -34,6 +36,7 @@ export default async function ConfiguracionPreciosPage({
     unidad_medida_id: unidadMedidaIdPrevia,
     precio: precioPrevio,
     q,
+    detalle,
   } = await searchParams;
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
@@ -97,7 +100,7 @@ export default async function ConfiguracionPreciosPage({
         )}
         {guardado && (
           <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-            Configuración guardada.
+            {detalle ?? "Configuración guardada."}
           </p>
         )}
 
@@ -216,6 +219,60 @@ export default async function ConfiguracionPreciosPage({
             por DOCENA&quot;) — si en el pedido/venta se elige otra unidad,
             el sistema convierte el precio proporcionalmente.
           </p>
+        </div>
+
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Plantilla de precios especiales
+          </h2>
+          <p className="mb-4 text-xs text-gray-500">
+            Para cargar varios precios de un mismo cliente de una sola vez: exporta la plantilla
+            (todos los productos inventariados, con su precio actual si ya tiene), complétala en
+            Excel y súbela de vuelta — solo se guardan las filas donde escribiste un precio, el
+            resto queda tal cual estaba.
+          </p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <form
+              action="/configuracion-precios/export-plantilla"
+              method="GET"
+              className="space-y-3"
+            >
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Exportar plantilla
+                </label>
+                <ClienteCombobox clientes={clientes ?? []} />
+              </div>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Download size={16} />
+                Exportar plantilla
+              </button>
+            </form>
+
+            <form action={importarPlantillaPrecios} className="space-y-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Importar plantilla
+                </label>
+                <ClienteCombobox clientes={clientes ?? []} />
+              </div>
+              <div>
+                <input
+                  type="file"
+                  name="archivo"
+                  accept=".xlsx"
+                  required
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50"
+                />
+              </div>
+              <SubmitButton icon={<Upload size={16} />} pendingLabel="Importando...">
+                Importar plantilla
+              </SubmitButton>
+            </form>
+          </div>
         </div>
 
         <FiltroTexto q={q ?? ""} label="Filtrar por cliente" placeholder="Buscar por cliente..." />
