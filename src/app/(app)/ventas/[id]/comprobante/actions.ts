@@ -28,7 +28,7 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
   const { data: venta } = await supabase
     .from("ventas")
     .select(
-      "id, total, moneda, estado, almacen_id, clientes(tipo_documento, numero_documento, nombre, direccion)",
+      "id, total, descuento, moneda, estado, almacen_id, clientes(tipo_documento, numero_documento, nombre, direccion)",
     )
     .eq("id", ventaId)
     .single();
@@ -71,7 +71,7 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
     );
   }
 
-  const totales = await construirItemsYTotales(supabase, ventaId, empresaId);
+  const totales = await construirItemsYTotales(supabase, ventaId, empresaId, venta.descuento);
   if (!totales) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("La venta no tiene productos entregados para facturar.")}`,
@@ -165,7 +165,9 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, moneda, almacen_id, clientes(tipo_documento, numero_documento, nombre, direccion)")
+    .select(
+      "id, moneda, descuento, almacen_id, clientes(tipo_documento, numero_documento, nombre, direccion)",
+    )
     .eq("id", ventaId)
     .single();
 
@@ -184,7 +186,10 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
     );
   }
 
-  const totales = await construirItemsYTotales(supabase, ventaId, empresaId);
+  // Misma descuento que el comprobante original — la nota de crédito debe
+  // anular exactamente el mismo total, o SUNAT la rechaza por no coincidir
+  // con el documento que dice estar modificando.
+  const totales = await construirItemsYTotales(supabase, ventaId, empresaId, venta.descuento);
   if (!totales) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("No se encontraron los productos originales para armar la nota de crédito.")}`,
@@ -275,7 +280,7 @@ export async function emitirNotaVenta(ventaId: string) {
 
   const { data: venta } = await supabase
     .from("ventas")
-    .select("id, estado, almacen_id")
+    .select("id, estado, almacen_id, descuento")
     .eq("id", ventaId)
     .single();
 
@@ -287,7 +292,7 @@ export async function emitirNotaVenta(ventaId: string) {
     );
   }
 
-  const totales = await construirItemsYTotales(supabase, ventaId, empresaId);
+  const totales = await construirItemsYTotales(supabase, ventaId, empresaId, venta.descuento);
   if (!totales) {
     redirect(
       `/ventas/${ventaId}?error=${encodeURIComponent("La venta no tiene productos entregados.")}`,

@@ -21,11 +21,16 @@ export async function obtenerPorcentajeIgv(
 
 // Compartido entre la emisión de comprobantes Nubefact (factura/boleta/NC)
 // y la nota de venta interna — ambos parten de las mismas líneas
-// entregadas de la venta.
+// entregadas de la venta. Si la venta tiene descuento (ventas.descuento),
+// se agrega como una línea más con importe negativo — igual técnica que
+// la línea "Anticipo (-)" de los comprobantes libres — para que el
+// comprobante que ve el cliente también refleje el descuento, no solo la
+// pantalla de la venta.
 export async function construirItemsYTotales(
   supabase: Awaited<ReturnType<typeof createClient>>,
   ventaId: string,
   empresaId: string,
+  descuento = 0,
 ) {
   const [{ data: detalle }, porcentajeIgv] = await Promise.all([
     supabase
@@ -38,30 +43,17 @@ export async function construirItemsYTotales(
 
   if (!detalle || detalle.length === 0) return null;
 
-  const factorIgv = porcentajeIgv / 100;
-  const items: NubefactItem[] = detalle.map((d) => {
-    const valorUnitario = Math.round((d.precio_unitario / (1 + factorIgv)) * 100) / 100;
-    const subtotalSinIgv = Math.round(valorUnitario * d.cantidad_entregada * 100) / 100;
-    const igvLinea = Math.round((d.subtotal - subtotalSinIgv) * 100) / 100;
-    return {
-      unidad_de_medida: "NIU",
-      descripcion: (d.productos as unknown as { nombre: string } | null)?.nombre ?? "Producto",
-      cantidad: d.cantidad_entregada,
-      valor_unitario: valorUnitario,
-      precio_unitario: d.precio_unitario,
-      subtotal: subtotalSinIgv,
-      tipo_de_igv: 1,
-      igv: igvLinea,
-      total: d.subtotal,
-      anticipo_regularizacion: false,
-    };
-  });
+  const lineas = detalle.map((d) => ({
+    descripcion: (d.productos as unknown as { nombre: string } | null)?.nombre ?? "Producto",
+    cantidad: d.cantidad_entregada,
+    precio_unitario: d.precio_unitario,
+    subtotal: d.subtotal,
+  }));
+  if (descuento > 0) {
+    lineas.push({ descripcion: "Descuento", cantidad: 1, precio_unitario: -descuento, subtotal: -descuento });
+  }
 
-  const totalGravada = Math.round(items.reduce((acc, i) => acc + i.subtotal, 0) * 100) / 100;
-  const totalIgv = Math.round(items.reduce((acc, i) => acc + i.igv, 0) * 100) / 100;
-  const total = Math.round((totalGravada + totalIgv) * 100) / 100;
-
-  return { items, totalGravada, totalIgv, total, porcentajeIgv };
+  return { ...itemsDesdeLineas(lineas, porcentajeIgv), porcentajeIgv };
 }
 
 // Misma matemática de construirItemsYTotales (precio_unitario siempre
