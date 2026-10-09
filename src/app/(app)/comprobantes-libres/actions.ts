@@ -14,6 +14,53 @@ import {
 import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
 import { tipoDocumentoNubefact, type NubefactRequest } from "@/utils/nubefact";
 
+export type PedidoPendienteLibre = {
+  id: string;
+  fecha: string;
+  items: { productoId: string; descripcion: string; cantidad: number; precioUnitario: number }[];
+};
+
+// Para el botón "Cargar pedido del cliente" del formulario de emisión —
+// solo copia las líneas a la pantalla, no guarda ninguna referencia al
+// pedido ni lo toca de ninguna forma (no afecta logística/kardex, el
+// pedido sigue exactamente igual de pendiente que antes).
+export async function obtenerPedidosPendientesCliente(
+  clienteId: string,
+): Promise<PedidoPendienteLibre[]> {
+  if (!clienteId) return [];
+  const supabase = await createClient();
+  await requireComprobantesAcceso(supabase);
+
+  const { data: pedidos } = await supabase
+    .from("pedidos")
+    .select(
+      "id, fecha, ventas(id), pedido_detalle(producto_id, cantidad, precio_unitario, productos(nombre))",
+    )
+    .eq("cliente_id", clienteId)
+    .neq("estado", "cancelado")
+    .order("fecha", { ascending: false });
+
+  return (pedidos ?? [])
+    .filter((p) => !(p.ventas as unknown as { id: string }[] | null)?.length)
+    .map((p) => ({
+      id: p.id,
+      fecha: p.fecha,
+      items: (
+        p.pedido_detalle as unknown as {
+          producto_id: string;
+          cantidad: number;
+          precio_unitario: number;
+          productos: { nombre: string } | null;
+        }[]
+      ).map((d) => ({
+        productoId: d.producto_id,
+        descripcion: d.productos?.nombre ?? "Producto",
+        cantidad: d.cantidad,
+        precioUnitario: d.precio_unitario,
+      })),
+    }));
+}
+
 export async function emitirComprobanteLibre(formData: FormData) {
   const supabase = await createClient();
   const { userId, empresaId } = await requireComprobantesAcceso(supabase);

@@ -1,10 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Send } from "lucide-react";
+import { Plus, Trash2, Send, ClipboardList, Loader2 } from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import ClienteCombobox from "./ClienteCombobox";
 import ProductoCombobox from "./ProductoCombobox";
+import { consultarPrecioLinea } from "@/app/(app)/precios/actions";
+import {
+  obtenerPedidosPendientesCliente,
+  type PedidoPendienteLibre,
+} from "@/app/(app)/comprobantes-libres/actions";
+import { formatFecha } from "@/lib/fecha";
 
 type Producto = { id: string; nombre: string };
 type Anticipo = {
@@ -38,6 +44,10 @@ function newLinea(): Linea {
   return { key: `l${nextKey}`, productoId: "", descripcion: "", cantidad: 1, precioUnitario: 0 };
 }
 
+function lineaVacia(l: Linea) {
+  return !l.productoId && !l.descripcion && l.precioUnitario === 0;
+}
+
 export default function ComprobanteLibreForm({
   action,
   error,
@@ -53,13 +63,55 @@ export default function ComprobanteLibreForm({
   anticipos: Anticipo[];
   hoy: string;
 }) {
+  const [clienteId, setClienteId] = useState("");
   const [tipoComprobante, setTipoComprobante] = useState("2");
   const [tipoEmision, setTipoEmision] = useState<"" | "anticipo" | "saldo">("");
   const [comprobanteAnticipoId, setComprobanteAnticipoId] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
+  const [pedidos, setPedidos] = useState<PedidoPendienteLibre[]>([]);
+  const [mostrarPedidos, setMostrarPedidos] = useState(false);
+  const [cargandoPedidos, setCargandoPedidos] = useState(false);
 
   const updateLinea = (key: string, patch: Partial<Linea>) => {
     setLineas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  };
+
+  const seleccionarProducto = async (key: string, productoId: string) => {
+    const producto = productos.find((p) => p.id === productoId);
+    updateLinea(key, { productoId, descripcion: producto?.nombre ?? "" });
+    if (!productoId) return;
+    // El precio se trae del motor de precios normal (lista Campo, o el
+    // especial del cliente si tiene uno pactado) solo para no partir de
+    // 0 — queda completamente editable después, como el resto de la línea.
+    const precio = await consultarPrecioLinea(clienteId || null, productoId, null, null);
+    updateLinea(key, { precioUnitario: precio });
+  };
+
+  const cargarPedidos = async () => {
+    if (!clienteId) return;
+    setCargandoPedidos(true);
+    setMostrarPedidos(true);
+    const data = await obtenerPedidosPendientesCliente(clienteId);
+    setPedidos(data);
+    setCargandoPedidos(false);
+  };
+
+  const elegirPedido = (pedido: PedidoPendienteLibre) => {
+    const nuevasLineas: Linea[] = pedido.items.map((item) => {
+      nextKey += 1;
+      return {
+        key: `l${nextKey}`,
+        productoId: item.productoId,
+        descripcion: item.descripcion,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+      };
+    });
+    // Si todavía no se escribió nada, el pedido reemplaza la línea en
+    // blanco inicial — si ya había algo cargado a mano, se agrega debajo
+    // en vez de perderlo.
+    setLineas((prev) => (prev.every(lineaVacia) ? nuevasLineas : [...prev, ...nuevasLineas]));
+    setMostrarPedidos(false);
   };
 
   // Precio unitario siempre con IGV incluido (igual que en el resto del
@@ -83,7 +135,7 @@ export default function ComprobanteLibreForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Cliente">
-            <ClienteCombobox clientes={clientes} />
+            <ClienteCombobox clientes={clientes} onChange={setClienteId} />
           </Field>
           <Field label="Fecha de emisión">
             <input type="date" name="fecha_emision" defaultValue={hoy} required className={inputClass} />
@@ -142,7 +194,58 @@ export default function ComprobanteLibreForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Líneas</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Líneas</h2>
+          <div className="relative">
+            <button
+              type="button"
+              disabled={!clienteId}
+              onClick={cargarPedidos}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ClipboardList size={14} />
+              Cargar pedido del cliente
+            </button>
+            {mostrarPedidos && (
+              <div className="absolute right-0 z-20 mt-1 w-80 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                {cargandoPedidos ? (
+                  <p className="flex items-center gap-2 px-3 py-3 text-sm text-gray-500">
+                    <Loader2 size={14} className="animate-spin" />
+                    Buscando pedidos pendientes...
+                  </p>
+                ) : pedidos.length > 0 ? (
+                  <ul className="max-h-64 overflow-auto">
+                    {pedidos.map((p) => (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          onClick={() => elegirPedido(p)}
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
+                        >
+                          <span className="font-medium text-gray-900">{formatFecha(p.fecha)}</span>
+                          <span className="ml-2 text-gray-500">
+                            {p.items.length} producto{p.items.length === 1 ? "" : "s"}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-3 py-3 text-sm text-gray-400">
+                    Este cliente no tiene pedidos pendientes sin venta.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setMostrarPedidos(false)}
+                  className="w-full border-t border-gray-100 px-3 py-2 text-left text-xs text-gray-400 hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="space-y-3">
           {lineas.map((linea) => (
@@ -154,13 +257,7 @@ export default function ComprobanteLibreForm({
                 <ProductoCombobox
                   productos={productos}
                   value={linea.productoId}
-                  onChange={(productoId) => {
-                    const producto = productos.find((p) => p.id === productoId);
-                    updateLinea(linea.key, {
-                      productoId,
-                      descripcion: producto?.nombre ?? linea.descripcion,
-                    });
-                  }}
+                  onChange={(productoId) => seleccionarProducto(linea.key, productoId)}
                   className={inputClass}
                 />
               </Field>
