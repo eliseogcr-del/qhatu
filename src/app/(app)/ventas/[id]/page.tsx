@@ -18,6 +18,12 @@ import {
   emitirNotaVenta,
   anularNotaVenta,
 } from "./comprobante/actions";
+import { asociarComprobanteLibre, desasociarComprobanteLibre } from "../../comprobantes-libres/actions";
+
+const TIPO_EMISION_LABEL: Record<string, string> = {
+  anticipo: "Anticipo",
+  saldo: "Saldo",
+};
 
 export default async function VentaDetallePage({
   params,
@@ -49,12 +55,50 @@ export default async function VentaDetallePage({
       .select("id, fecha, monto, moneda, metodo_pago, referencia, estado, usuarios(nombre)")
       .eq("venta_id", id)
       .order("fecha", { ascending: false }),
+    // Solo los documentos "propios" de esta venta (factura/boleta/nota de
+    // venta generados por el flujo normal) — los comprobantes libres
+    // asociados (anticipo/saldo) se muestran aparte, en su propia tarjeta,
+    // para no mezclarlos con "Comprobante electrónico" ni "Nota de venta".
     supabase
       .from("comprobantes")
       .select("*")
       .eq("venta_id", id)
+      .eq("origen", "venta")
       .order("created_at", { ascending: false }),
   ]);
+
+  const [{ data: comprobantesLibres }, { data: librescandidatos }] = await Promise.all([
+    supabase
+      .from("comprobantes")
+      .select("id, tipo_comprobante, serie, numero, estado, tipo_emision, enlace_pdf")
+      .eq("venta_id", id)
+      .eq("origen", "libre")
+      .order("fecha_emision", { ascending: false }),
+    supabase
+      .from("comprobantes")
+      .select("id, tipo_comprobante, serie, numero, tipo_emision, clientes(nombre)")
+      .is("venta_id", null)
+      .eq("origen", "libre")
+      .eq("estado", "emitido")
+      .order("fecha_emision", { ascending: false }),
+  ]);
+
+  const idsLibresAsociados = (comprobantesLibres ?? []).map((c) => c.id);
+  const { data: detalleLibresAsociados } =
+    idsLibresAsociados.length > 0
+      ? await supabase
+          .from("comprobante_libre_detalle")
+          .select("comprobante_id, subtotal")
+          .in("comprobante_id", idsLibresAsociados)
+      : { data: [] as { comprobante_id: string; subtotal: number }[] };
+
+  const totalPorLibreAsociado = new Map<string, number>();
+  for (const d of detalleLibresAsociados ?? []) {
+    totalPorLibreAsociado.set(
+      d.comprobante_id,
+      (totalPorLibreAsociado.get(d.comprobante_id) ?? 0) + d.subtotal,
+    );
+  }
 
   const cobranzaIds = (cobranzas ?? []).map((c) => c.id);
   const { data: adjuntos } =
@@ -494,6 +538,103 @@ export default async function VentaDetallePage({
                 </form>
               )}
             </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Comprobantes libres asociados
+          </h2>
+          <p className="mb-4 text-xs text-gray-400">
+            Facturas/boletas de anticipo o saldo emitidas aparte (módulo Comprobantes libres) y
+            ligadas a esta venta solo como referencia — su monto no tiene por qué coincidir con
+            el de la venta.
+          </p>
+
+          {(comprobantesLibres ?? []).length > 0 && (
+            <div className="mb-4 space-y-2">
+              {(comprobantesLibres ?? []).map((c) => {
+                const total = Math.round((totalPorLibreAsociado.get(c.id) ?? 0) * 100) / 100;
+                const pdf = enlacePdfComprobante(c);
+                return (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {TIPO_COMPROBANTE_LABEL[c.tipo_comprobante]} {c.serie}-{c.numero}
+                        {c.tipo_emision && (
+                          <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+                            {TIPO_EMISION_LABEL[c.tipo_emision] ?? c.tipo_emision}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500">S/ {total.toFixed(2)}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {pdf && (
+                        <a
+                          href={pdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+                        >
+                          <FileText size={14} />
+                          Ver PDF
+                        </a>
+                      )}
+                      <ConfirmFormButton
+                        action={desasociarComprobanteLibre.bind(null, c.id, id)}
+                        confirmMessage="¿Quitar la asociación de este comprobante con la venta? El comprobante en sí no se anula."
+                        icon={<XCircle size={14} />}
+                        pendingLabel="Quitando..."
+                        className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                      >
+                        Desasociar
+                      </ConfirmFormButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!anulada && (librescandidatos ?? []).length > 0 && (
+            <form
+              action={asociarComprobanteLibre.bind(null, id)}
+              className="flex flex-wrap items-end gap-3"
+            >
+              <div className="min-w-[280px] flex-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Asociar comprobante libre
+                </label>
+                <select
+                  name="comprobante_id"
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Selecciona un comprobante...</option>
+                  {(librescandidatos ?? []).map((c) => {
+                    const cliente = c.clientes as unknown as { nombre: string } | null;
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {TIPO_COMPROBANTE_LABEL[c.tipo_comprobante]} {c.serie}-{c.numero}
+                        {c.tipo_emision ? ` (${TIPO_EMISION_LABEL[c.tipo_emision]})` : ""} —{" "}
+                        {cliente?.nombre ?? "—"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <SubmitButton pendingLabel="Asociando...">Asociar</SubmitButton>
+            </form>
+          )}
+
+          {(comprobantesLibres ?? []).length === 0 && (librescandidatos ?? []).length === 0 && (
+            <p className="text-sm text-gray-400">
+              No hay comprobantes libres asociados ni disponibles para asociar.
+            </p>
           )}
         </div>
 

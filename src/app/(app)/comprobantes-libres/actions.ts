@@ -233,3 +233,52 @@ export async function emitirComprobanteLibre(formData: FormData) {
   revalidatePath("/comprobantes-libres");
   redirect("/comprobantes-libres?emitido=1");
 }
+
+// Asociar es solo una referencia de trazabilidad (qué tipo y número de
+// documento corresponde a esta venta) — a propósito no valida que el
+// monto del comprobante cuadre con el de la venta, tal como se pidió.
+export async function asociarComprobanteLibre(ventaId: string, formData: FormData) {
+  const supabase = await createClient();
+  await requireComprobantesAcceso(supabase);
+
+  const comprobanteId = String(formData.get("comprobante_id") || "");
+  if (!comprobanteId) {
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent("Selecciona un comprobante para asociar.")}`);
+  }
+
+  // .is("venta_id", null) evita pisar una asociación que ya tenga (ej. si
+  // alguien lo asoció a otra venta justo antes, en otra pestaña).
+  const { error } = await supabase
+    .from("comprobantes")
+    .update({ venta_id: ventaId })
+    .eq("id", comprobanteId)
+    .eq("origen", "libre")
+    .is("venta_id", null);
+
+  if (error) {
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/ventas/${ventaId}`);
+  revalidatePath("/comprobantes-libres");
+  redirect(`/ventas/${ventaId}`);
+}
+
+export async function desasociarComprobanteLibre(comprobanteId: string, ventaId: string) {
+  const supabase = await createClient();
+  await requireComprobantesAcceso(supabase);
+
+  const { error } = await supabase
+    .from("comprobantes")
+    .update({ venta_id: null })
+    .eq("id", comprobanteId)
+    .eq("origen", "libre");
+
+  if (error) {
+    redirect(`/ventas/${ventaId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/ventas/${ventaId}`);
+  revalidatePath("/comprobantes-libres");
+  redirect(`/ventas/${ventaId}`);
+}
