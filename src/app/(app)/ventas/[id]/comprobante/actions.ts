@@ -8,103 +8,16 @@ import {
   construirItemsYTotales,
   fechaDeHoy,
   crearNotaVentaAutomatica,
+  guardarYEmitir,
 } from "@/utils/supabase/comprobantes";
 import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
-import {
-  llamarNubefact,
-  tipoDocumentoNubefact,
-  type NubefactRequest,
-  type NubefactResponse,
-} from "@/utils/nubefact";
+import { tipoDocumentoNubefact, type NubefactRequest } from "@/utils/nubefact";
 
-// Reserva la fila en comprobantes, llama a Nubefact, y actualiza el
-// resultado (o el error) — compartido entre emitir un comprobante nuevo
-// y emitir la nota de crédito que anula uno existente. Si algo falla,
-// redirige con el mensaje correspondiente y nunca vuelve al llamador.
-async function guardarYEmitir(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  params: {
-    empresaId: string;
-    userId: string;
-    ventaId: string;
-    almacenId: string | null;
-    tipoComprobante: number;
-    serie: string;
-    numero: number;
-    payload: NubefactRequest;
-    etiqueta: string;
-  },
-) {
-  const { empresaId, userId, ventaId, almacenId, tipoComprobante, serie, numero, payload, etiqueta } =
-    params;
-
-  const { data: comprobante, error: insertError } = await supabase
-    .from("comprobantes")
-    .insert({
-      empresa_id: empresaId,
-      venta_id: ventaId,
-      almacen_id: almacenId,
-      tipo_comprobante: tipoComprobante,
-      serie,
-      numero,
-      estado: "pendiente",
-      usuario_id: userId,
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !comprobante) {
-    redirect(
-      `/ventas/${ventaId}?error=${encodeURIComponent(insertError?.message ?? `No se pudo reservar ${etiqueta}.`)}`,
-    );
-  }
-
-  // El redirect() de Next lanza internamente su propia excepción para
-  // funcionar — nunca debe llamarse dentro de un try/catch de errores
-  // reales, o quedaría atrapado ahí y no navegaría a ningún lado.
-  let respuesta: NubefactResponse | null = null;
-  let errorConexion: string | null = null;
-  try {
-    respuesta = await llamarNubefact(payload);
-  } catch (err) {
-    errorConexion =
-      err instanceof Error ? err.message : "Error desconocido al conectar con Nubefact.";
-  }
-
-  if (errorConexion) {
-    await supabase
-      .from("comprobantes")
-      .update({ estado: "error", error_mensaje: errorConexion })
-      .eq("id", comprobante.id);
-    redirect(
-      `/ventas/${ventaId}?error=${encodeURIComponent(`No se pudo conectar con Nubefact: ${errorConexion}`)}`,
-    );
-  }
-
-  if (respuesta!.errors) {
-    await supabase
-      .from("comprobantes")
-      .update({ estado: "error", error_mensaje: respuesta!.errors })
-      .eq("id", comprobante.id);
-    redirect(
-      `/ventas/${ventaId}?error=${encodeURIComponent(`Nubefact rechazó ${etiqueta}: ${respuesta!.errors}`)}`,
-    );
-  }
-
-  await supabase
-    .from("comprobantes")
-    .update({
-      estado: "emitido",
-      aceptado_por_sunat: respuesta!.aceptada_por_sunat ?? null,
-      sunat_description: respuesta!.sunat_description ?? null,
-      enlace: respuesta!.enlace ?? null,
-      enlace_pdf: respuesta!.enlace_del_pdf ?? null,
-      enlace_xml: respuesta!.enlace_del_xml ?? null,
-      enlace_cdr: respuesta!.enlace_del_cdr ?? null,
-    })
-    .eq("id", comprobante.id);
-}
+// guardarYEmitir (reserva la fila, llama a Nubefact, guarda el resultado
+// o el error) vive en utils/supabase/comprobantes.ts — la comparten esta
+// pantalla (comprobante de venta + su nota de crédito) y el módulo de
+// Comprobantes libres.
 
 export async function emitirComprobante(ventaId: string, formData: FormData) {
   const supabase = await createClient();
@@ -212,15 +125,18 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
   };
 
   await guardarYEmitir(supabase, {
-    empresaId,
-    userId,
-    ventaId,
-    almacenId: venta.almacen_id,
-    tipoComprobante,
-    serie,
-    numero,
+    insert: {
+      empresa_id: empresaId,
+      usuario_id: userId,
+      venta_id: ventaId,
+      almacen_id: venta.almacen_id,
+      tipo_comprobante: tipoComprobante,
+      serie,
+      numero,
+    },
     payload,
     etiqueta: "el comprobante",
+    redirectBase: `/ventas/${ventaId}`,
   });
 
   revalidatePath(`/ventas/${ventaId}`);
@@ -326,15 +242,18 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
   };
 
   await guardarYEmitir(supabase, {
-    empresaId,
-    userId,
-    ventaId,
-    almacenId: venta.almacen_id,
-    tipoComprobante: 3,
-    serie: serieNota,
-    numero: numeroNota,
+    insert: {
+      empresa_id: empresaId,
+      usuario_id: userId,
+      venta_id: ventaId,
+      almacen_id: venta.almacen_id,
+      tipo_comprobante: 3,
+      serie: serieNota,
+      numero: numeroNota,
+    },
     payload,
     etiqueta: "la nota de crédito",
+    redirectBase: `/ventas/${ventaId}`,
   });
 
   // Solo llega hasta acá si la nota de crédito se emitió y fue aceptada

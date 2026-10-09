@@ -85,6 +85,7 @@ const FINANZAS = {
     { href: "/compras", label: "Compras", icon: ShoppingBag },
     { href: "/ventas", label: "Ventas", icon: ShoppingCart },
     { href: "/comprobantes", label: "Comprobantes", icon: FileText },
+    { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
     { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
     { href: "/reportes", label: "Reportes", icon: BarChart3 },
   ],
@@ -129,7 +130,10 @@ const PRODUCCION_MODULO = {
 
 const COMPROBANTES_MODULO = {
   label: "Comprobantes",
-  items: [{ href: "/comprobantes", label: "Comprobantes", icon: FileText }],
+  items: [
+    { href: "/comprobantes", label: "Comprobantes", icon: FileText },
+    { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
+  ],
 };
 
 // Acceso directo a un formulario de venta sin pedido previo, para que un
