@@ -11,6 +11,13 @@ import { Loader2 } from "lucide-react";
 // desmonta, así que no hay otro momento para "soltar" el botón — se
 // reactiva solo pasado un rato, el tiempo justo para que se note que el
 // click sí hizo algo.
+//
+// A propósito NO se usa el atributo `disabled`: React lo aplica casi en
+// el mismo tick del click, y en un <button type="submit"> eso puede
+// ganarle de carrera al envío nativo del formulario — el botón queda
+// deshabilitado antes de que el navegador llegue a disparar el submit, y
+// la descarga nunca sale. El aviso visual (ícono + texto) alcanza sin
+// arriesgar que el click deje de funcionar.
 export default function GetSubmitButton({
   children,
   pendingLabel,
@@ -27,7 +34,6 @@ export default function GetSubmitButton({
   return (
     <button
       type="submit"
-      disabled={pending}
       aria-busy={pending}
       onClick={() => {
         setPending(true);
@@ -36,7 +42,7 @@ export default function GetSubmitButton({
       className={
         (className ??
           "rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700") +
-        " flex items-center gap-2 disabled:cursor-wait disabled:opacity-70"
+        " flex items-center gap-2"
       }
     >
       {pending ? <Loader2 size={16} className="animate-spin" /> : icon}
