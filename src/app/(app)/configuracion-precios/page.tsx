@@ -258,9 +258,6 @@ export default async function ConfiguracionPreciosPage({
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Importar plantilla
                 </label>
-                <ClienteCombobox clientes={clientes ?? []} />
-              </div>
-              <div>
                 <input
                   type="file"
                   name="archivo"
@@ -268,6 +265,10 @@ export default async function ConfiguracionPreciosPage({
                   required
                   className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-50"
                 />
+                <p className="mt-1 text-xs text-gray-400">
+                  El cliente se identifica solo, desde el propio archivo — no hace falta
+                  elegirlo de nuevo.
+                </p>
               </div>
               <SubmitButton icon={<Upload size={16} />} pendingLabel="Importando...">
                 Importar plantilla

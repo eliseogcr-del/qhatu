@@ -151,14 +151,8 @@ export async function importarPlantillaPrecios(formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);
 
-  const clienteId = String(formData.get("cliente_id") ?? "");
   const archivo = formData.get("archivo");
 
-  if (!clienteId) {
-    redirect(
-      `/configuracion-precios?error=${encodeURIComponent("Selecciona el cliente antes de importar.")}`,
-    );
-  }
   if (!(archivo instanceof File) || archivo.size === 0) {
     redirect(
       `/configuracion-precios?error=${encodeURIComponent("Selecciona el archivo de la plantilla (.xlsx).")}`,
@@ -187,6 +181,7 @@ export async function importarPlantillaPrecios(formData: FormData) {
 
   const filas: { productoId: string; precio: number }[] = [];
   let clienteDelArchivo: string | null = null;
+  let clienteNombreDelArchivo: string | null = null;
   let filasConPrecioInvalido = 0;
 
   sheet.eachRow((row, numeroFila) => {
@@ -196,7 +191,10 @@ export async function importarPlantillaPrecios(formData: FormData) {
     const productoIdCelda = String(row.getCell(COL_PRODUCTO_ID).value ?? "").trim();
     if (!productoIdCelda) return; // fila vacía o sin la columna oculta
 
-    if (clienteIdCelda) clienteDelArchivo = clienteIdCelda;
+    if (clienteIdCelda) {
+      clienteDelArchivo = clienteIdCelda;
+      clienteNombreDelArchivo ??= String(row.getCell(1).value ?? "").trim() || null;
+    }
 
     const valorPrecio = row.getCell(COL_PRECIO).value;
     if (valorPrecio === null || valorPrecio === undefined || valorPrecio === "") return; // en blanco: se ignora, no se toca
@@ -210,10 +208,15 @@ export async function importarPlantillaPrecios(formData: FormData) {
     filas.push({ productoId: productoIdCelda, precio: Math.round(precio * 100) / 100 });
   });
 
-  if (clienteDelArchivo && clienteDelArchivo !== clienteId) {
+  // El cliente sale directo del archivo (columna oculta "Cliente ID") — ya
+  // no se vuelve a elegir a mano, así que no hay forma de que no coincida.
+  // Si no se encuentra, es que el archivo no es una plantilla exportada
+  // desde acá (o le borraron las columnas ocultas).
+  const clienteId: string | null = clienteDelArchivo;
+  if (!clienteId) {
     redirect(
       `/configuracion-precios?error=${encodeURIComponent(
-        "Este archivo es la plantilla de otro cliente — expórtala de nuevo para el cliente que elegiste antes de importar.",
+        "No se pudo identificar el cliente en el archivo — ¿es la plantilla exportada desde acá, sin editar las columnas ocultas?",
       )}`,
     );
   }
@@ -266,9 +269,10 @@ export async function importarPlantillaPrecios(formData: FormData) {
   }
 
   revalidatePath("/configuracion-precios");
+  const paraQuien = clienteNombreDelArchivo ? ` para ${clienteNombreDelArchivo}` : "";
   const resumen =
     omitidas > 0
-      ? `Se guardaron ${filasValidas.length} precios especiales (${omitidas} se omitieron por no tener unidad de medida configurada).`
-      : `Se guardaron ${filasValidas.length} precios especiales.`;
+      ? `Se guardaron ${filasValidas.length} precios especiales${paraQuien} (${omitidas} se omitieron por no tener unidad de medida configurada).`
+      : `Se guardaron ${filasValidas.length} precios especiales${paraQuien}.`;
   redirect(`/configuracion-precios?guardado=1&detalle=${encodeURIComponent(resumen)}`);
 }
