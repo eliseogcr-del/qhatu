@@ -226,6 +226,7 @@ export async function emitirComprobanteLibre(formData: FormData) {
     cliente_denominacion: cliente.nombre,
     cliente_direccion: cliente.direccion ?? undefined,
     fecha_de_emision: fechaNubefact(fechaEmision),
+    observaciones: descripcion ?? undefined,
     moneda: 1,
     porcentaje_de_igv: porcentajeIgv,
     total_gravada: totales.totalGravada,
