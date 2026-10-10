@@ -47,7 +47,9 @@ export async function GET(request: NextRequest) {
       // silencio).
       supabase
         .from("productos")
-        .select("id, nombre, unidad_medida_id, unidades_medida!unidad_medida_id(descripcion)")
+        .select(
+          "id, nombre, precio_campo, unidad_medida_id, unidades_medida!unidad_medida_id(descripcion)",
+        )
         .eq("control_inventario", true)
         .eq("activo", true)
         .order("nombre"),
@@ -70,11 +72,15 @@ export async function GET(request: NextRequest) {
   sheet.addRow(HEADERS).font = { bold: true };
   for (const p of productos ?? []) {
     const unidad = p.unidades_medida as unknown as { descripcion: string } | null;
+    // Si el cliente ya tiene un precio especial para este producto, se
+    // parte de ese; si no, del Precio Campo — así la columna nunca llega
+    // vacía y solo hay que retocar los productos que de verdad cambian,
+    // en vez de escribir los ~100 y pico desde cero.
     sheet.addRow([
       cliente.nombre,
       p.nombre,
       unidad?.descripcion ?? "—",
-      precioPorProducto.get(p.id) ?? null,
+      precioPorProducto.get(p.id) ?? p.precio_campo,
       clienteId,
       p.id,
     ]);
