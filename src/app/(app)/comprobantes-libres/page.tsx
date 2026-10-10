@@ -79,7 +79,7 @@ export default async function ComprobantesLibresPage({
                 <th className="px-4 py-3 text-right font-bold">Total</th>
                 <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3 font-bold">Venta asociada</th>
-                <th className="px-4 py-3 font-bold"></th>
+                <th className="px-4 py-3 font-bold">PDF</th>
               </tr>
             </thead>
             <tbody>
