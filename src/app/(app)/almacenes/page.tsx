@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import { createAlmacen, toggleActivoAlmacen } from "./actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function AlmacenesPage({
   searchParams,
@@ -49,12 +50,7 @@ export default async function AlmacenesPage({
                 placeholder="Dirección (opcional)"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
               />
-              <button
-                type="submit"
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-              >
-                Crear
-              </button>
+              <SubmitButton pendingLabel="Creando...">Crear</SubmitButton>
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
@@ -109,12 +105,12 @@ export default async function AlmacenesPage({
                         Editar
                       </Link>
                       <form action={toggleActivoAlmacen.bind(null, a.id, !a.activo)}>
-                        <button
-                          type="submit"
+                        <SubmitButton
+                          pendingLabel={a.activo ? "Desactivando..." : "Activando..."}
                           className="text-sm font-medium text-gray-500 hover:underline"
                         >
                           {a.activo ? "Desactivar" : "Activar"}
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </td>

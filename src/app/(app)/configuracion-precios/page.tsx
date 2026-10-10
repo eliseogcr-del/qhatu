@@ -2,6 +2,7 @@ import { Tags, Save, Download, Upload } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import SubmitButton from "@/components/SubmitButton";
+import GetSubmitButton from "@/components/GetSubmitButton";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import ProductoCombobox from "@/components/ProductoCombobox";
 import FiltroTexto from "@/components/FiltroTexto";
@@ -243,13 +244,13 @@ export default async function ConfiguracionPreciosPage({
                 </label>
                 <ClienteCombobox clientes={clientes ?? []} />
               </div>
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              <GetSubmitButton
+                icon={<Download size={16} />}
+                pendingLabel="Descargando..."
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                <Download size={16} />
                 Exportar plantilla
-              </button>
+              </GetSubmitButton>
             </form>
 
             <form action={importarPlantillaPrecios} className="space-y-3">

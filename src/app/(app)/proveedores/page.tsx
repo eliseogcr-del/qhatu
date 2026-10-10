@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { toggleActivoProveedor } from "./actions";
 import ProveedoresFiltroForm from "@/components/ProveedoresFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function ProveedoresPage({
   searchParams,
@@ -112,13 +113,13 @@ export default async function ProveedoresPage({
                           !proveedor.activo,
                         )}
                       >
-                        <button
-                          type="submit"
-                          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
+                        <SubmitButton
+                          icon={<Power size={14} />}
+                          pendingLabel={proveedor.activo ? "Desactivando..." : "Activando..."}
+                          className="text-sm font-medium text-gray-500 hover:underline"
                         >
-                          <Power size={14} />
                           {proveedor.activo ? "Desactivar" : "Activar"}
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </td>

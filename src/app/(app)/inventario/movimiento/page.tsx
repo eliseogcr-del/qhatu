@@ -4,6 +4,7 @@ import { getEmpresaSession } from "@/utils/supabase/session";
 import { registrarMovimientoManual } from "../actions";
 import { TIPOS_MOVIMIENTO_MANUAL, TIPO_MOVIMIENTO_LABEL } from "@/lib/kardex-tipos";
 import ProductoCombobox from "@/components/ProductoCombobox";
+import SubmitButton from "@/components/SubmitButton";
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none";
@@ -157,12 +158,7 @@ export default async function MovimientoInventarioPage({
               />
             </div>
 
-            <button
-              type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              Registrar movimiento
-            </button>
+            <SubmitButton pendingLabel="Registrando...">Registrar movimiento</SubmitButton>
           </form>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Menu, X, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import Logo from "./Logo";
 import SidebarNav from "./SidebarNav";
+import SubmitButton from "./SubmitButton";
 import { ROL_LABEL, type Rol } from "@/lib/roles";
 
 // Los <input type="number"> cambian de valor un "paso" (step) si el mouse
@@ -73,13 +74,13 @@ function SignOutForm({
     <div className="border-t border-white/10 p-4">
       <p className="mb-2 truncate px-1 text-xs text-emerald-100/70">{userEmail}</p>
       <form action={signOutAction}>
-        <button
-          type="submit"
-          className="flex w-full items-center gap-2 rounded-xl border border-white/15 bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+        <SubmitButton
+          icon={<LogOut size={16} />}
+          pendingLabel="Cerrando sesión..."
+          className="w-full rounded-xl border border-white/15 bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-600"
         >
-          <LogOut size={16} />
           Cerrar sesión
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

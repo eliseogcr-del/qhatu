@@ -3,6 +3,7 @@
 import { useId, useState, useTransition } from "react";
 import { Pencil, X, Check } from "lucide-react";
 import { formatFechaHora, timestampAInputLocalLima } from "@/lib/fecha";
+import SubmitButton from "./SubmitButton";
 
 function aInputLocal(iso: string | null): string {
   return iso ? timestampAInputLocalLima(iso) : "";
@@ -141,13 +142,13 @@ export default function PromocionRow({
             action={onActualizar}
             className="flex items-center justify-end gap-3 whitespace-nowrap"
           >
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+            <SubmitButton
+              icon={<Check size={14} />}
+              pendingLabel="Guardando..."
+              className="text-sm font-medium text-emerald-700 hover:underline"
             >
-              <Check size={14} />
               Guardar
-            </button>
+            </SubmitButton>
             <button
               type="button"
               onClick={() => setEditando(false)}

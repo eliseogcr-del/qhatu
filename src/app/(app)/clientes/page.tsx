@@ -6,6 +6,7 @@ import { esAlmacenDigital } from "@/utils/supabase/precios";
 import { toggleActivo } from "./actions";
 import ClientesFiltroForm from "@/components/ClientesFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function ClientesPage({
   searchParams,
@@ -137,13 +138,13 @@ export default async function ClientesPage({
                       <form
                         action={toggleActivo.bind(null, cliente.id, !cliente.activo)}
                       >
-                        <button
-                          type="submit"
-                          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
+                        <SubmitButton
+                          icon={<Power size={14} />}
+                          pendingLabel={cliente.activo ? "Desactivando..." : "Activando..."}
+                          className="text-sm font-medium text-gray-500 hover:underline"
                         >
-                          <Power size={14} />
                           {cliente.activo ? "Desactivar" : "Activar"}
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </td>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Target } from "lucide-react";
+import SubmitButton from "./SubmitButton";
 
 export default function ObjetivosMetaForm({
   action,
@@ -45,12 +46,12 @@ export default function ObjetivosMetaForm({
           required
         />
       </div>
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Guardando..."
         className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
       >
         Guardar meta
-      </button>
+      </SubmitButton>
     </form>
   );
 }

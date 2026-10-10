@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { toggleActivoProducto } from "./actions";
 import ProductosFiltroForm from "@/components/ProductosFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function ProductosPage({
   searchParams,
@@ -126,13 +127,13 @@ export default async function ProductosPage({
                           !producto.activo,
                         )}
                       >
-                        <button
-                          type="submit"
-                          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
+                        <SubmitButton
+                          icon={<Power size={14} />}
+                          pendingLabel={producto.activo ? "Desactivando..." : "Activando..."}
+                          className="text-sm font-medium text-gray-500 hover:underline"
                         >
-                          <Power size={14} />
                           {producto.activo ? "Desactivar" : "Activar"}
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </td>

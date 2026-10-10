@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, Trash2, X, Check } from "lucide-react";
+import SubmitButton from "./SubmitButton";
 
 export default function PrecioEspecialRow({
   clienteNombre,
@@ -38,13 +39,13 @@ export default function PrecioEspecialRow({
               autoFocus
               className="w-28 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
             />
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline"
+            <SubmitButton
+              icon={<Check size={14} />}
+              pendingLabel="Guardando..."
+              className="text-sm font-medium text-emerald-700 hover:underline"
             >
-              <Check size={14} />
               Guardar
-            </button>
+            </SubmitButton>
             <button
               type="button"
               onClick={() => setEditando(false)}
@@ -76,13 +77,13 @@ export default function PrecioEspecialRow({
             Editar
           </button>
           <form action={onEliminar}>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:underline"
+            <SubmitButton
+              icon={<Trash2 size={14} />}
+              pendingLabel="Quitando..."
+              className="text-sm font-medium text-red-600 hover:underline"
             >
-              <Trash2 size={14} />
               Quitar
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </td>
