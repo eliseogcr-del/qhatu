@@ -10,6 +10,7 @@ import {
 } from "@/lib/comprobante-links";
 import ComprobantesFiltroForm from "@/components/ComprobantesFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 const ESTADO_BADGE: Record<string, string> = {
   emitido: "bg-green-100 text-green-700",
@@ -179,13 +180,12 @@ export default async function ComprobantesPage({
             <FileText size={24} className="text-emerald-700" />
             <h1 className="text-2xl font-semibold text-gray-900">Comprobantes electrónicos</h1>
           </div>
-          <a
+          <ExportLinkButton
             href={`/comprobantes/export${exportQs ? `?${exportQs}` : ""}`}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            icon={<FileDown size={16} />}
           >
-            <FileDown size={16} />
             Exportar a Excel
-          </a>
+          </ExportLinkButton>
         </div>
         <p className="mb-6 text-sm text-gray-500">
           Facturas y boletas emitidas a través de Nubefact, notas de venta

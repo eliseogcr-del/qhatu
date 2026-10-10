@@ -7,6 +7,7 @@ import { toggleActivo } from "./actions";
 import ClientesFiltroForm from "@/components/ClientesFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 import SubmitButton from "@/components/SubmitButton";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 export default async function ClientesPage({
   searchParams,
@@ -54,13 +55,12 @@ export default async function ClientesPage({
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Clientes</h1>
           <div className="flex items-center gap-3">
-            <a
+            <ExportLinkButton
               href={`/clientes/export${exportQs ? `?${exportQs}` : ""}`}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar a Excel
-            </a>
+            </ExportLinkButton>
             <Link
               href="/clientes/nuevo"
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"

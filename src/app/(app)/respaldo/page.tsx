@@ -1,6 +1,7 @@
 import { DatabaseBackup, FolderDown } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 export default async function RespaldoPage() {
   const supabase = await createClient();
@@ -28,13 +29,15 @@ export default async function RespaldoPage() {
           semana, y guardarlo en tu computadora.
         </div>
 
-        <a
+        <ExportLinkButton
           href="/respaldo/descargar"
+          icon={<FolderDown size={16} />}
+          pendingLabel="Preparando respaldo..."
+          pendingMs={10000}
           className="flex w-fit items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
         >
-          <FolderDown size={16} />
           Descargar respaldo completo (ZIP)
-        </a>
+        </ExportLinkButton>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { getEmpresaSession } from "@/utils/supabase/session";
 import { TIPO_MOVIMIENTO_LABEL, type TipoMovimiento } from "@/lib/kardex-tipos";
 import KardexFiltroForm from "@/components/KardexFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 export default async function KardexPage({
   searchParams,
@@ -84,13 +85,12 @@ export default async function KardexPage({
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Kardex</h1>
           <div className="flex items-center gap-3">
-            <a
+            <ExportLinkButton
               href={`/kardex/export${exportQs ? `?${exportQs}` : ""}`}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar a Excel
-            </a>
+            </ExportLinkButton>
             <Link
               href="/kardex/merma"
               className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"

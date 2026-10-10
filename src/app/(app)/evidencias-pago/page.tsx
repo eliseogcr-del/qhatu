@@ -11,6 +11,7 @@ import ConfirmFormButton from "@/components/ConfirmFormButton";
 import { confirmarLiberarEspacio } from "./actions";
 import EvidenciasPagoFiltroForm from "@/components/EvidenciasPagoFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 function formatMB(bytes: number) {
   return (bytes / (1024 * 1024)).toFixed(0);
@@ -121,13 +122,14 @@ export default async function EvidenciasPagoPage({
           )}
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <a
+            <ExportLinkButton
               href="/evidencias-pago/descargar"
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FolderDown size={16} />}
+              pendingLabel="Preparando ZIP..."
+              pendingMs={10000}
             >
-              <FolderDown size={16} />
               Descargar todo (ZIP)
-            </a>
+            </ExportLinkButton>
             <ConfirmFormButton
               action={confirmarLiberarEspacio}
               confirmMessage="¿Ya descargaste el ZIP con las imágenes? Esto las borra de la nube (quedan solo referenciadas como archivadas en D:\FotosSistemaQhatu)."

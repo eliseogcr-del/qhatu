@@ -7,6 +7,7 @@ import { hoyLima } from "@/lib/fecha";
 import { METODOS_PAGO, METODO_PAGO_LABEL } from "@/lib/cobranza-tipos";
 import VentaFilaExpandible from "@/components/VentaFilaExpandible";
 import VentasFiltroForm from "@/components/VentasFiltroForm";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 function buildExportHref(
   base: "/ventas/export" | "/ventas/export-detalle",
@@ -143,7 +144,7 @@ export default async function VentasPage({
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            <a
+            <ExportLinkButton
               href={buildExportHref("/ventas/export", {
                 q,
                 desde: desdeEfectivo,
@@ -152,12 +153,11 @@ export default async function VentasPage({
                 almacen_id: almacenId,
                 vendedor_id: vendedorId,
               })}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar resumen
-            </a>
-            <a
+            </ExportLinkButton>
+            <ExportLinkButton
               href={buildExportHref("/ventas/export-detalle", {
                 q,
                 desde: desdeEfectivo,
@@ -166,11 +166,10 @@ export default async function VentasPage({
                 almacen_id: almacenId,
                 vendedor_id: vendedorId,
               })}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar detalle de pagos
-            </a>
+            </ExportLinkButton>
             <Link
               href="/ventas/nueva"
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"

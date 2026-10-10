@@ -6,6 +6,7 @@ import { fetchComprasConSaldo } from "@/utils/supabase/compras";
 import CompraFilaExpandible from "@/components/CompraFilaExpandible";
 import ComprasFiltroForm from "@/components/ComprasFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 function buildExportHref(
   base: "/compras/export" | "/compras/export-detalle",
@@ -67,30 +68,28 @@ export default async function ComprasPage({
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Compras</h1>
           <div className="flex items-center gap-3">
-            <a
+            <ExportLinkButton
               href={buildExportHref("/compras/export", {
                 q,
                 desde: desdeEfectivo,
                 hasta: hastaEfectivo,
                 pendientes,
               })}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar resumen
-            </a>
-            <a
+            </ExportLinkButton>
+            <ExportLinkButton
               href={buildExportHref("/compras/export-detalle", {
                 q,
                 desde: desdeEfectivo,
                 hasta: hastaEfectivo,
                 pendientes,
               })}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar detalle de pagos
-            </a>
+            </ExportLinkButton>
             <Link
               href="/compras/nueva"
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"

@@ -10,6 +10,7 @@ import {
 } from "@/utils/supabase/cuadro-control";
 import ReportesLogisticaFiltroForm from "@/components/ReportesLogisticaFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
+import ExportLinkButton from "@/components/ExportLinkButton";
 
 export default async function CuadroControlProductosPage({
   searchParams,
@@ -75,13 +76,12 @@ export default async function CuadroControlProductosPage({
             Cuadro de Control de Productos
           </h1>
           <div className="flex items-center gap-3">
-            <a
+            <ExportLinkButton
               href={`/reportes/cuadro-control/export${exportQs ? `?${exportQs}` : ""}`}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              icon={<FileDown size={16} />}
             >
-              <FileDown size={16} />
               Exportar a Excel
-            </a>
+            </ExportLinkButton>
             <Link
               href="/dashboard"
               className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:underline"
