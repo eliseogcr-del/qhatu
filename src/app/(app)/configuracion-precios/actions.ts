@@ -232,13 +232,16 @@ export async function importarPlantillaPrecios(formData: FormData) {
   }
 
   const productoIds = [...new Set(filas.map((f) => f.productoId))];
-  const productos = (
-    await Promise.all(
-      chunk(productoIds, 150).map((ids) =>
-        supabase.from("productos").select("id, unidad_medida_id").eq("empresa_id", empresaId).in("id", ids),
-      ),
-    )
-  ).flatMap((r) => r.data ?? []);
+  const resultadosProductos = await Promise.all(
+    chunk(productoIds, 150).map((ids) =>
+      supabase.from("productos").select("id, unidad_medida_id").eq("empresa_id", empresaId).in("id", ids),
+    ),
+  );
+  const errorProductos = resultadosProductos.find((r) => r.error)?.error;
+  if (errorProductos) {
+    redirect(`/configuracion-precios?error=${encodeURIComponent(errorProductos.message)}`);
+  }
+  const productos = resultadosProductos.flatMap((r) => r.data ?? []);
   const productoPorId = new Map(productos.map((p) => [p.id, p]));
 
   const filasValidas = filas.filter((f) => productoPorId.get(f.productoId)?.unidad_medida_id);
