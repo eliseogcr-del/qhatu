@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession } from "@/utils/supabase/session";
+import { getEmpresaSession, requireAdmin } from "@/utils/supabase/session";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { UMBRAL_BLOQUEO_BYTES, buildNombreArchivoCobranza } from "@/lib/cobranza-adjuntos";
 
@@ -325,7 +325,7 @@ export async function actualizarEvidenciaCobranza(
 // conserva el registro, y queda auditado quién lo anuló y cuándo.
 export async function anularCobranza(cobranzaId: string, redirectTo: string) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const { userId, empresaId } = await requireAdmin(supabase);
 
   const { data: cobranza } = await supabase
     .from("cobranzas")

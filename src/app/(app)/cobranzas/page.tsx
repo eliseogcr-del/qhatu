@@ -14,6 +14,7 @@ import { anularCobranza } from "./actions";
 import CobranzasFiltroForm from "@/components/CobranzasFiltroForm";
 import ResultadosCount from "@/components/ResultadosCount";
 import ExportLinkButton from "@/components/ExportLinkButton";
+import ResumenCobradoColapsable from "@/components/ResumenCobradoColapsable";
 
 export default async function CobranzasPage({
   searchParams,
@@ -50,8 +51,8 @@ export default async function CobranzasPage({
     .from("cobranzas")
     .select(
       q
-        ? "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos!inner(clientes!inner(nombre)), usuarios(nombre)"
-        : "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, pedidos(clientes(nombre)), usuarios(nombre)",
+        ? "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, venta_id, pedidos!inner(clientes!inner(nombre)), usuarios(nombre)"
+        : "id, fecha, monto, moneda, metodo_pago, tipo_pago, referencia, estado, pedido_id, venta_id, pedidos(clientes(nombre)), usuarios(nombre)",
     )
     .order("fecha", { ascending: false });
 
@@ -129,36 +130,12 @@ export default async function CobranzasPage({
         />
 
         {rol === "admin" && resumenPorMetodo.length > 0 && (
-          <div className="mb-4 overflow-x-auto rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-emerald-200 text-emerald-900">
-                <tr>
-                  <th className="px-4 py-2 font-bold">
-                    Resumen de lo cobrado{hayFiltros ? " (según filtros aplicados)" : ""}
-                  </th>
-                  <th className="px-4 py-2 text-right font-bold">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resumenPorMetodo.map((r) => (
-                  <tr key={r.metodo} className="border-b border-emerald-100 last:border-0">
-                    <td className="px-4 py-2 text-emerald-800">{r.label}</td>
-                    <td className="px-4 py-2 text-right text-emerald-800">
-                      {monedaResumen} {r.monto.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-emerald-200 font-semibold text-emerald-900">
-                  <td className="px-4 py-2">Total</td>
-                  <td className="px-4 py-2 text-right">
-                    {monedaResumen} {totalResumen.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <ResumenCobradoColapsable
+            hayFiltros={hayFiltros}
+            resumenPorMetodo={resumenPorMetodo}
+            totalResumen={totalResumen}
+            monedaResumen={monedaResumen}
+          />
         )}
 
         {error && (
@@ -231,12 +208,16 @@ export default async function CobranzasPage({
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <Link
-                          href={`/pedidos/${cobranza.pedido_id}`}
+                          href={
+                            cobranza.venta_id
+                              ? `/ventas/${cobranza.venta_id}`
+                              : `/pedidos/${cobranza.pedido_id}`
+                          }
                           className="text-sm font-medium text-gray-700 hover:underline"
                         >
-                          Ver pedido
+                          {cobranza.venta_id ? "Ver venta" : "Ver pedido"}
                         </Link>
-                        {cobranza.estado === "activa" && (
+                        {rol === "admin" && cobranza.estado === "activa" && (
                           <ConfirmFormButton
                             action={anularCobranza.bind(null, cobranza.id, "/cobranzas")}
                             confirmMessage="¿Anular este cobro? Quedará registrado en el log de auditoría."
