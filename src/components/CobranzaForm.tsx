@@ -26,19 +26,29 @@ export default function CobranzaForm({
   action,
   error,
   ventaId,
+  pedidoId,
   clienteNombre,
   monedaSugerida,
   saldoPendiente,
+  referenciaTexto,
   almacenamientoBloqueado,
   almacenamientoAviso,
   redirectTo,
 }: {
   action: (formData: FormData) => void;
   error?: string;
-  ventaId: string;
+  // Una de las dos — venta_id para un cobro normal, pedido_id para un
+  // anticipo sobre un pedido que todavía no tiene venta.
+  ventaId?: string;
+  pedidoId?: string;
   clienteNombre: string;
   monedaSugerida: string;
+  // null cuando no hay un saldo exacto que respetar (anticipo sobre
+  // pedido) — ahí el monto es libre, igual que un comprobante libre.
   saldoPendiente: number | null;
+  // Texto de referencia alternativo cuando saldoPendiente es null (ej.
+  // "Total estimado del pedido: S/ 450.00").
+  referenciaTexto?: string;
   almacenamientoBloqueado?: boolean;
   almacenamientoAviso?: boolean;
   // A dónde volver tras registrar el cobro — la venta o el pedido desde
@@ -54,16 +64,19 @@ export default function CobranzaForm({
         </p>
       )}
 
-      <input type="hidden" name="venta_id" value={ventaId} />
+      {ventaId && <input type="hidden" name="venta_id" value={ventaId} />}
+      {pedidoId && <input type="hidden" name="pedido_id" value={pedidoId} />}
       {redirectTo && <input type="hidden" name="redirect_to" value={redirectTo} />}
 
       <div>
         <p className="text-sm text-gray-500">Cliente</p>
         <p className="font-medium text-gray-900">{clienteNombre}</p>
-        {saldoPendiente != null && (
+        {saldoPendiente != null ? (
           <p className="mt-1 text-sm text-gray-500">
             Saldo pendiente: {monedaSugerida} {saldoPendiente.toFixed(2)}
           </p>
+        ) : (
+          referenciaTexto && <p className="mt-1 text-sm text-gray-500">{referenciaTexto}</p>
         )}
       </div>
 

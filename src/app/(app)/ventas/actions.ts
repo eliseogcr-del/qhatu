@@ -167,6 +167,17 @@ export async function createVenta(formData: FormData) {
     );
   }
 
+  // Si el cliente adelantó algo mientras el pedido todavía no tenía
+  // venta (cobranzas con pedido_id de este pedido y venta_id null, ver
+  // registrarAnticipoPedido), ahora que la venta ya existe esos cobros
+  // pasan a ser cobros normales de esta venta — sin esto, el anticipo se
+  // quedaría huérfano y el saldo pendiente no lo contaría.
+  await supabase
+    .from("cobranzas")
+    .update({ venta_id: venta.id })
+    .eq("pedido_id", pedidoId)
+    .is("venta_id", null);
+
   // Toda venta nace con su nota de venta (documento interno, numerado por
   // almacén) — nunca depende de que alguien la pida a mano. Si esto
   // fallara por algún motivo, la venta ya quedó guardada de todas formas.

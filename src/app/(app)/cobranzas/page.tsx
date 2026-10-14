@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
+import { formatFecha, inicioDiaLima, finDiaLima, hoyLima } from "@/lib/fecha";
 import { FileDown, XCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
@@ -27,8 +27,21 @@ export default async function CobranzasPage({
     estado?: string;
   }>;
 }) {
-  const { q, desde, hasta, metodo_pago: metodoPago, tipo_pago: tipoPago, estado } =
-    await searchParams;
+  const {
+    q,
+    desde: desdeParam,
+    hasta: hastaParam,
+    metodo_pago: metodoPago,
+    tipo_pago: tipoPago,
+    estado,
+  } = await searchParams;
+
+  // Por defecto (sin filtro explícito en la URL) se muestra el mes en
+  // curso, del 01 a hoy — en vez de todo el historial completo, que con
+  // miles de cobros se vuelve una lista eterna de cargar y de revisar.
+  const hoy = hoyLima();
+  const desde = desdeParam ?? `${hoy.slice(0, 7)}-01`;
+  const hasta = hastaParam ?? hoy;
 
   const supabase = await createClient();
   const { rol } = await getEmpresaSession(supabase);
@@ -51,7 +64,11 @@ export default async function CobranzasPage({
 
   const { data: cobranzas, error } = await query;
 
-  const hayFiltros = !!(q || desde || hasta || metodoPago || tipoPago || estado);
+  // El rango de fecha por defecto (mes en curso) no cuenta como "filtro
+  // activo" — solo cuenta si el usuario lo cambió a propósito (o tocó
+  // cualquier otro filtro), para no abrir el panel ni mostrar "Limpiar"
+  // en la vista normal de todos los días.
+  const hayFiltros = !!(q || desdeParam || hastaParam || metodoPago || tipoPago || estado);
 
   // Resumen de lo cobrado (solo cobros activos) agrupado por método de
   // pago, sobre el mismo conjunto ya filtrado arriba — se recalcula solo

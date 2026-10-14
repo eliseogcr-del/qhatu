@@ -7,9 +7,52 @@ import { getEmpresaSession } from "@/utils/supabase/session";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { UMBRAL_BLOQUEO_BYTES, buildNombreArchivoCobranza } from "@/lib/cobranza-adjuntos";
 
-// Solo las ventas generan un cobro pendiente real — un pedido por sí solo
-// (sin venta registrada) no representa una deuda del cliente, así que este
-// flujo siempre trabaja contra una venta.
+// Compartido entre createCobranza (cobro contra una venta) y
+// registrarAnticipoPedido (anticipo contra un pedido sin venta aún) —
+// sube la evidencia de pago solo si todavía hay espacio en el plan free,
+// nunca bloquea el registro del cobro en sí.
+async function subirEvidenciasCobranza(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: { empresaId: string; cobranzaId: string; clienteNombre: string; archivos: File[] },
+) {
+  const { empresaId, cobranzaId, clienteNombre, archivos } = params;
+  if (archivos.length === 0) return;
+
+  const { data: bytesUsados } = await supabase.rpc("total_storage_usado_bytes");
+  if ((bytesUsados ?? 0) >= UMBRAL_BLOQUEO_BYTES) return;
+
+  const codigoCobranza = cobranzaId.slice(0, 8).toUpperCase();
+  const fecha = new Date().toISOString().slice(0, 10);
+
+  let correlativo = 0;
+  for (const archivo of archivos) {
+    correlativo += 1;
+    const extension = archivo.name.split(".").pop() ?? "jpg";
+    const nombreArchivo = buildNombreArchivoCobranza({
+      codigoCobranza,
+      clienteNombre,
+      fecha,
+      correlativo,
+      extension,
+    });
+    const path = `${empresaId}/${cobranzaId}/${nombreArchivo}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("cobranza-adjuntos")
+      .upload(path, archivo);
+
+    if (!uploadError) {
+      await supabase.from("cobranza_adjuntos").insert({
+        empresa_id: empresaId,
+        cobranza_id: cobranzaId,
+        nombre_archivo: nombreArchivo,
+        storage_path: path,
+        tamano_bytes: archivo.size,
+      });
+    }
+  }
+}
+
 export async function createCobranza(formData: FormData) {
   const supabase = await createClient();
   const { userId, empresaId } = await getEmpresaSession(supabase);
@@ -88,53 +131,112 @@ export async function createCobranza(formData: FormData) {
     );
   }
 
-  // Evidencia de pago (foto). Se sube solo si aún hay espacio disponible
-  // en el plan free — nunca bloquea el registro del cobro en sí.
-  const { data: bytesUsados } = await supabase.rpc("total_storage_usado_bytes");
   const archivos = formData
     .getAll("evidencias")
     .filter((f): f is File => f instanceof File && f.size > 0);
-
-  if (archivos.length > 0 && (bytesUsados ?? 0) < UMBRAL_BLOQUEO_BYTES) {
-    const clienteNombre =
-      (venta.clientes as unknown as { nombre: string } | null)?.nombre ?? "Cliente";
-    const codigoCobranza = cobranza.id.slice(0, 8).toUpperCase();
-    const fecha = new Date().toISOString().slice(0, 10);
-
-    let correlativo = 0;
-    for (const archivo of archivos) {
-      correlativo += 1;
-      const extension = archivo.name.split(".").pop() ?? "jpg";
-      const nombreArchivo = buildNombreArchivoCobranza({
-        codigoCobranza,
-        clienteNombre,
-        fecha,
-        correlativo,
-        extension,
-      });
-      const path = `${empresaId}/${cobranza.id}/${nombreArchivo}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("cobranza-adjuntos")
-        .upload(path, archivo);
-
-      if (!uploadError) {
-        await supabase.from("cobranza_adjuntos").insert({
-          empresa_id: empresaId,
-          cobranza_id: cobranza.id,
-          nombre_archivo: nombreArchivo,
-          storage_path: path,
-          tamano_bytes: archivo.size,
-        });
-      }
-    }
-  }
+  await subirEvidenciasCobranza(supabase, {
+    empresaId,
+    cobranzaId: cobranza.id,
+    clienteNombre: (venta.clientes as unknown as { nombre: string } | null)?.nombre ?? "Cliente",
+    archivos,
+  });
 
   revalidatePath("/cobranzas");
   revalidatePath("/evidencias-pago");
   revalidatePath(`/pedidos/${venta.pedido_id}`);
   revalidatePath(`/ventas/${venta.id}`);
   redirect(redirectTo || `/ventas/${venta.id}`);
+}
+
+// Anticipo sobre un pedido que todavía no tiene venta — el pedido por sí
+// solo no es una deuda del cliente, así que acá no hay "saldo pendiente"
+// que no se pueda superar (a diferencia de createCobranza): es un monto
+// libre, igual que un comprobante libre de anticipo. Queda con
+// venta_id null y tipo_pago "anticipo" hasta que el pedido se convierta
+// en venta — en ese momento (ver ventas/actions.ts) se le asigna el
+// venta_id automáticamente y pasa a sumar como cualquier cobro normal.
+export async function registrarAnticipoPedido(formData: FormData) {
+  const supabase = await createClient();
+  const { userId, empresaId } = await getEmpresaSession(supabase);
+
+  const pedidoId = String(formData.get("pedido_id") ?? "");
+  const monto = Number(formData.get("monto") ?? 0);
+  const moneda = String(formData.get("moneda") ?? "PEN");
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
+  const metodoPago = String(formData.get("metodo_pago") ?? "efectivo");
+  const referencia = String(formData.get("referencia") ?? "") || null;
+  const redirectTo = String(formData.get("redirect_to") ?? "") || null;
+  const volverQs = redirectTo ? `&volver=${encodeURIComponent(redirectTo)}` : "";
+
+  if (!pedidoId || monto <= 0) {
+    redirect(
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent("Ingresa un monto válido.")}`,
+    );
+  }
+  if (!(tipoCambio > 0)) {
+    redirect(
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`,
+    );
+  }
+
+  const { data: pedido } = await supabase
+    .from("pedidos")
+    .select("id, estado, clientes(nombre), ventas(id)")
+    .eq("id", pedidoId)
+    .single();
+
+  if (!pedido) {
+    redirect(`/cobranzas/nueva?error=${encodeURIComponent("El pedido no existe.")}`);
+  }
+  if (pedido.estado === "cancelado") {
+    redirect(
+      `/cobranzas/nueva?error=${encodeURIComponent("Este pedido está cancelado, no se le puede registrar un anticipo.")}`,
+    );
+  }
+  const ventaExistente = (pedido.ventas as unknown as { id: string }[] | null)?.[0];
+  if (ventaExistente) {
+    redirect(
+      `/ventas/${ventaExistente.id}?error=${encodeURIComponent("Este pedido ya tiene una venta registrada — registra el cobro desde ahí.")}`,
+    );
+  }
+
+  const { data: cobranza, error } = await supabase
+    .from("cobranzas")
+    .insert({
+      empresa_id: empresaId,
+      pedido_id: pedidoId,
+      venta_id: null,
+      monto,
+      moneda,
+      tipo_cambio_aplicado: tipoCambio,
+      metodo_pago: metodoPago,
+      tipo_pago: "anticipo",
+      referencia,
+      usuario_id: userId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !cobranza) {
+    redirect(
+      `/cobranzas/nueva?pedido_id=${pedidoId}${volverQs}&error=${encodeURIComponent(error?.message ?? "No se pudo registrar el anticipo.")}`,
+    );
+  }
+
+  const archivos = formData
+    .getAll("evidencias")
+    .filter((f): f is File => f instanceof File && f.size > 0);
+  await subirEvidenciasCobranza(supabase, {
+    empresaId,
+    cobranzaId: cobranza.id,
+    clienteNombre: (pedido.clientes as unknown as { nombre: string } | null)?.nombre ?? "Cliente",
+    archivos,
+  });
+
+  revalidatePath("/cobranzas");
+  revalidatePath("/evidencias-pago");
+  revalidatePath(`/pedidos/${pedidoId}`);
+  redirect(redirectTo || `/pedidos/${pedidoId}`);
 }
 
 // Sube o reemplaza la evidencia de pago de un cobro ya registrado. A

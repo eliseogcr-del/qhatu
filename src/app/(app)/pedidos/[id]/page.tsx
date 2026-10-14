@@ -293,7 +293,7 @@ export default async function PedidoDetallePage({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
               Cobranzas
             </h2>
-            {venta && (
+            {venta ? (
               <Link
                 href={`/cobranzas/nueva?venta_id=${venta.id}&volver=${encodeURIComponent(`/pedidos/${id}`)}`}
                 className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
@@ -301,6 +301,16 @@ export default async function PedidoDetallePage({
                 <Wallet size={16} />
                 Registrar cobro
               </Link>
+            ) : (
+              pedido.estado !== "cancelado" && (
+                <Link
+                  href={`/cobranzas/nueva?pedido_id=${id}&volver=${encodeURIComponent(`/pedidos/${id}`)}`}
+                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  <Wallet size={16} />
+                  Registrar anticipo
+                </Link>
+              )
             )}
           </div>
 
@@ -318,8 +328,8 @@ export default async function PedidoDetallePage({
             </p>
           ) : (
             <p className="mb-4 text-sm text-gray-500">
-              Este pedido todavía no se registró como venta — no genera un
-              cobro pendiente hasta entonces.
+              Este pedido todavía no se registró como venta — puedes anotar un anticipo igual, y
+              cuando se convierta en venta se suma solo al saldo.
             </p>
           )}
 
