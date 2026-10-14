@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, FileText, CheckCircle2 } from "lucide-react";
+import { Plus, FileText, CheckCircle2, Pencil } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComprobantesAcceso } from "@/utils/supabase/session";
 import { formatFechaHora } from "@/lib/fecha";
@@ -79,7 +79,7 @@ export default async function ComprobantesLibresPage({
                 <th className="px-4 py-3 text-right font-bold">Total</th>
                 <th className="px-4 py-3 font-bold">Estado</th>
                 <th className="px-4 py-3 font-bold">Venta asociada</th>
-                <th className="px-4 py-3 font-bold">PDF</th>
+                <th className="px-4 py-3 font-bold">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -126,7 +126,7 @@ export default async function ComprobantesLibresPage({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {pdf && (
+                      {pdf ? (
                         <a
                           href={pdf}
                           target="_blank"
@@ -136,6 +136,16 @@ export default async function ComprobantesLibresPage({
                           <FileText size={14} />
                           PDF
                         </a>
+                      ) : (
+                        (c.estado === "pendiente" || c.estado === "error") && (
+                          <Link
+                            href={`/comprobantes-libres/${c.id}/editar`}
+                            className="flex items-center gap-1 font-medium text-gray-700 hover:underline"
+                          >
+                            <Pencil size={14} />
+                            Editar
+                          </Link>
+                        )
                       )}
                     </td>
                   </tr>

@@ -55,6 +55,10 @@ export default function ComprobanteLibreForm({
   productos,
   anticipos,
   hoy,
+  valoresIniciales,
+  documentoFijo,
+  submitLabel = "Emitir comprobante",
+  submitPendingLabel = "Emitiendo...",
 }: {
   action: (formData: FormData) => void;
   error?: string;
@@ -62,12 +66,37 @@ export default function ComprobanteLibreForm({
   productos: Producto[];
   anticipos: Anticipo[];
   hoy: string;
+  // Para editar/reintentar un comprobante que quedó en pendiente/error —
+  // precarga el formulario con lo que ya se había escrito.
+  valoresIniciales?: {
+    clienteId: string;
+    fechaEmision: string;
+    tipoEmision: "" | "anticipo" | "saldo";
+    comprobanteAnticipoId: string;
+    descripcion: string;
+    lineas: { productoId: string; descripcion: string; cantidad: number; precioUnitario: number }[];
+  };
+  // Cuando se edita, el tipo de documento (y su serie-número ya
+  // reservados) no se puede cambiar — se muestra fijo en vez del select.
+  documentoFijo?: string;
+  submitLabel?: string;
+  submitPendingLabel?: string;
 }) {
-  const [clienteId, setClienteId] = useState("");
+  const [clienteId, setClienteId] = useState(valoresIniciales?.clienteId ?? "");
   const [tipoComprobante, setTipoComprobante] = useState("2");
-  const [tipoEmision, setTipoEmision] = useState<"" | "anticipo" | "saldo">("");
-  const [comprobanteAnticipoId, setComprobanteAnticipoId] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([newLinea()]);
+  const [tipoEmision, setTipoEmision] = useState<"" | "anticipo" | "saldo">(
+    valoresIniciales?.tipoEmision ?? "",
+  );
+  const [comprobanteAnticipoId, setComprobanteAnticipoId] = useState(
+    valoresIniciales?.comprobanteAnticipoId ?? "",
+  );
+  const [lineas, setLineas] = useState<Linea[]>(() => {
+    if (!valoresIniciales?.lineas.length) return [newLinea()];
+    return valoresIniciales.lineas.map((l) => {
+      nextKey += 1;
+      return { key: `l${nextKey}`, ...l };
+    });
+  });
   const [pedidos, setPedidos] = useState<PedidoPendienteLibre[]>([]);
   const [mostrarPedidos, setMostrarPedidos] = useState(false);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
@@ -135,21 +164,35 @@ export default function ComprobanteLibreForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Cliente">
-            <ClienteCombobox clientes={clientes} onChange={setClienteId} />
+            <ClienteCombobox
+              clientes={clientes}
+              defaultClienteId={valoresIniciales?.clienteId}
+              onChange={setClienteId}
+            />
           </Field>
           <Field label="Fecha de emisión">
-            <input type="date" name="fecha_emision" defaultValue={hoy} required className={inputClass} />
+            <input
+              type="date"
+              name="fecha_emision"
+              defaultValue={valoresIniciales?.fechaEmision ?? hoy}
+              required
+              className={inputClass}
+            />
           </Field>
           <Field label="Tipo de documento">
-            <select
-              name="tipo_comprobante"
-              value={tipoComprobante}
-              onChange={(e) => setTipoComprobante(e.target.value)}
-              className={inputClass}
-            >
-              <option value="2">Boleta</option>
-              <option value="1">Factura (requiere cliente con RUC)</option>
-            </select>
+            {documentoFijo ? (
+              <p className={`${inputClass} bg-gray-50 text-gray-600`}>{documentoFijo}</p>
+            ) : (
+              <select
+                name="tipo_comprobante"
+                value={tipoComprobante}
+                onChange={(e) => setTipoComprobante(e.target.value)}
+                className={inputClass}
+              >
+                <option value="2">Boleta</option>
+                <option value="1">Factura (requiere cliente con RUC)</option>
+              </select>
+            )}
           </Field>
           <Field label="Tipo de emisión">
             <select
@@ -189,7 +232,12 @@ export default function ComprobanteLibreForm({
         )}
 
         <Field label="Descripción (opcional)">
-          <textarea name="descripcion" rows={2} className={inputClass} />
+          <textarea
+            name="descripcion"
+            rows={2}
+            defaultValue={valoresIniciales?.descripcion}
+            className={inputClass}
+          />
         </Field>
       </section>
 
@@ -336,8 +384,8 @@ export default function ComprobanteLibreForm({
         )}
       </div>
 
-      <SubmitButton icon={<Send size={16} />} pendingLabel="Emitiendo...">
-        Emitir comprobante
+      <SubmitButton icon={<Send size={16} />} pendingLabel={submitPendingLabel}>
+        {submitLabel}
       </SubmitButton>
     </form>
   );

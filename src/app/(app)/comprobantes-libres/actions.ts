@@ -9,6 +9,7 @@ import {
   itemsDesdeLineas,
   construirItemsYTotalesLibre,
   guardarYEmitir,
+  reintentarEmision,
   fechaNubefact,
 } from "@/utils/supabase/comprobantes";
 import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
@@ -61,13 +62,21 @@ export async function obtenerPedidosPendientesCliente(
     }));
 }
 
-export async function emitirComprobanteLibre(formData: FormData) {
-  const supabase = await createClient();
-  const { userId, empresaId } = await requireComprobantesAcceso(supabase);
+// Valida los datos del formulario y arma el payload para Nubefact —
+// compartido entre crear un comprobante libre nuevo (emitirComprobanteLibre,
+// que además resuelve serie+número) y editar/reintentar uno que quedó en
+// pendiente/error (editarComprobanteLibre, que reutiliza el tipo+serie+
+// número ya reservados en vez de pedir uno nuevo).
+async function validarYArmarPayload(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  empresaId: string,
+  formData: FormData,
+  params: { tipoComprobante: number; serie: string; numero: number; redirectBase: string },
+) {
+  const { tipoComprobante, serie, numero, redirectBase } = params;
 
   const clienteId = String(formData.get("cliente_id") || "");
   const fechaEmision = String(formData.get("fecha_emision") || "");
-  const tipoComprobante = Number(formData.get("tipo_comprobante") || 2);
   const tipoEmisionRaw = String(formData.get("tipo_emision") || "");
   const tipoEmision = tipoEmisionRaw === "anticipo" || tipoEmisionRaw === "saldo" ? tipoEmisionRaw : null;
   const comprobanteAnticipoId = String(formData.get("comprobante_anticipo_id") || "") || null;
@@ -79,14 +88,14 @@ export async function emitirComprobanteLibre(formData: FormData) {
   const precios = formData.getAll("precio_unitario[]").map((v) => Number(v));
 
   if (!clienteId) {
-    redirect(`/comprobantes-libres/nuevo?error=${encodeURIComponent("Selecciona un cliente.")}`);
+    redirect(`${redirectBase}?error=${encodeURIComponent("Selecciona un cliente.")}`);
   }
   if (!fechaEmision) {
-    redirect(`/comprobantes-libres/nuevo?error=${encodeURIComponent("Selecciona la fecha de emisión.")}`);
+    redirect(`${redirectBase}?error=${encodeURIComponent("Selecciona la fecha de emisión.")}`);
   }
   if (tipoEmision === "saldo" && !comprobanteAnticipoId) {
     redirect(
-      `/comprobantes-libres/nuevo?error=${encodeURIComponent("Selecciona el comprobante de anticipo que estás regularizando.")}`,
+      `${redirectBase}?error=${encodeURIComponent("Selecciona el comprobante de anticipo que estás regularizando.")}`,
     );
   }
 
@@ -101,7 +110,7 @@ export async function emitirComprobanteLibre(formData: FormData) {
 
   if (lineas.length === 0) {
     redirect(
-      `/comprobantes-libres/nuevo?error=${encodeURIComponent("Agrega al menos una línea con descripción, cantidad y precio.")}`,
+      `${redirectBase}?error=${encodeURIComponent("Agrega al menos una línea con descripción, cantidad y precio.")}`,
     );
   }
 
@@ -112,13 +121,11 @@ export async function emitirComprobanteLibre(formData: FormData) {
     .single();
 
   if (!cliente) {
-    redirect(`/comprobantes-libres/nuevo?error=${encodeURIComponent("Cliente inválido.")}`);
+    redirect(`${redirectBase}?error=${encodeURIComponent("Cliente inválido.")}`);
   }
 
   if (tipoComprobante === 1 && cliente.tipo_documento !== "RUC") {
-    redirect(
-      `/comprobantes-libres/nuevo?error=${encodeURIComponent("Solo se puede emitir Factura a un cliente con RUC.")}`,
-    );
+    redirect(`${redirectBase}?error=${encodeURIComponent("Solo se puede emitir Factura a un cliente con RUC.")}`);
   }
 
   const documento = cliente.numero_documento.trim();
@@ -126,41 +133,11 @@ export async function emitirComprobanteLibre(formData: FormData) {
   const esperada = longitudEsperada[cliente.tipo_documento];
   if (esperada && documento.length !== esperada) {
     redirect(
-      `/comprobantes-libres/nuevo?error=${encodeURIComponent(
+      `${redirectBase}?error=${encodeURIComponent(
         `El ${cliente.tipo_documento} del cliente debe tener ${esperada} dígitos (tiene ${documento.length}: "${documento}"). Corrígelo en Clientes antes de emitir el comprobante.`,
       )}`,
     );
   }
-
-  const { data: config } = await supabase
-    .from("configuracion_facturacion")
-    .select("serie_factura, serie_boleta")
-    .eq("empresa_id", empresaId)
-    .maybeSingle();
-
-  if (!config) {
-    redirect(
-      `/comprobantes-libres/nuevo?error=${encodeURIComponent(
-        "Falta configurar las series de facturación. Ve a Administración → Facturación electrónica.",
-      )}`,
-    );
-  }
-
-  const serie = tipoComprobante === 1 ? config.serie_factura : config.serie_boleta;
-  // Misma serie que las facturas/boletas de venta — el correlativo que
-  // SUNAT ve es uno solo por tipo+serie, sin importar si el documento
-  // nace de una venta o de un comprobante libre.
-  const { data: ultimo } = await supabase
-    .from("comprobantes")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("tipo_comprobante", tipoComprobante)
-    .eq("serie", serie)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const numero = (ultimo?.numero ?? 0) + 1;
 
   const porcentajeIgv = await obtenerPorcentajeIgv(supabase, empresaId);
 
@@ -187,7 +164,7 @@ export async function emitirComprobanteLibre(formData: FormData) {
 
     if (!anticipoRow) {
       redirect(
-        `/comprobantes-libres/nuevo?error=${encodeURIComponent("El comprobante de anticipo seleccionado ya no existe.")}`,
+        `${redirectBase}?error=${encodeURIComponent("El comprobante de anticipo seleccionado ya no existe.")}`,
       );
     }
     anticipo = anticipoRow;
@@ -195,7 +172,7 @@ export async function emitirComprobanteLibre(formData: FormData) {
     const totalesAnticipo = await construirItemsYTotalesLibre(supabase, anticipoRow.id, empresaId);
     if (!totalesAnticipo) {
       redirect(
-        `/comprobantes-libres/nuevo?error=${encodeURIComponent("No se pudo leer el monto del anticipo seleccionado.")}`,
+        `${redirectBase}?error=${encodeURIComponent("No se pudo leer el monto del anticipo seleccionado.")}`,
       );
     }
 
@@ -235,6 +212,53 @@ export async function emitirComprobanteLibre(formData: FormData) {
     items: totales.items,
   };
 
+  return { clienteId, tipoEmision, anticipo, descripcion, lineas, lineasParaItems, payload };
+}
+
+export async function emitirComprobanteLibre(formData: FormData) {
+  const supabase = await createClient();
+  const { userId, empresaId } = await requireComprobantesAcceso(supabase);
+
+  const tipoComprobante = Number(formData.get("tipo_comprobante") || 2);
+
+  const { data: config } = await supabase
+    .from("configuracion_facturacion")
+    .select("serie_factura, serie_boleta")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+
+  if (!config) {
+    redirect(
+      `/comprobantes-libres/nuevo?error=${encodeURIComponent(
+        "Falta configurar las series de facturación. Ve a Administración → Facturación electrónica.",
+      )}`,
+    );
+  }
+
+  const serie = tipoComprobante === 1 ? config.serie_factura : config.serie_boleta;
+  // Misma serie que las facturas/boletas de venta — el correlativo que
+  // SUNAT ve es uno solo por tipo+serie, sin importar si el documento
+  // nace de una venta o de un comprobante libre.
+  const { data: ultimo } = await supabase
+    .from("comprobantes")
+    .select("numero")
+    .eq("empresa_id", empresaId)
+    .eq("tipo_comprobante", tipoComprobante)
+    .eq("serie", serie)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const numero = (ultimo?.numero ?? 0) + 1;
+
+  const { clienteId, tipoEmision, anticipo, descripcion, lineas, lineasParaItems, payload } =
+    await validarYArmarPayload(supabase, empresaId, formData, {
+      tipoComprobante,
+      serie,
+      numero,
+      redirectBase: "/comprobantes-libres/nuevo",
+    });
+
   const comprobanteId = await guardarYEmitir(supabase, {
     insert: {
       empresa_id: empresaId,
@@ -253,9 +277,81 @@ export async function emitirComprobanteLibre(formData: FormData) {
     redirectBase: "/comprobantes-libres/nuevo",
   });
 
-  // Las líneas quedan guardadas tal cual se enviaron a Nubefact (incluida
-  // la de descuento del anticipo) — así el detalle en pantalla nunca se
-  // desincroniza de lo que realmente se declaró.
+  await guardarDetalleLibre(supabase, comprobanteId, lineas, lineasParaItems, anticipo);
+
+  revalidatePath("/comprobantes-libres");
+  redirect("/comprobantes-libres?emitido=1");
+}
+
+// Edita y reintenta un comprobante libre que quedó en "pendiente" o
+// "error" — nunca uno "emitido" (ese ya es un documento real ante SUNAT)
+// ni uno "anulado". Reutiliza el mismo tipo+serie+número ya reservados.
+export async function editarComprobanteLibre(comprobanteId: string, formData: FormData) {
+  const supabase = await createClient();
+  const { empresaId } = await requireComprobantesAcceso(supabase);
+  const redirectBase = `/comprobantes-libres/${comprobanteId}/editar`;
+
+  const { data: comprobante } = await supabase
+    .from("comprobantes")
+    .select("id, tipo_comprobante, serie, numero, estado, origen")
+    .eq("id", comprobanteId)
+    .eq("origen", "libre")
+    .single();
+
+  if (!comprobante) {
+    redirect(`/comprobantes-libres?error=${encodeURIComponent("El comprobante no existe.")}`);
+  }
+  if (comprobante.estado !== "pendiente" && comprobante.estado !== "error") {
+    redirect(
+      `/comprobantes-libres?error=${encodeURIComponent(
+        "Este comprobante ya fue emitido o anulado — no se puede editar.",
+      )}`,
+    );
+  }
+
+  const { clienteId, tipoEmision, anticipo, descripcion, lineas, lineasParaItems, payload } =
+    await validarYArmarPayload(supabase, empresaId, formData, {
+      tipoComprobante: comprobante.tipo_comprobante,
+      serie: comprobante.serie,
+      numero: comprobante.numero,
+      redirectBase,
+    });
+
+  await reintentarEmision(supabase, {
+    comprobanteId,
+    camposActualizar: {
+      cliente_id: clienteId,
+      tipo_emision: tipoEmision,
+      comprobante_anticipo_id: anticipo?.id ?? null,
+      descripcion,
+    },
+    payload,
+    etiqueta: "el comprobante",
+    redirectBase,
+  });
+
+  // Solo se llega hasta acá si el reintento tuvo éxito (reintentarEmision
+  // redirige y no vuelve si Nubefact lo rechaza otra vez) — las líneas
+  // anteriores (si las hubiera, de un intento previo que sí hubiera
+  // llegado a guardarlas) se reemplazan por las que realmente se
+  // enviaron esta vez.
+  await supabase.from("comprobante_libre_detalle").delete().eq("comprobante_id", comprobanteId);
+  await guardarDetalleLibre(supabase, comprobanteId, lineas, lineasParaItems, anticipo);
+
+  revalidatePath("/comprobantes-libres");
+  redirect("/comprobantes-libres?emitido=1");
+}
+
+// Las líneas quedan guardadas tal cual se enviaron a Nubefact (incluida
+// la de descuento del anticipo) — así el detalle en pantalla nunca se
+// desincroniza de lo que realmente se declaró.
+async function guardarDetalleLibre(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  comprobanteId: string,
+  lineas: { productoId: string | null; descripcion: string; cantidad: number; precio_unitario: number }[],
+  lineasParaItems: { descripcion: string; cantidad: number; precio_unitario: number; subtotal: number }[],
+  anticipo: { id: string } | null,
+) {
   await supabase.from("comprobante_libre_detalle").insert(
     lineas.map((l, i) => ({
       comprobante_id: comprobanteId,
@@ -277,9 +373,6 @@ export async function emitirComprobanteLibre(formData: FormData) {
       subtotal: lineaDescuento.subtotal,
     });
   }
-
-  revalidatePath("/comprobantes-libres");
-  redirect("/comprobantes-libres?emitido=1");
 }
 
 // Asociar es solo una referencia de trazabilidad (qué tipo y número de

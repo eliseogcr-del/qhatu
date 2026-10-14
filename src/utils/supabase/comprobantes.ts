@@ -108,6 +108,66 @@ export async function construirItemsYTotalesLibre(
   return { ...itemsDesdeLineas(detalle, porcentajeIgv), porcentajeIgv };
 }
 
+// Llama a Nubefact y guarda el resultado (o el error) sobre una fila de
+// comprobantes que ya existe — compartido entre la primera emisión
+// (guardarYEmitir, que reserva la fila antes) y un reintento sobre una
+// fila que quedó en "pendiente"/"error" (reintentarEmision, que ya la
+// tiene). Si algo falla, redirige con el mensaje correspondiente y nunca
+// vuelve al llamador — por eso ninguno de los dos devuelve nada útil en
+// el camino de error, solo en éxito.
+async function llamarYGuardarResultado(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  comprobanteId: string,
+  payload: NubefactRequest,
+  etiqueta: string,
+  redirectBase: string,
+): Promise<void> {
+  // El redirect() de Next lanza internamente su propia excepción para
+  // funcionar — nunca debe llamarse dentro de un try/catch de errores
+  // reales, o quedaría atrapado ahí y no navegaría a ningún lado.
+  let respuesta: NubefactResponse | null = null;
+  let errorConexion: string | null = null;
+  try {
+    respuesta = await llamarNubefact(payload);
+  } catch (err) {
+    errorConexion =
+      err instanceof Error ? err.message : "Error desconocido al conectar con Nubefact.";
+  }
+
+  if (errorConexion) {
+    await supabase
+      .from("comprobantes")
+      .update({ estado: "error", error_mensaje: errorConexion })
+      .eq("id", comprobanteId);
+    redirect(
+      `${redirectBase}?error=${encodeURIComponent(`No se pudo conectar con Nubefact: ${errorConexion}`)}`,
+    );
+  }
+
+  if (respuesta!.errors) {
+    await supabase
+      .from("comprobantes")
+      .update({ estado: "error", error_mensaje: respuesta!.errors })
+      .eq("id", comprobanteId);
+    redirect(
+      `${redirectBase}?error=${encodeURIComponent(`Nubefact rechazó ${etiqueta}: ${respuesta!.errors}`)}`,
+    );
+  }
+
+  await supabase
+    .from("comprobantes")
+    .update({
+      estado: "emitido",
+      aceptado_por_sunat: respuesta!.aceptada_por_sunat ?? null,
+      sunat_description: respuesta!.sunat_description ?? null,
+      enlace: respuesta!.enlace ?? null,
+      enlace_pdf: respuesta!.enlace_del_pdf ?? null,
+      enlace_xml: respuesta!.enlace_del_xml ?? null,
+      enlace_cdr: respuesta!.enlace_del_cdr ?? null,
+    })
+    .eq("id", comprobanteId);
+}
+
 // Reserva la fila en comprobantes, llama a Nubefact, y actualiza el
 // resultado (o el error) — compartido entre emitir un comprobante de
 // venta, la nota de crédito que anula uno, y los comprobantes libres
@@ -149,52 +209,42 @@ export async function guardarYEmitir(
     );
   }
 
-  // El redirect() de Next lanza internamente su propia excepción para
-  // funcionar — nunca debe llamarse dentro de un try/catch de errores
-  // reales, o quedaría atrapado ahí y no navegaría a ningún lado.
-  let respuesta: NubefactResponse | null = null;
-  let errorConexion: string | null = null;
-  try {
-    respuesta = await llamarNubefact(payload);
-  } catch (err) {
-    errorConexion =
-      err instanceof Error ? err.message : "Error desconocido al conectar con Nubefact.";
-  }
+  await llamarYGuardarResultado(supabase, comprobante.id, payload, etiqueta, redirectBase);
+  return comprobante.id;
+}
 
-  if (errorConexion) {
-    await supabase
-      .from("comprobantes")
-      .update({ estado: "error", error_mensaje: errorConexion })
-      .eq("id", comprobante.id);
-    redirect(
-      `${redirectBase}?error=${encodeURIComponent(`No se pudo conectar con Nubefact: ${errorConexion}`)}`,
-    );
-  }
-
-  if (respuesta!.errors) {
-    await supabase
-      .from("comprobantes")
-      .update({ estado: "error", error_mensaje: respuesta!.errors })
-      .eq("id", comprobante.id);
-    redirect(
-      `${redirectBase}?error=${encodeURIComponent(`Nubefact rechazó ${etiqueta}: ${respuesta!.errors}`)}`,
-    );
-  }
+// Reintenta un comprobante libre que quedó en "pendiente"/"error" —
+// reutiliza la misma serie+número ya reservados (no se reserva uno
+// nuevo, para no saltarse correlativos con un intento que nunca llegó a
+// SUNAT) y limpia cualquier resultado/error previo antes de reintentar.
+export async function reintentarEmision(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: {
+    comprobanteId: string;
+    camposActualizar: Record<string, unknown>;
+    payload: NubefactRequest;
+    etiqueta: string;
+    redirectBase: string;
+  },
+): Promise<void> {
+  const { comprobanteId, camposActualizar, payload, etiqueta, redirectBase } = params;
 
   await supabase
     .from("comprobantes")
     .update({
-      estado: "emitido",
-      aceptado_por_sunat: respuesta!.aceptada_por_sunat ?? null,
-      sunat_description: respuesta!.sunat_description ?? null,
-      enlace: respuesta!.enlace ?? null,
-      enlace_pdf: respuesta!.enlace_del_pdf ?? null,
-      enlace_xml: respuesta!.enlace_del_xml ?? null,
-      enlace_cdr: respuesta!.enlace_del_cdr ?? null,
+      ...camposActualizar,
+      estado: "pendiente",
+      error_mensaje: null,
+      aceptado_por_sunat: null,
+      sunat_description: null,
+      enlace: null,
+      enlace_pdf: null,
+      enlace_xml: null,
+      enlace_cdr: null,
     })
-    .eq("id", comprobante.id);
+    .eq("id", comprobanteId);
 
-  return comprobante.id;
+  await llamarYGuardarResultado(supabase, comprobanteId, payload, etiqueta, redirectBase);
 }
 
 // La nota de venta ya no depende de que alguien la pida a mano — toda
