@@ -34,7 +34,6 @@ import {
   Tag,
   Zap,
   ClipboardCheck,
-  Calculator,
 } from "lucide-react";
 
 const GENERAL = {
@@ -116,7 +115,6 @@ const ADMINISTRACION = {
       label: "Facturación electrónica",
       icon: Settings,
     },
-    { href: "/auditoria-igv", label: "Auditoría IGV", icon: Calculator },
   ],
 };
 
@@ -135,7 +133,6 @@ const COMPROBANTES_MODULO = {
   items: [
     { href: "/comprobantes", label: "Comprobantes", icon: FileText },
     { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
-    { href: "/auditoria-igv", label: "Auditoría IGV", icon: Calculator },
   ],
 };
 

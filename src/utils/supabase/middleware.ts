@@ -9,10 +9,9 @@ import { NextResponse, type NextRequest } from "next/server";
 // real de datos por debajo.
 const PRODUCCION_PERMITIDO = ["/produccion", "/dashboard", "/login", "/auth"];
 
-// El rol "contador" solo debe ver el módulo de Comprobantes (y Auditoría
-// IGV, que usa la misma data) — mismo mecanismo de barrera de navegación
-// que producción.
-const CONTADOR_PERMITIDO = ["/comprobantes", "/auditoria-igv", "/dashboard", "/login", "/auth"];
+// El rol "contador" solo debe ver el módulo de Comprobantes — mismo
+// mecanismo de barrera de navegación que producción.
+const CONTADOR_PERMITIDO = ["/comprobantes", "/dashboard", "/login", "/auth"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

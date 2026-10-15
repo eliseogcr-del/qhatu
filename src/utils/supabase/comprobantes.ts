@@ -100,32 +100,6 @@ export function itemsDesdeLineas(
   return { items, totalGravada, totalIgv, total };
 }
 
-// SOLO para el reporte de auditoría (/auditoria-igv) — reproduce la
-// fórmula con el bug que tuvo itemsDesdeLineas hasta el 15/10/2026
-// (redondeaba el valor unitario primero y multiplicaba por la cantidad,
-// en vez de redondear el importe de la línea directamente). Nunca debe
-// usarse para emitir nada — existe solo para poder comparar contra la
-// fórmula correcta sobre los comprobantes ya emitidos.
-export function totalesConFormulaAnterior(
-  lineas: { cantidad: number; precio_unitario: number; subtotal: number }[],
-  porcentajeIgv: number,
-): { totalGravada: number; totalIgv: number } {
-  const factorIgv = porcentajeIgv / 100;
-  let totalGravada = 0;
-  let totalIgv = 0;
-  for (const d of lineas) {
-    const valorUnitario = Math.round((d.precio_unitario / (1 + factorIgv)) * 100) / 100;
-    const subtotalSinIgv = Math.round(valorUnitario * d.cantidad * 100) / 100;
-    const igvLinea = Math.round((d.subtotal - subtotalSinIgv) * 100) / 100;
-    totalGravada += subtotalSinIgv;
-    totalIgv += igvLinea;
-  }
-  return {
-    totalGravada: Math.round(totalGravada * 100) / 100,
-    totalIgv: Math.round(totalIgv * 100) / 100,
-  };
-}
-
 // Trae las líneas ya guardadas de un comprobante libre (usado para "traer
 // el monto" del Anticipo al armar la línea de descuento de su Saldo).
 export async function construirItemsYTotalesLibre(
