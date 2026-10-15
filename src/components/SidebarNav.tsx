@@ -215,6 +215,7 @@ function gruposPorRol(rol: string, almacenEsDigital: boolean) {
     ? {
         ...LOGISTICA_VENDEDOR,
         items: [
+          { href: "/repartos", label: "Reparto", icon: Route },
           { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
           { href: "/inventario", label: "Inventario", icon: Boxes },
           { href: "/kardex", label: "Kardex", icon: ScrollText },
