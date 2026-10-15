@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { requireAdmin } from "@/utils/supabase/session";
+import { requireComprobantesAcceso } from "@/utils/supabase/session";
 import { formatFecha } from "@/lib/fecha";
 import { buildExcelText } from "@/lib/csv";
 import { obtenerFilasAuditoriaIgv } from "../shared";
@@ -19,7 +19,7 @@ const HEADERS = [
 
 export async function GET() {
   const supabase = await createClient();
-  const { empresaId } = await requireAdmin(supabase);
+  const { empresaId } = await requireComprobantesAcceso(supabase);
 
   const { filas } = await obtenerFilasAuditoriaIgv(supabase, empresaId);
 
