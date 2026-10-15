@@ -19,6 +19,33 @@ export async function obtenerPorcentajeIgv(
   return data?.porcentaje_igv ?? 10.5;
 }
 
+// Reserva el siguiente número de un tipo+serie de forma atómica (función
+// de base de datos con su propio contador) — nunca con un
+// "select max(numero) + 1" desde acá, que bajo dos emisiones casi
+// simultáneas (ej. una venta y un comprobante libre, que comparten
+// serie a propósito) puede devolver el mismo número dos veces y hacer
+// que Nubefact rechace la segunda por duplicada. redirectBase es la
+// página a la que volver si la reserva falla por algún motivo.
+export async function siguienteNumeroComprobante(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: { empresaId: string; tipoComprobante: number; serie: string; redirectBase: string },
+): Promise<number> {
+  const { empresaId, tipoComprobante, serie, redirectBase } = params;
+  const { data: numero, error } = await supabase.rpc("siguiente_numero_comprobante", {
+    p_empresa_id: empresaId,
+    p_tipo_comprobante: tipoComprobante,
+    p_serie: serie,
+  });
+
+  if (error || numero === null) {
+    redirect(
+      `${redirectBase}?error=${encodeURIComponent(error?.message ?? "No se pudo reservar el número del comprobante.")}`,
+    );
+  }
+
+  return numero;
+}
+
 // Compartido entre la emisión de comprobantes Nubefact (factura/boleta/NC)
 // y la nota de venta interna — ambos parten de las mismas líneas
 // entregadas de la venta. Si la venta tiene descuento (ventas.descuento),

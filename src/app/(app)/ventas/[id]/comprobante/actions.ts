@@ -9,6 +9,7 @@ import {
   fechaDeHoy,
   crearNotaVentaAutomatica,
   guardarYEmitir,
+  siguienteNumeroComprobante,
 } from "@/utils/supabase/comprobantes";
 import { TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
@@ -93,17 +94,12 @@ export async function emitirComprobante(ventaId: string, formData: FormData) {
   }
 
   const serie = tipoComprobante === 1 ? config.serie_factura : config.serie_boleta;
-  const { data: ultimo } = await supabase
-    .from("comprobantes")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("tipo_comprobante", tipoComprobante)
-    .eq("serie", serie)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const numero = (ultimo?.numero ?? 0) + 1;
+  const numero = await siguienteNumeroComprobante(supabase, {
+    empresaId,
+    tipoComprobante,
+    serie,
+    redirectBase: `/ventas/${ventaId}`,
+  });
 
   const payload: NubefactRequest = {
     operacion: "generar_comprobante",
@@ -211,17 +207,12 @@ export async function anularComprobante(comprobanteId: string, ventaId: string) 
   }
 
   const serieNota = original.tipo_comprobante === 1 ? config.serie_factura : config.serie_boleta;
-  const { data: ultimaNota } = await supabase
-    .from("comprobantes")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("tipo_comprobante", 3)
-    .eq("serie", serieNota)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const numeroNota = (ultimaNota?.numero ?? 0) + 1;
+  const numeroNota = await siguienteNumeroComprobante(supabase, {
+    empresaId,
+    tipoComprobante: 3,
+    serie: serieNota,
+    redirectBase: `/ventas/${ventaId}`,
+  });
 
   const payload: NubefactRequest = {
     operacion: "generar_comprobante",

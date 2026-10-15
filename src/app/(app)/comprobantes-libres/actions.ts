@@ -11,6 +11,7 @@ import {
   guardarYEmitir,
   reintentarEmision,
   fechaNubefact,
+  siguienteNumeroComprobante,
 } from "@/utils/supabase/comprobantes";
 import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
 import { tipoDocumentoNubefact, type NubefactRequest } from "@/utils/nubefact";
@@ -238,18 +239,15 @@ export async function emitirComprobanteLibre(formData: FormData) {
   const serie = tipoComprobante === 1 ? config.serie_factura : config.serie_boleta;
   // Misma serie que las facturas/boletas de venta — el correlativo que
   // SUNAT ve es uno solo por tipo+serie, sin importar si el documento
-  // nace de una venta o de un comprobante libre.
-  const { data: ultimo } = await supabase
-    .from("comprobantes")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("tipo_comprobante", tipoComprobante)
-    .eq("serie", serie)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const numero = (ultimo?.numero ?? 0) + 1;
+  // nace de una venta o de un comprobante libre. Por eso la reserva tiene
+  // que ser atómica (siguienteNumeroComprobante): una venta y un
+  // comprobante libre pueden emitirse casi al mismo tiempo.
+  const numero = await siguienteNumeroComprobante(supabase, {
+    empresaId,
+    tipoComprobante,
+    serie,
+    redirectBase: "/comprobantes-libres/nuevo",
+  });
 
   const { clienteId, tipoEmision, anticipo, descripcion, lineas, lineasParaItems, payload } =
     await validarYArmarPayload(supabase, empresaId, formData, {
