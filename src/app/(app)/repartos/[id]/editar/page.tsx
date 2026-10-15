@@ -78,6 +78,7 @@ export default async function EditarRepartoPage({
             initialValues={{
               pedido_id: reparto.pedido_id,
               fecha_reparto: reparto.fecha_reparto,
+              hora_reparto: reparto.hora_reparto,
               tipo_transporte: reparto.tipo_transporte,
               transportista_nombre: reparto.transportista_nombre,
               repartidor_id: reparto.repartidor_id,

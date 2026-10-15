@@ -28,6 +28,7 @@ function repartoFromForm(formData: FormData) {
   return {
     pedido_id: String(formData.get("pedido_id") ?? ""),
     fecha_reparto: text("fecha_reparto"),
+    hora_reparto: text("hora_reparto"),
     tipo_transporte: String(formData.get("tipo_transporte") ?? "repartidor_propio"),
     transportista_nombre: text("transportista_nombre"),
     repartidor_id: text("repartidor_id"),

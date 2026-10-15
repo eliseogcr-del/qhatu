@@ -55,6 +55,7 @@ export default async function NuevoRepartoPage({
                 ? {
                     pedido_id,
                     fecha_reparto: null,
+                    hora_reparto: null,
                     tipo_transporte: "repartidor_propio",
                     transportista_nombre: null,
                     repartidor_id: null,

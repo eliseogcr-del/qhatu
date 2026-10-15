@@ -9,6 +9,7 @@ import {
   FileText,
   Warehouse,
   Pencil,
+  Printer,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/pedido-estados";
 import { updateEstadoPedido, reasignarAlmacenPedido } from "../actions";
 import SubmitButton from "@/components/SubmitButton";
+import SeccionColapsable from "@/components/SeccionColapsable";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 
 export default async function PedidoDetallePage({
@@ -103,11 +105,11 @@ export default async function PedidoDetallePage({
   return (
     <div className="p-8">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold text-gray-900">
             Pedido de {cliente?.nombre ?? "—"}
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             {estado === "pendiente_confirmacion" && (
               <Link
                 href={`/pedidos/${id}/editar${volver ? `?volver=${encodeURIComponent(volver)}` : ""}`}
@@ -117,6 +119,14 @@ export default async function PedidoDetallePage({
                 Editar pedido
               </Link>
             )}
+            <Link
+              href={`/pedidos-pdf/${id}`}
+              target="_blank"
+              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Printer size={16} />
+              Ver / imprimir PDF
+            </Link>
             <Link
               href={`/ventas/nueva?pedido_id=${id}`}
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
@@ -174,83 +184,6 @@ export default async function PedidoDetallePage({
           </div>
         </div>
 
-        {session.rol === "admin" && almacenes && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Reasignar almacén
-            </h2>
-            {venta ? (
-              <p className="text-sm text-gray-400">
-                Este pedido ya tiene una venta registrada, así que no se
-                puede reasignar de almacén.
-              </p>
-            ) : (
-              <form
-                action={async (formData: FormData) => {
-                  "use server";
-                  await reasignarAlmacenPedido(id, formData);
-                }}
-                className="flex items-end gap-3"
-              >
-                <select
-                  key={pedido.almacen_id}
-                  name="almacen_id"
-                  defaultValue={pedido.almacen_id}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                >
-                  {almacenes.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.nombre}
-                    </option>
-                  ))}
-                </select>
-                <SubmitButton icon={<Warehouse size={16} />} pendingLabel="Reasignando...">
-                  Reasignar
-                </SubmitButton>
-              </form>
-            )}
-          </div>
-        )}
-
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Estado
-            </h2>
-            <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${ESTADO_BADGE[estado]}`}
-            >
-              {ESTADO_LABEL[estado] ?? pedido.estado}
-            </span>
-          </div>
-          <form
-            action={async (formData: FormData) => {
-              "use server";
-              await updateEstadoPedido(id, String(formData.get("estado")));
-            }}
-            className="flex items-center gap-3"
-          >
-            <select
-              key={pedido.estado}
-              name="estado"
-              defaultValue={pedido.estado}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              {ESTADOS_PEDIDO.map((e) => (
-                <option key={e} value={e}>
-                  {ESTADO_LABEL[e]}
-                </option>
-              ))}
-            </select>
-            <SubmitButton
-              icon={<RefreshCw size={16} />}
-              pendingLabel="Actualizando..."
-            >
-              Actualizar estado
-            </SubmitButton>
-          </form>
-        </div>
-
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
             Productos
@@ -288,12 +221,83 @@ export default async function PedidoDetallePage({
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Cobranzas
-            </h2>
+        {session.rol === "admin" && almacenes && (
+          <SeccionColapsable titulo="Reasignar almacén">
             {venta ? (
+              <p className="text-sm text-gray-400">
+                Este pedido ya tiene una venta registrada, así que no se
+                puede reasignar de almacén.
+              </p>
+            ) : (
+              <form
+                action={async (formData: FormData) => {
+                  "use server";
+                  await reasignarAlmacenPedido(id, formData);
+                }}
+                className="flex items-end gap-3"
+              >
+                <select
+                  key={pedido.almacen_id}
+                  name="almacen_id"
+                  defaultValue={pedido.almacen_id}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                >
+                  {almacenes.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
+                    </option>
+                  ))}
+                </select>
+                <SubmitButton icon={<Warehouse size={16} />} pendingLabel="Reasignando...">
+                  Reasignar
+                </SubmitButton>
+              </form>
+            )}
+          </SeccionColapsable>
+        )}
+
+        <SeccionColapsable
+          titulo="Estado"
+          accion={
+            <span
+              className={`rounded-full px-2 py-1 text-xs font-medium ${ESTADO_BADGE[estado]}`}
+            >
+              {ESTADO_LABEL[estado] ?? pedido.estado}
+            </span>
+          }
+        >
+          <form
+            action={async (formData: FormData) => {
+              "use server";
+              await updateEstadoPedido(id, String(formData.get("estado")));
+            }}
+            className="flex items-center gap-3"
+          >
+            <select
+              key={pedido.estado}
+              name="estado"
+              defaultValue={pedido.estado}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              {ESTADOS_PEDIDO.map((e) => (
+                <option key={e} value={e}>
+                  {ESTADO_LABEL[e]}
+                </option>
+              ))}
+            </select>
+            <SubmitButton
+              icon={<RefreshCw size={16} />}
+              pendingLabel="Actualizando..."
+            >
+              Actualizar estado
+            </SubmitButton>
+          </form>
+        </SeccionColapsable>
+
+        <SeccionColapsable
+          titulo="Cobranzas"
+          accion={
+            venta ? (
               <Link
                 href={`/cobranzas/nueva?venta_id=${venta.id}&volver=${encodeURIComponent(`/pedidos/${id}`)}`}
                 className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
@@ -311,9 +315,9 @@ export default async function PedidoDetallePage({
                   Registrar anticipo
                 </Link>
               )
-            )}
-          </div>
-
+            )
+          }
+        >
           {venta ? (
             <p className="mb-4 text-sm">
               Saldo pendiente:{" "}
@@ -385,13 +389,10 @@ export default async function PedidoDetallePage({
           ) : (
             <p className="text-sm text-gray-400">Aún no hay cobros registrados.</p>
           )}
-        </div>
+        </SeccionColapsable>
 
         {adjuntosConUrl.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Adjuntos
-            </h2>
+          <SeccionColapsable titulo="Adjuntos">
             <ul className="space-y-2">
               {adjuntosConUrl.map((adjunto) => (
                 <li key={adjunto.id}>
@@ -414,7 +415,7 @@ export default async function PedidoDetallePage({
                 </li>
               ))}
             </ul>
-          </div>
+          </SeccionColapsable>
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@ type UsuarioOption = { id: string; nombre: string | null };
 export type RepartoInitialValues = {
   pedido_id: string;
   fecha_reparto: string | null;
+  hora_reparto: string | null;
   tipo_transporte: string;
   transportista_nombre: string | null;
   repartidor_id: string | null;
@@ -28,6 +29,7 @@ export type RepartoInitialValues = {
 const emptyValues: RepartoInitialValues = {
   pedido_id: "",
   fecha_reparto: null,
+  hora_reparto: null,
   tipo_transporte: "repartidor_propio",
   transportista_nombre: null,
   repartidor_id: null,
@@ -106,12 +108,20 @@ export default function RepartoForm({
         )}
       </Field>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="Fecha de reparto">
           <input
             type="date"
             name="fecha_reparto"
             defaultValue={values.fecha_reparto ?? ""}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Hora de reparto">
+          <input
+            type="time"
+            name="hora_reparto"
+            defaultValue={values.hora_reparto?.slice(0, 5) ?? ""}
             className={inputClass}
           />
         </Field>
