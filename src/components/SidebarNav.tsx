@@ -99,6 +99,7 @@ const FINANZAS_LOGISTICA = {
   items: [
     { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
     { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+    { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
   ],
 };
 
