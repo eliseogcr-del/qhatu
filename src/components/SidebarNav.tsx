@@ -54,7 +54,10 @@ const COMERCIAL = {
 
 const COMERCIAL_LOGISTICA = {
   label: "Comercial",
-  items: [{ href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet }],
+  items: [
+    { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
+    { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet },
+  ],
 };
 
 const LOGISTICA = {
