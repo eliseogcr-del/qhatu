@@ -339,6 +339,14 @@ export async function editarComprobanteLibre(comprobanteId: string, formData: Fo
       redirectBase,
     });
 
+  // Se reemplaza el detalle ANTES de reintentar — reintentarEmision
+  // redirige y no vuelve si Nubefact lo vuelve a rechazar, así que si el
+  // guardado quedara después de esa llamada (como estaba antes) las
+  // líneas que acabas de escribir se perderían otra vez en cada reintento
+  // fallido. Guardándolas antes, quedan ahí pase lo que pase.
+  await supabase.from("comprobante_libre_detalle").delete().eq("comprobante_id", comprobanteId);
+  await guardarDetalleLibre(supabase, comprobanteId, lineas, lineasParaItems, anticipo);
+
   await reintentarEmision(supabase, {
     comprobanteId,
     camposActualizar: {
@@ -351,14 +359,6 @@ export async function editarComprobanteLibre(comprobanteId: string, formData: Fo
     etiqueta: "el comprobante",
     redirectBase,
   });
-
-  // Solo se llega hasta acá si el reintento tuvo éxito (reintentarEmision
-  // redirige y no vuelve si Nubefact lo rechaza otra vez) — las líneas
-  // anteriores (si las hubiera, de un intento previo que sí hubiera
-  // llegado a guardarlas) se reemplazan por las que realmente se
-  // enviaron esta vez.
-  await supabase.from("comprobante_libre_detalle").delete().eq("comprobante_id", comprobanteId);
-  await guardarDetalleLibre(supabase, comprobanteId, lineas, lineasParaItems, anticipo);
 
   revalidatePath("/comprobantes-libres");
   redirect("/comprobantes-libres?emitido=1");
