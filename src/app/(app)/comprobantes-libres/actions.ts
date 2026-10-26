@@ -13,7 +13,7 @@ import {
   siguienteNumeroComprobante,
 } from "@/utils/supabase/comprobantes";
 import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
-import { tipoDocumentoNubefact, type NubefactRequest } from "@/utils/nubefact";
+import { tipoDocumentoNubefact, type NubefactItem, type NubefactRequest } from "@/utils/nubefact";
 
 export type PedidoPendienteLibre = {
   id: string;
@@ -149,10 +149,19 @@ async function validarYArmarPayload(
   }));
 
   // Factura de Saldo: se trae el monto ya facturado en el Anticipo
-  // seleccionado y se arma la línea de descuento que lo resta — el
-  // usuario nunca escribe ese monto a mano, para que no se pueda
-  // descuadrar del anticipo real.
-  let anticipo: { id: string; tipo_comprobante: number; serie: string; numero: number } | null = null;
+  // seleccionado — el usuario nunca escribe ese monto a mano, para que
+  // no se pueda descuadrar del anticipo real. Confirmado con el ejemplo
+  // oficial de Nubefact ("ANTICIPO REGULARIZACION" de su manual JSON):
+  // la línea del anticipo se repite con sus valores REALES en positivo
+  // (igual que en el comprobante de anticipo original, nunca negativa)
+  // marcada con anticipo_regularizacion + anticipo_documento_serie/
+  // numero — pero esa línea se RESTA de total_gravada/total_igv/total de
+  // la cabecera (no de las líneas), y total_anticipo lleva su importe
+  // sin IGV. Antes se mandaba como línea negativa, que SUNAT rechaza
+  // ("Item - IGV debe ser mayor que 0.0 ... total debe ser mayor que 0").
+  let anticipo:
+    | { id: string; tipo_comprobante: number; serie: string; numero: number; totalGravada: number; totalIgv: number; total: number }
+    | null = null;
   if (tipoEmision === "saldo" && comprobanteAnticipoId) {
     const { data: anticipoRow } = await supabase
       .from("comprobantes")
@@ -167,7 +176,6 @@ async function validarYArmarPayload(
         `${redirectBase}?error=${encodeURIComponent("El comprobante de anticipo seleccionado ya no existe.")}`,
       );
     }
-    anticipo = anticipoRow;
 
     const totalesAnticipo = await construirItemsYTotalesLibre(supabase, anticipoRow.id, empresaId);
     if (!totalesAnticipo) {
@@ -176,27 +184,42 @@ async function validarYArmarPayload(
       );
     }
 
-    lineasParaItems.push({
-      descripcion: `Anticipo (-) ${TIPO_COMPROBANTE_LABEL[anticipoRow.tipo_comprobante]} ${anticipoRow.serie}-${anticipoRow.numero}`,
-      cantidad: 1,
-      precio_unitario: -totalesAnticipo.total,
-      subtotal: -totalesAnticipo.total,
-    });
+    anticipo = {
+      ...anticipoRow,
+      totalGravada: totalesAnticipo.totalGravada,
+      totalIgv: totalesAnticipo.totalIgv,
+      total: totalesAnticipo.total,
+    };
   }
 
   const totales = itemsDesdeLineas(lineasParaItems, porcentajeIgv);
-  // La última línea es la del descuento del anticipo (si la hay) — se
-  // marca para que Nubefact/SUNAT sepan que es la regularización, no un
-  // producto más, y se referencia el comprobante de anticipo exacto
-  // (serie+número) que se está regularizando. Faltaban estos dos campos
-  // — con solo el booleano, Nubefact no puede cruzar el descuento contra
-  // ningún documento y su backend falla al procesarlo ("undefined
-  // method `+' for nil").
+
+  let items = totales.items;
+  let totalGravada = totales.totalGravada;
+  let totalIgv = totales.totalIgv;
+  let total = totales.total;
+  let totalAnticipo: number | undefined;
+
   if (anticipo) {
-    const lineaAnticipo = totales.items[totales.items.length - 1];
-    lineaAnticipo.anticipo_regularizacion = true;
-    lineaAnticipo.anticipo_documento_serie = anticipo.serie;
-    lineaAnticipo.anticipo_documento_numero = String(anticipo.numero);
+    const lineaAnticipo: NubefactItem = {
+      unidad_de_medida: "NIU",
+      descripcion: `Anticipo ${TIPO_COMPROBANTE_LABEL[anticipo.tipo_comprobante]} ${anticipo.serie}-${anticipo.numero}`,
+      cantidad: 1,
+      valor_unitario: anticipo.totalGravada,
+      precio_unitario: anticipo.total,
+      subtotal: anticipo.totalGravada,
+      tipo_de_igv: 1,
+      igv: anticipo.totalIgv,
+      total: anticipo.total,
+      anticipo_regularizacion: true,
+      anticipo_documento_serie: anticipo.serie,
+      anticipo_documento_numero: String(anticipo.numero),
+    };
+    items = [...items, lineaAnticipo];
+    totalGravada = Math.round((totalGravada - anticipo.totalGravada) * 100) / 100;
+    totalIgv = Math.round((totalIgv - anticipo.totalIgv) * 100) / 100;
+    total = Math.round((total - anticipo.total) * 100) / 100;
+    totalAnticipo = anticipo.totalGravada;
   }
 
   const payload: NubefactRequest = {
@@ -204,7 +227,9 @@ async function validarYArmarPayload(
     tipo_de_comprobante: tipoComprobante,
     serie,
     numero,
-    sunat_transaction: 1,
+    // 4 = VENTA INTERNA - ANTICIPOS, tal como usa Nubefact en sus
+    // propios ejemplos tanto para el anticipo como para su regularización.
+    sunat_transaction: tipoEmision === "anticipo" || tipoEmision === "saldo" ? 4 : 1,
     cliente_tipo_de_documento: tipoDocumentoNubefact(cliente.tipo_documento),
     cliente_numero_de_documento: cliente.numero_documento,
     cliente_denominacion: cliente.nombre,
@@ -213,10 +238,11 @@ async function validarYArmarPayload(
     observaciones: descripcion ?? undefined,
     moneda: 1,
     porcentaje_de_igv: porcentajeIgv,
-    total_gravada: totales.totalGravada,
-    total_igv: totales.totalIgv,
-    total: totales.total,
-    items: totales.items,
+    total_gravada: totalGravada,
+    total_igv: totalIgv,
+    total_anticipo: totalAnticipo,
+    total,
+    items,
   };
 
   return { clienteId, tipoEmision, anticipo, descripcion, lineas, lineasParaItems, payload };
@@ -364,15 +390,18 @@ export async function editarComprobanteLibre(comprobanteId: string, formData: Fo
   redirect("/comprobantes-libres?emitido=1");
 }
 
-// Las líneas quedan guardadas tal cual se enviaron a Nubefact (incluida
-// la de descuento del anticipo) — así el detalle en pantalla nunca se
-// desincroniza de lo que realmente se declaró.
+// Las líneas reales quedan guardadas tal cual se enviaron a Nubefact. La
+// línea del anticipo (si la hay) a Nubefact se manda distinto — como un
+// item más, en positivo, que la cabecera resta aparte (ver
+// validarYArmarPayload) — pero acá en nuestra propia pantalla se guarda
+// como lo que realmente es para el usuario: un descuento, en negativo,
+// para que el detalle siga mostrando de dónde sale el total a pagar.
 async function guardarDetalleLibre(
   supabase: Awaited<ReturnType<typeof createClient>>,
   comprobanteId: string,
   lineas: { productoId: string | null; descripcion: string; cantidad: number; precio_unitario: number }[],
   lineasParaItems: { descripcion: string; cantidad: number; precio_unitario: number; subtotal: number }[],
-  anticipo: { id: string } | null,
+  anticipo: { tipo_comprobante: number; serie: string; numero: number; total: number } | null,
 ) {
   await supabase.from("comprobante_libre_detalle").insert(
     lineas.map((l, i) => ({
@@ -385,14 +414,13 @@ async function guardarDetalleLibre(
     })),
   );
   if (anticipo) {
-    const lineaDescuento = lineasParaItems[lineasParaItems.length - 1];
     await supabase.from("comprobante_libre_detalle").insert({
       comprobante_id: comprobanteId,
       producto_id: null,
-      descripcion: lineaDescuento.descripcion,
-      cantidad: lineaDescuento.cantidad,
-      precio_unitario: lineaDescuento.precio_unitario,
-      subtotal: lineaDescuento.subtotal,
+      descripcion: `Anticipo (-) ${TIPO_COMPROBANTE_LABEL[anticipo.tipo_comprobante]} ${anticipo.serie}-${anticipo.numero}`,
+      cantidad: 1,
+      precio_unitario: -anticipo.total,
+      subtotal: -anticipo.total,
     });
   }
 }

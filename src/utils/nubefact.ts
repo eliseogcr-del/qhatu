@@ -38,6 +38,10 @@ export type NubefactRequest = {
   porcentaje_de_igv: number;
   total_gravada: number;
   total_igv: number;
+  // Monto ya cobrado por un comprobante de anticipo anterior — reduce
+  // "total" (lo que falta por cobrar) sin afectar total_gravada/total_igv,
+  // que siguen reflejando solo las líneas reales de este documento.
+  total_anticipo?: number;
   total: number;
   items: NubefactItem[];
   [key: string]: unknown;
