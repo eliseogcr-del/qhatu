@@ -8,7 +8,6 @@ import {
   obtenerPorcentajeIgv,
   itemsDesdeLineas,
   construirItemsYTotalesLibre,
-  guardarYEmitir,
   reintentarEmision,
   fechaNubefact,
   siguienteNumeroComprobante,
@@ -188,9 +187,16 @@ async function validarYArmarPayload(
   const totales = itemsDesdeLineas(lineasParaItems, porcentajeIgv);
   // La última línea es la del descuento del anticipo (si la hay) — se
   // marca para que Nubefact/SUNAT sepan que es la regularización, no un
-  // producto más.
+  // producto más, y se referencia el comprobante de anticipo exacto
+  // (serie+número) que se está regularizando. Faltaban estos dos campos
+  // — con solo el booleano, Nubefact no puede cruzar el descuento contra
+  // ningún documento y su backend falla al procesarlo ("undefined
+  // method `+' for nil").
   if (anticipo) {
-    totales.items[totales.items.length - 1].anticipo_regularizacion = true;
+    const lineaAnticipo = totales.items[totales.items.length - 1];
+    lineaAnticipo.anticipo_regularizacion = true;
+    lineaAnticipo.anticipo_documento_serie = anticipo.serie;
+    lineaAnticipo.anticipo_documento_numero = String(anticipo.numero);
   }
 
   const payload: NubefactRequest = {
@@ -257,8 +263,13 @@ export async function emitirComprobanteLibre(formData: FormData) {
       redirectBase: "/comprobantes-libres/nuevo",
     });
 
-  const comprobanteId = await guardarYEmitir(supabase, {
-    insert: {
+  // Se inserta la fila y se guardan las líneas ANTES de llamar a Nubefact
+  // — así, si la emisión falla, lo que se escribió no se pierde: queda un
+  // comprobante en "pendiente"/"error" con sus líneas, listo para
+  // reintentar desde "Editar" en vez de tener que volver a escribirlo todo.
+  const { data: comprobante, error: insertError } = await supabase
+    .from("comprobantes")
+    .insert({
       empresa_id: empresaId,
       usuario_id: userId,
       cliente_id: clienteId,
@@ -269,13 +280,26 @@ export async function emitirComprobanteLibre(formData: FormData) {
       tipo_comprobante: tipoComprobante,
       serie,
       numero,
-    },
+      estado: "pendiente",
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !comprobante) {
+    redirect(
+      `/comprobantes-libres/nuevo?error=${encodeURIComponent(insertError?.message ?? "No se pudo reservar el comprobante.")}`,
+    );
+  }
+
+  await guardarDetalleLibre(supabase, comprobante.id, lineas, lineasParaItems, anticipo);
+
+  await reintentarEmision(supabase, {
+    comprobanteId: comprobante.id,
+    camposActualizar: {},
     payload,
     etiqueta: "el comprobante",
-    redirectBase: "/comprobantes-libres/nuevo",
+    redirectBase: `/comprobantes-libres/${comprobante.id}/editar`,
   });
-
-  await guardarDetalleLibre(supabase, comprobanteId, lineas, lineasParaItems, anticipo);
 
   revalidatePath("/comprobantes-libres");
   redirect("/comprobantes-libres?emitido=1");

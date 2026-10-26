@@ -15,6 +15,12 @@ export type NubefactItem = {
   igv: number;
   total: number;
   anticipo_regularizacion: boolean;
+  // Solo en la línea que descuenta el anticipo (anticipo_regularizacion:
+  // true) — identifican ante Nubefact/SUNAT CUÁL comprobante de anticipo
+  // se está regularizando. Sin estos dos, Nubefact no tiene con qué
+  // documento cruzar el descuento y su backend truena al procesarlo.
+  anticipo_documento_serie?: string;
+  anticipo_documento_numero?: string;
 };
 
 export type NubefactRequest = {
