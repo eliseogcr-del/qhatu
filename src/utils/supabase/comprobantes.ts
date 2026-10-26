@@ -19,27 +19,42 @@ export async function obtenerPorcentajeIgv(
   return data?.porcentaje_igv ?? 10.5;
 }
 
-// Reserva el siguiente número de un tipo+serie de forma atómica (función
-// de base de datos con su propio contador) — nunca con un
-// "select max(numero) + 1" desde acá, que bajo dos emisiones casi
+// Reserva el siguiente número de un tipo+serie(+almacén) de forma
+// atómica (función de base de datos con su propio contador) — nunca con
+// un "select max(numero) + 1" desde acá, que bajo dos emisiones casi
 // simultáneas (ej. una venta y un comprobante libre, que comparten
-// serie a propósito) puede devolver el mismo número dos veces y hacer
-// que Nubefact rechace la segunda por duplicada. redirectBase es la
+// serie a propósito; o dos ventas del mismo almacén para la nota de
+// venta) puede devolver el mismo número dos veces. almacenId solo hace
+// falta para la nota de venta, que numera por almacén — el resto
+// (factura/boleta/NC/comprobante libre) lo deja sin pasar.
+async function reservarNumeroComprobante(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: { empresaId: string; tipoComprobante: number; serie: string; almacenId?: string },
+): Promise<{ numero: number | null; error: string | null }> {
+  const { empresaId, tipoComprobante, serie, almacenId } = params;
+  const { data: numero, error } = await supabase.rpc("siguiente_numero_comprobante", {
+    p_empresa_id: empresaId,
+    p_tipo_comprobante: tipoComprobante,
+    p_serie: serie,
+    ...(almacenId ? { p_almacen_id: almacenId } : {}),
+  });
+
+  return { numero: numero ?? null, error: error?.message ?? null };
+}
+
+// Variante para los flujos que si pueden redirigir con un mensaje de
+// error (factura/boleta/NC/comprobante libre) — redirectBase es la
 // página a la que volver si la reserva falla por algún motivo.
 export async function siguienteNumeroComprobante(
   supabase: Awaited<ReturnType<typeof createClient>>,
   params: { empresaId: string; tipoComprobante: number; serie: string; redirectBase: string },
 ): Promise<number> {
-  const { empresaId, tipoComprobante, serie, redirectBase } = params;
-  const { data: numero, error } = await supabase.rpc("siguiente_numero_comprobante", {
-    p_empresa_id: empresaId,
-    p_tipo_comprobante: tipoComprobante,
-    p_serie: serie,
-  });
+  const { redirectBase, ...resto } = params;
+  const { numero, error } = await reservarNumeroComprobante(supabase, resto);
 
   if (error || numero === null) {
     redirect(
-      `${redirectBase}?error=${encodeURIComponent(error?.message ?? "No se pudo reservar el número del comprobante.")}`,
+      `${redirectBase}?error=${encodeURIComponent(error ?? "No se pudo reservar el número del comprobante.")}`,
     );
   }
 
@@ -304,18 +319,16 @@ export async function crearNotaVentaAutomatica(
 
   const serie = serieConfig?.serie ?? "NV01";
 
-  const { data: ultimo } = await supabase
-    .from("comprobantes")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("tipo_comprobante", TIPO_NOTA_VENTA)
-    .eq("almacen_id", almacenId)
-    .eq("serie", serie)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { numero, error: errorNumero } = await reservarNumeroComprobante(supabase, {
+    empresaId,
+    tipoComprobante: TIPO_NOTA_VENTA,
+    serie,
+    almacenId,
+  });
 
-  const numero = (ultimo?.numero ?? 0) + 1;
+  if (errorNumero || numero === null) {
+    return { error: errorNumero ?? "No se pudo reservar el número de la nota de venta." };
+  }
 
   const { error } = await supabase.from("comprobantes").insert({
     empresa_id: empresaId,
