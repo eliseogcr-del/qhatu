@@ -18,7 +18,7 @@ export default async function ComprobantesLibresPage({
 }) {
   const { emitido } = await searchParams;
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const { data: comprobantes } = await supabase
     .from("comprobantes")

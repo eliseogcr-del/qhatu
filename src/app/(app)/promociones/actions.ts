@@ -20,7 +20,7 @@ import { datetimeLocalALima } from "@/lib/fecha";
 // real es promocion_activa.
 export async function crearPromocion(formData: FormData) {
   const supabase = await createClient();
-  const { empresaId } = await requireLogisticaOAdmin(supabase);
+  const { empresaId } = await requireLogisticaOAdmin(supabase, "/promociones");
 
   const nombre = String(formData.get("nombre") ?? "").trim();
   const productoId = String(formData.get("promocion_de_producto_id") ?? "");
@@ -101,7 +101,7 @@ export async function crearPromocion(formData: FormData) {
 
 export async function actualizarPromocion(id: string, formData: FormData) {
   const supabase = await createClient();
-  await requireLogisticaOAdmin(supabase);
+  await requireLogisticaOAdmin(supabase, "/promociones");
 
   const nombre = String(formData.get("nombre") ?? "").trim();
   const cantidadMinima = Number(formData.get("cantidad_minima") || 1);
@@ -161,7 +161,7 @@ export async function actualizarPromocion(id: string, formData: FormData) {
 // promocion_activa en false, nunca un delete.
 export async function alternarPromocionActiva(id: string, activa: boolean) {
   const supabase = await createClient();
-  await requireLogisticaOAdmin(supabase);
+  await requireLogisticaOAdmin(supabase, "/promociones");
 
   const { error } = await supabase
     .from("productos")

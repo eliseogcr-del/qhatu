@@ -6,16 +6,12 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, resolverAlmacenId } from "@/utils/supabase/session";
 import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supabase/kardex";
 import { crearNotaVentaAutomatica } from "@/utils/supabase/comprobantes";
-import {
-  preciosBloqueados,
-  resolverPrecios,
-  esAlmacenDigital,
-  descuentoHabilitado,
-} from "@/utils/supabase/precios";
+import { resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
 
 export async function createVenta(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const { userId, empresaId, preciosBloqueados, descuentoHabilitado } =
+    await getEmpresaSession(supabase);
 
   const pedidoId = String(formData.get("pedido_id") ?? "");
   const moneda = String(formData.get("moneda") ?? "PEN");
@@ -67,7 +63,7 @@ export async function createVenta(formData: FormData) {
   // se vuelve a pedir a mano al registrar la venta, esté o no bloqueado el
   // precio (bloquearlo solo afecta si se puede editar mientras se arma el
   // pedido, no si se puede alterar después al facturarlo).
-  const bloqueado = await preciosBloqueados(supabase, empresaId);
+  const bloqueado = preciosBloqueados;
 
   const lineas = detalleIds
     .map((detalleId, i) => {
@@ -107,9 +103,7 @@ export async function createVenta(formData: FormData) {
 
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
 
-  const descuento = (await descuentoHabilitado(supabase, empresaId))
-    ? Number(formData.get("descuento") || 0)
-    : 0;
+  const descuento = descuentoHabilitado ? Number(formData.get("descuento") || 0) : 0;
   if (!(descuento >= 0)) {
     redirect(
       `/ventas/nueva?pedido_id=${pedidoId}&error=${encodeURIComponent("El descuento no puede ser negativo.")}`,
@@ -383,7 +377,7 @@ export async function createVentaDirecta(formData: FormData) {
   }
 
   let lineasConPrecio = lineasConPromoResuelta;
-  if (await preciosBloqueados(supabase, empresaId)) {
+  if (session.preciosBloqueados) {
     const digital = await esAlmacenDigital(supabase, almacenId);
     const precios = await resolverPrecios(supabase, {
       empresaId,
@@ -426,9 +420,7 @@ export async function createVentaDirecta(formData: FormData) {
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const descuento = (await descuentoHabilitado(supabase, empresaId))
-    ? Number(formData.get("descuento") || 0)
-    : 0;
+  const descuento = session.descuentoHabilitado ? Number(formData.get("descuento") || 0) : 0;
   if (!(descuento >= 0)) {
     redirect(`/ventas/directa?error=${encodeURIComponent("El descuento no puede ser negativo.")}`);
   }
@@ -701,7 +693,7 @@ export async function createVentaRapida(formData: FormData) {
   }
 
   let lineasConPrecio = lineasConPromoResuelta;
-  if (await preciosBloqueados(supabase, empresaId)) {
+  if (session.preciosBloqueados) {
     const digital = await esAlmacenDigital(supabase, almacenId);
     const precios = await resolverPrecios(supabase, {
       empresaId,
@@ -742,9 +734,7 @@ export async function createVentaRapida(formData: FormData) {
   const total = lineas.reduce((acc, l) => acc + l.subtotal, 0);
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const descuento = (await descuentoHabilitado(supabase, empresaId))
-    ? Number(formData.get("descuento") || 0)
-    : 0;
+  const descuento = session.descuentoHabilitado ? Number(formData.get("descuento") || 0) : 0;
   if (!(descuento >= 0)) {
     redirect(`/ventas/rapida?error=${encodeURIComponent("El descuento no puede ser negativo.")}`);
   }

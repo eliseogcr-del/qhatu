@@ -3,7 +3,6 @@ import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
-import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import PedidoForm from "@/components/PedidoForm";
 import { updatePedido } from "../../actions";
 
@@ -17,7 +16,7 @@ export default async function EditarPedidoPage({
   const { id } = await params;
   const { error, volver } = await searchParams;
   const supabase = await createClient();
-  const { empresaId } = await getEmpresaSession(supabase);
+  const { preciosBloqueados } = await getEmpresaSession(supabase);
 
   const { data: pedido } = await supabase
     .from("pedidos")
@@ -44,7 +43,6 @@ export default async function EditarPedidoPage({
     { data: productos },
     { data: inventario },
     { data: unidadesMedida },
-    preciosBloqueados,
   ] = await Promise.all([
       supabase
         .from("pedido_detalle")
@@ -62,7 +60,6 @@ export default async function EditarPedidoPage({
         .select("id, descripcion, cantidad")
         .eq("activo", true)
         .order("descripcion"),
-      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   const stockPorAlmacen = Object.fromEntries(

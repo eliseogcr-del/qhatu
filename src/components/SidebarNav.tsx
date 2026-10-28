@@ -34,76 +34,51 @@ import {
   Tag,
   Zap,
   ClipboardCheck,
+  KeyRound,
+  type LucideIcon,
 } from "lucide-react";
+import { OPCIONES_SISTEMA } from "@/lib/opciones-sistema";
 
-const GENERAL = {
+// Un ícono por código de opción — puramente presentacional, por eso vive
+// acá (SidebarNav es el único lado "cliente" de esto) y no en el catálogo
+// compartido (que también importa el proxy, en Edge).
+const ICONOS: Record<string, LucideIcon> = {
+  "/clientes": Users,
+  "/productos": Package,
+  "/proveedores": Truck,
+  "/pedidos": ClipboardList,
+  "/cotizaciones": FileSpreadsheet,
+  "/repartos": Route,
+  "/mis-repartos": Route,
+  "/traslados": ArrowLeftRight,
+  "/abastecimiento-campo": PackagePlus,
+  "/produccion": Factory,
+  "/inventario": Boxes,
+  "/kardex": ScrollText,
+  "/reportes/cuadro-control": ClipboardCheck,
+  "/promociones": Tag,
+  "/ventas/rapida": Zap,
+  "/ventas/directa": Zap,
+  "/compras": ShoppingBag,
+  "/ventas/mis-ventas": ShoppingCart,
+  "/ventas": ShoppingCart,
+  "/comprobantes": FileText,
+  "/comprobantes-libres": FileSpreadsheet,
+  "/cobranzas": Wallet,
+  "/reportes": BarChart3,
+};
+
+type Item = { href: string; label: string; icon: LucideIcon };
+type Grupo = { label: string; items: Item[] };
+
+const GENERAL: Grupo = {
   label: "General",
   items: [{ href: "/dashboard", label: "Panel", icon: LayoutDashboard }],
 };
 
-const COMERCIAL = {
-  label: "Comercial",
-  items: [
-    { href: "/clientes", label: "Clientes", icon: Users },
-    { href: "/productos", label: "Productos", icon: Package },
-    { href: "/proveedores", label: "Proveedores", icon: Truck },
-    { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
-    { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet },
-  ],
-};
-
-const COMERCIAL_LOGISTICA = {
-  label: "Comercial",
-  items: [
-    { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
-    { href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet },
-  ],
-};
-
-const LOGISTICA = {
-  label: "Logística",
-  items: [
-    { href: "/repartos", label: "Reparto", icon: Route },
-    { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
-    { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
-    { href: "/produccion", label: "Producción", icon: Factory },
-    { href: "/inventario", label: "Inventario", icon: Boxes },
-    { href: "/kardex", label: "Kardex", icon: ScrollText },
-    {
-      href: "/reportes/cuadro-control",
-      label: "Cuadro de Control de Productos",
-      icon: ClipboardCheck,
-    },
-    // Compartido entre admin y logística (ver gruposPorRol) — no entra a
-    // ADMINISTRACION porque ese grupo trae Usuarios/Auditoría, fuera del
-    // alcance de logística.
-    { href: "/promociones", label: "Promociones", icon: Tag },
-  ],
-};
-
-const FINANZAS = {
-  label: "Finanzas",
-  items: [
-    { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
-    { href: "/compras", label: "Compras", icon: ShoppingBag },
-    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
-    { href: "/comprobantes", label: "Comprobantes", icon: FileText },
-    { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
-    { href: "/cobranzas", label: "Cobranzas", icon: Wallet },
-    { href: "/reportes", label: "Reportes", icon: BarChart3 },
-  ],
-};
-
-const FINANZAS_LOGISTICA = {
-  label: "Finanzas",
-  items: [
-    { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
-    { href: "/ventas", label: "Ventas", icon: ShoppingCart },
-    { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
-  ],
-};
-
-const ADMINISTRACION = {
+// Exclusivo de administrador — no pasa por el catálogo de opciones ni es
+// asignable a nadie más (ver opciones-sistema.ts).
+const ADMINISTRACION: Grupo = {
   label: "Administración",
   items: [
     { href: "/almacenes", label: "Almacenes", icon: Warehouse },
@@ -111,6 +86,7 @@ const ADMINISTRACION = {
     { href: "/configuracion-precios", label: "Config. precios", icon: Tags },
     { href: "/configuracion-cotizaciones", label: "Config. cotizaciones", icon: FileSpreadsheet },
     { href: "/usuarios", label: "Usuarios", icon: UserCog },
+    { href: "/usuarios/permisos", label: "Permisos", icon: KeyRound },
     { href: "/auditoria", label: "Auditoría", icon: ShieldCheck },
     { href: "/evidencias-pago", label: "Evidencias de pago", icon: Image },
     { href: "/respaldo", label: "Respaldo de datos", icon: DatabaseBackup },
@@ -122,133 +98,40 @@ const ADMINISTRACION = {
   ],
 };
 
-const MIS_REPARTOS = {
-  label: "Reparto",
-  items: [{ href: "/mis-repartos", label: "Mis repartos", icon: Route }],
-};
+// Arma el menú de un usuario a partir de las opciones que tiene
+// concedidas (usuario_opciones) — admin ve el catálogo completo siempre,
+// sin importar qué tenga o no concedido. Los grupos sin ningún item
+// concedido ni siquiera aparecen.
+function gruposPorOpciones(rol: string, opciones: Set<string>): Grupo[] {
+  const esAdmin = rol === "admin";
+  const porGrupo = new Map<string, Item[]>();
+  for (const opcion of OPCIONES_SISTEMA) {
+    if (!esAdmin && !opciones.has(opcion.codigo)) continue;
+    const icon = ICONOS[opcion.codigo] ?? FileText;
+    const item: Item = { href: opcion.codigo, label: opcion.etiqueta, icon };
+    porGrupo.set(opcion.grupo, [...(porGrupo.get(opcion.grupo) ?? []), item]);
+  }
 
-const PRODUCCION_MODULO = {
-  label: "Producción",
-  items: [{ href: "/produccion", label: "Producción", icon: Factory }],
-};
-
-const COMPROBANTES_MODULO = {
-  label: "Comprobantes",
-  items: [
-    { href: "/comprobantes", label: "Comprobantes", icon: FileText },
-    { href: "/comprobantes-libres", label: "Comprobantes libres", icon: FileSpreadsheet },
-  ],
-};
-
-// Acceso directo a un formulario de venta sin pedido previo, para que un
-// vendedor registre la venta en un solo paso sin pasar por el listado de
-// Ventas ni por "Nueva venta". El almacén móvil usa "Venta rápida" (Venta
-// Rapida Form: pantalla simplificada a medida para vender parado en la
-// calle desde el celular); el resto usa "Venta directa" (formulario
-// completo) — ver gruposPorRol.
-const ACCESO_RAPIDO_VENDEDOR = {
-  label: "Acceso rápido",
-  items: [
-    { href: "/ventas/directa", label: "Venta directa", icon: Zap },
-    { href: "/ventas/rapida", label: "Venta rápida", icon: Zap },
-  ],
-};
-const ACCESO_RAPIDO_VENDEDOR_MOVIL = {
-  label: "Acceso rápido",
-  items: [{ href: "/ventas/rapida", label: "Venta rápida", icon: Zap }],
-};
-
-const COMERCIAL_VENDEDOR = {
-  label: "Comercial",
-  items: [{ href: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet }],
-};
-
-const LOGISTICA_VENDEDOR = {
-  label: "Logística",
-  items: [
-    { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
-    { href: "/abastecimiento-campo", label: "Abastecimiento en campo", icon: PackagePlus },
-    {
-      href: "/reportes/cuadro-control",
-      label: "Cuadro de Control de Productos",
-      icon: ClipboardCheck,
-    },
-  ],
-};
-
-// El almacén móvil ve "Mis ventas" (lista en tarjetas, pensada para
-// celular); el digital ve la pantalla normal — ver gruposPorRol.
-const FINANZAS_VENDEDOR = {
-  label: "Finanzas",
-  items: [{ href: "/ventas", label: "Ventas", icon: ShoppingCart }],
-};
-const FINANZAS_VENDEDOR_MOVIL = {
-  label: "Finanzas",
-  items: [{ href: "/ventas/mis-ventas", label: "Mis ventas", icon: ShoppingCart }],
-};
-
-function gruposPorRol(rol: string, almacenEsDigital: boolean) {
-  if (rol === "admin") return [GENERAL, COMERCIAL, LOGISTICA, FINANZAS, ADMINISTRACION];
-  if (rol === "logistica")
-    return [GENERAL, COMERCIAL_LOGISTICA, LOGISTICA, FINANZAS_LOGISTICA];
-  if (rol === "repartidor") return [GENERAL, MIS_REPARTOS];
-  if (rol === "produccion") return [GENERAL, PRODUCCION_MODULO];
-  if (rol === "contador") return [GENERAL, COMPROBANTES_MODULO];
-  // vendedor (y cualquier valor no reconocido): un almacén móvil solo ve
-  // Cotizaciones, Traslados, Abastecimiento en campo (para registrar lo
-  // que recibe en ruta) y Ventas, más un acceso rápido a Venta directa
-  // arriba de todo — Pedidos, Inventario, Kardex y Reportes quedan fuera
-  // porque no le hacen falta en el día a día de ruta. El almacén digital,
-  // en cambio, sí opera como una tienda (no recibe mercadería en ruta), así
-  // que conserva Clientes, Pedidos, Inventario y Kardex.
-  const comercialVendedor = almacenEsDigital
-    ? {
-        ...COMERCIAL_VENDEDOR,
-        items: [
-          { href: "/clientes", label: "Clientes", icon: Users },
-          { href: "/pedidos", label: "Pedidos", icon: ClipboardList },
-          ...COMERCIAL_VENDEDOR.items,
-        ],
-      }
-    : COMERCIAL_VENDEDOR;
-  // Abastecimiento en campo es para registrar lo que un vendedor recoge
-  // físicamente en ruta — no aplica al almacén digital, que en cambio sí
-  // necesita ver Inventario y Kardex (no tiene un vendedor de ruta que
-  // reporte esos movimientos por otro lado).
-  const logisticaVendedor = almacenEsDigital
-    ? {
-        ...LOGISTICA_VENDEDOR,
-        items: [
-          { href: "/repartos", label: "Reparto", icon: Route },
-          { href: "/traslados", label: "Traslados", icon: ArrowLeftRight },
-          { href: "/inventario", label: "Inventario", icon: Boxes },
-          { href: "/kardex", label: "Kardex", icon: ScrollText },
-          ...LOGISTICA_VENDEDOR.items.filter(
-            (item) => item.href !== "/traslados" && item.href !== "/abastecimiento-campo",
-          ),
-        ],
-      }
-    : LOGISTICA_VENDEDOR;
-  return [
-    GENERAL,
-    almacenEsDigital ? ACCESO_RAPIDO_VENDEDOR : ACCESO_RAPIDO_VENDEDOR_MOVIL,
-    comercialVendedor,
-    logisticaVendedor,
-    almacenEsDigital ? FINANZAS_VENDEDOR : FINANZAS_VENDEDOR_MOVIL,
-  ];
+  const grupos: Grupo[] = [GENERAL];
+  for (const label of ["Comercial", "Logística", "Finanzas"]) {
+    const items = porGrupo.get(label);
+    if (items && items.length > 0) grupos.push({ label, items });
+  }
+  if (esAdmin) grupos.push(ADMINISTRACION);
+  return grupos;
 }
 
 export default function SidebarNav({
   rol = "vendedor",
-  almacenEsDigital = false,
+  opciones = [],
   onNavigate,
 }: {
   rol?: string;
-  almacenEsDigital?: boolean;
+  opciones?: string[];
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const groups = gruposPorRol(rol, almacenEsDigital);
+  const groups = gruposPorOpciones(rol, new Set(opciones));
 
   // Qué grupos están colapsados (ej. "Comercial", "Logística") — se guarda
   // en localStorage del navegador para que se mantenga al navegar entre

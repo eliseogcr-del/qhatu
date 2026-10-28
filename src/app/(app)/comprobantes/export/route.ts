@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse("No autorizado", { status: 401 });
   }
 
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes");
 
   const params = request.nextUrl.searchParams;
   const q = params.get("q");

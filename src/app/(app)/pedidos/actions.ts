@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, requireAdmin, resolverAlmacenId } from "@/utils/supabase/session";
-import { preciosBloqueados, resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
+import { resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
 
 export async function createPedido(formData: FormData) {
   const supabase = await createClient();
   const session = await getEmpresaSession(supabase);
-  const { userId, empresaId } = session;
+  const { userId, empresaId, preciosBloqueados } = session;
 
   const almacenId = resolverAlmacenId(session, formData);
   if (!almacenId) {
@@ -71,7 +71,7 @@ export async function createPedido(formData: FormData) {
   // recalcula acá con la misma lógica (especial > Campo/Digital) que se
   // usó para mostrarlo en el formulario.
   let lineasConPrecio = lineasConProducto;
-  if (await preciosBloqueados(supabase, empresaId)) {
+  if (preciosBloqueados) {
     const digital = await esAlmacenDigital(supabase, almacenId);
     const precios = await resolverPrecios(supabase, {
       empresaId,
@@ -156,7 +156,7 @@ export async function createPedido(formData: FormData) {
 // todavía no mueve stock.
 export async function updatePedido(id: string, formData: FormData) {
   const supabase = await createClient();
-  const { empresaId } = await getEmpresaSession(supabase);
+  const { empresaId, preciosBloqueados } = await getEmpresaSession(supabase);
 
   // Viene como campo oculto del formulario (ver PedidoForm) para que, tras
   // guardar, se regrese al pedido con la URL de lista (con filtros) de
@@ -233,7 +233,7 @@ export async function updatePedido(id: string, formData: FormData) {
   }
 
   let lineasConPrecio = lineasConProducto;
-  if (await preciosBloqueados(supabase, empresaId)) {
+  if (preciosBloqueados) {
     const digital = await esAlmacenDigital(supabase, pedido.almacen_id);
     const precios = await resolverPrecios(supabase, {
       empresaId,

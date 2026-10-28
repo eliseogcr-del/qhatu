@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial } from "@/utils/supabase/session";
-import { preciosBloqueados as obtenerPreciosBloqueados } from "@/utils/supabase/precios";
 import { hoyLima } from "@/lib/fecha";
 import CotizacionForm from "@/components/CotizacionForm";
 import { createCotizacion } from "../actions";
@@ -15,14 +14,13 @@ export default async function NuevaCotizacionPage({
   const { error } = await searchParams;
 
   const supabase = await createClient();
-  const { empresaId, almacenId } = await requireComercial(supabase);
+  const { empresaId, almacenId, preciosBloqueados } = await requireComercial(supabase);
 
   const [
     { data: clientes },
     { data: productos },
     { data: unidadesMedida },
     { data: config },
-    preciosBloqueados,
   ] = await Promise.all([
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
@@ -40,7 +38,6 @@ export default async function NuevaCotizacionPage({
         .select("porcentaje_igv")
         .eq("empresa_id", empresaId)
         .maybeSingle(),
-      obtenerPreciosBloqueados(supabase, empresaId),
     ]);
 
   return (

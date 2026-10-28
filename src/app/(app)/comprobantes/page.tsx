@@ -50,7 +50,7 @@ export default async function ComprobantesPage({
 }) {
   const { q, desde, hasta, estado, tipo } = await searchParams;
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes");
 
   // Sin parámetros en la URL (primera carga) se muestra el día de hoy por
   // defecto, igual que en Ventas — si el usuario borra los campos de fecha

@@ -102,33 +102,10 @@ export async function esAlmacenDigital(
   return data?.es_digital ?? false;
 }
 
-// Bloqueado por defecto (aunque la empresa nunca haya guardado la fila de
-// configuración) — es la opción segura: nadie puede sobreescribir a mano
-// un precio calculado hasta que un admin lo desbloquee explícitamente.
-export async function preciosBloqueados(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  empresaId: string,
-): Promise<boolean> {
-  const { data } = await supabase
-    .from("configuracion_precios")
-    .select("precios_bloqueados")
-    .eq("empresa_id", empresaId)
-    .maybeSingle();
-  return data?.precios_bloqueados ?? true;
-}
-
-// Deshabilitado por defecto (aunque la empresa nunca haya guardado la fila
-// de configuración) — hasta que un admin lo habilite, el campo Descuento
-// ni siquiera aparece en los formularios de venta y el servidor fuerza el
-// descuento a 0 sin importar lo que llegue en el formData.
-export async function descuentoHabilitado(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  empresaId: string,
-): Promise<boolean> {
-  const { data } = await supabase
-    .from("configuracion_precios")
-    .select("descuento_habilitado")
-    .eq("empresa_id", empresaId)
-    .maybeSingle();
-  return data?.descuento_habilitado ?? false;
-}
+// "Modificar precios" y "Aplicar descuento" dejaron de ser un interruptor
+// único por empresa — ahora cada usuario tiene el suyo (Usuarios →
+// Permisos) y ya vienen resueltos en la sesión: getEmpresaSession()
+// devuelve preciosBloqueados/descuentoHabilitado listos para usar
+// (admin=todo permitido, el resto según sus columnas puede_modificar_
+// precios/puede_aplicar_descuento) — no hace falta volver a consultarlos
+// acá.

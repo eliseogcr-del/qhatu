@@ -7,36 +7,6 @@ import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import { chunk } from "@/lib/chunk";
 
-// Un solo formulario/acción para ambos interruptores — antes eran dos
-// formularios separados, cada uno con su propio botón "Guardar" uno
-// debajo del otro: era fácil marcar una casilla y sin querer enviar el
-// formulario del otro interruptor, perdiendo el cambio en silencio (la
-// página volvía a mostrar el valor real de la base de datos, sin marcar,
-// dando la sensación de que "se desactivaba sola").
-export async function actualizarConfiguracionPrecios(formData: FormData) {
-  const supabase = await createClient();
-  const { empresaId } = await requireAdmin(supabase);
-
-  const bloqueados = formData.get("precios_bloqueados") === "on";
-  const descuentoHabilitado = formData.get("descuento_habilitado") === "on";
-
-  const { error } = await supabase.from("configuracion_precios").upsert(
-    {
-      empresa_id: empresaId,
-      precios_bloqueados: bloqueados,
-      descuento_habilitado: descuentoHabilitado,
-    },
-    { onConflict: "empresa_id" },
-  );
-
-  if (error) {
-    redirect(`/configuracion-precios?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath("/configuracion-precios");
-  redirect("/configuracion-precios?guardado=1");
-}
-
 export async function crearPrecioEspecial(formData: FormData) {
   const supabase = await createClient();
   const { empresaId } = await requireAdmin(supabase);

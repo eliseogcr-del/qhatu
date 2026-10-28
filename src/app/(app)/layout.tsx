@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getAuthUser } from "@/utils/supabase/session";
+import { obtenerOpcionesUsuario } from "@/utils/supabase/opciones";
 import { signOut } from "../login/actions";
 import AppShell from "@/components/AppShell";
 
@@ -20,21 +21,22 @@ export default async function AppLayout({
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("nombre, rol, almacenes!almacen_id(nombre, es_digital)")
+    .select("nombre, rol, almacenes!almacen_id(nombre)")
     .eq("id", user.id)
     .maybeSingle();
 
-  const almacen = usuario?.almacenes as unknown as {
-    nombre: string;
-    es_digital: boolean;
-  } | null;
+  const almacen = usuario?.almacenes as unknown as { nombre: string } | null;
+  const rol = usuario?.rol ?? "vendedor";
+  // Admin ve el catálogo completo igual (SidebarNav lo trata aparte) —
+  // no hace falta esta consulta para él.
+  const opciones = rol === "admin" ? [] : [...(await obtenerOpcionesUsuario(supabase, user.id))];
 
   return (
     <AppShell
       nombre={usuario?.nombre ?? ""}
-      rol={usuario?.rol ?? "vendedor"}
+      rol={rol}
       almacenNombre={almacen?.nombre ?? null}
-      almacenEsDigital={almacen?.es_digital ?? false}
+      opciones={opciones}
       userEmail={user.email ?? ""}
       signOutAction={signOut}
     >

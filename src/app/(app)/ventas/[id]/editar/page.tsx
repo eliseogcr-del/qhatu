@@ -4,10 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
-import {
-  preciosBloqueados as obtenerPreciosBloqueados,
-  descuentoHabilitado as obtenerDescuentoHabilitado,
-} from "@/utils/supabase/precios";
 import { filtrarPromocionesVigentes } from "@/utils/promociones";
 import EditarVentaForm from "@/components/EditarVentaForm";
 import { updateVentaDetalle } from "../actions";
@@ -22,7 +18,7 @@ export default async function EditarVentaPage({
   const { id } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
-  const { empresaId } = await getEmpresaSession(supabase);
+  const { preciosBloqueados, descuentoHabilitado } = await getEmpresaSession(supabase);
 
   const { data: venta } = await supabase
     .from("ventas")
@@ -52,8 +48,6 @@ export default async function EditarVentaPage({
     { data: productos },
     { data: inventario },
     { data: unidadesMedida },
-    preciosBloqueados,
-    descuentoHabilitado,
   ] = await Promise.all([
       supabase
         .from("venta_detalle")
@@ -80,8 +74,6 @@ export default async function EditarVentaPage({
         .select("id, descripcion, cantidad")
         .eq("activo", true)
         .order("descripcion"),
-      obtenerPreciosBloqueados(supabase, empresaId),
-      obtenerDescuentoHabilitado(supabase, empresaId),
     ]);
 
   const stockPorProducto = Object.fromEntries(

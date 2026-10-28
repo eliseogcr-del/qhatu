@@ -13,7 +13,7 @@ export default async function PromocionesPage({
 }) {
   const { error, guardado } = await searchParams;
   const supabase = await createClient();
-  const { empresaId } = await requireLogisticaOAdmin(supabase);
+  const { empresaId } = await requireLogisticaOAdmin(supabase, "/promociones");
 
   const [{ data: productos }, { data: promociones }] = await Promise.all([
     supabase

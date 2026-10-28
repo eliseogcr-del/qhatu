@@ -90,7 +90,7 @@ export default function AppShell({
   nombre,
   rol,
   almacenNombre,
-  almacenEsDigital,
+  opciones,
   userEmail,
   signOutAction,
   children,
@@ -98,7 +98,7 @@ export default function AppShell({
   nombre: string;
   rol: string;
   almacenNombre: string | null;
-  almacenEsDigital: boolean;
+  opciones: string[];
   userEmail: string;
   signOutAction: (formData: FormData) => void;
   children: React.ReactNode;
@@ -175,7 +175,7 @@ export default function AppShell({
             <UserInfo nombre={nombre} rol={rol} almacenNombre={almacenNombre} />
             <SidebarNav
               rol={rol}
-              almacenEsDigital={almacenEsDigital}
+              opciones={opciones}
               onNavigate={() => setOpen(false)}
             />
             <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
@@ -199,7 +199,7 @@ export default function AppShell({
             </button>
           </div>
           <UserInfo nombre={nombre} rol={rol} almacenNombre={almacenNombre} />
-          <SidebarNav rol={rol} almacenEsDigital={almacenEsDigital} />
+          <SidebarNav rol={rol} opciones={opciones} />
           <SignOutForm signOutAction={signOutAction} userEmail={userEmail} />
         </aside>
       )}

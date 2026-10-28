@@ -14,7 +14,7 @@ export default async function NuevoComprobanteLibrePage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const [{ data: clientes }, { data: productos }, { data: anticiposRaw }] = await Promise.all([
     supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),

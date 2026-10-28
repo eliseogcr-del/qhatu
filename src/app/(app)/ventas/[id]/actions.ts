@@ -8,12 +8,7 @@ import { registrarMovimientosKardex, validarStockDisponible } from "@/utils/supa
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { getSaldoVenta } from "@/utils/supabase/ventas";
 import { TIPO_AJUSTE_VENTA_LABEL, type TipoAjusteVenta } from "@/lib/ajuste-venta-tipos";
-import {
-  preciosBloqueados,
-  resolverPrecios,
-  esAlmacenDigital,
-  descuentoHabilitado,
-} from "@/utils/supabase/precios";
+import { resolverPrecios, esAlmacenDigital } from "@/utils/supabase/precios";
 
 type ProductoInfoVenta = {
   id: string;
@@ -28,7 +23,8 @@ type ProductoInfoVenta = {
 
 export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await getEmpresaSession(supabase);
+  const { userId, empresaId, preciosBloqueados, descuentoHabilitado } =
+    await getEmpresaSession(supabase);
 
   const { data: venta, error: ventaError } = await supabase
     .from("ventas")
@@ -197,7 +193,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
   // con la misma lógica que la sugirió en el formulario, para no confiar
   // en lo que haya llegado del cliente. Una promoción nunca entra acá: su
   // precio siempre es 0.
-  if (await preciosBloqueados(supabase, empresaId)) {
+  if (preciosBloqueados) {
     const lineasNuevasParaPrecio = enviadas.filter(
       (l) => !l.id && l.producto_id && l.cantidad > 0 && !infoDe(l.producto_id)?.es_promocion,
     );
@@ -261,9 +257,7 @@ export async function updateVentaDetalle(ventaId: string, formData: FormData) {
         .reduce((acc, l) => acc + l.cantidad * l.precio_unitario, 0) * 100,
     ) / 100;
 
-  const nuevoDescuento = (await descuentoHabilitado(supabase, empresaId))
-    ? Number(formData.get("descuento") || 0)
-    : 0;
+  const nuevoDescuento = descuentoHabilitado ? Number(formData.get("descuento") || 0) : 0;
   if (!(nuevoDescuento >= 0)) {
     redirect(
       `/ventas/${ventaId}/editar?error=${encodeURIComponent("El descuento no puede ser negativo.")}`,

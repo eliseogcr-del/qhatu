@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { requireAdmin } from "@/utils/supabase/session";
 import { ROLES, requiereAlmacen, puedeTenerAlmacenOrigen } from "@/lib/roles";
+import { opcionesPorDefectoParaRol } from "@/lib/opciones-sistema";
 
 // El username es lo único que la persona escribe para entrar — nunca un
 // correo. Supabase Auth igual necesita un email por dentro, así que si el
@@ -105,6 +106,26 @@ export async function createUsuario(formData: FormData) {
     // Revierte el usuario de Auth para no dejar una cuenta huérfana sin perfil.
     await admin.auth.admin.deleteUser(creado.user.id);
     redirect(`/usuarios/nuevo?error=${encodeURIComponent(perfilError.message)}`);
+  }
+
+  // Arranca viendo el mismo menú que le tocaría por su rol (y, si es
+  // vendedor, según si su almacén es digital) — lo mismo que vería hoy
+  // sin este módulo. El admin lo ajusta después desde Permisos si hace
+  // falta algo distinto para este usuario en particular.
+  let almacenEsDigital = false;
+  if (almacenId) {
+    const { data: almacen } = await admin
+      .from("almacenes")
+      .select("es_digital")
+      .eq("id", almacenId)
+      .maybeSingle();
+    almacenEsDigital = almacen?.es_digital ?? false;
+  }
+  const opcionesPorDefecto = opcionesPorDefectoParaRol(rol, almacenEsDigital);
+  if (opcionesPorDefecto.length > 0) {
+    await admin.from("usuario_opciones").insert(
+      opcionesPorDefecto.map((codigo) => ({ usuario_id: creado.user.id, opcion_codigo: codigo })),
+    );
   }
 
   revalidatePath("/usuarios");

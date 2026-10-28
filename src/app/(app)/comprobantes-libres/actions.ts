@@ -30,7 +30,7 @@ export async function obtenerPedidosPendientesCliente(
 ): Promise<PedidoPendienteLibre[]> {
   if (!clienteId) return [];
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const { data: pedidos } = await supabase
     .from("pedidos")
@@ -250,7 +250,7 @@ async function validarYArmarPayload(
 
 export async function emitirComprobanteLibre(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await requireComprobantesAcceso(supabase);
+  const { userId, empresaId } = await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const tipoComprobante = Number(formData.get("tipo_comprobante") || 2);
 
@@ -336,7 +336,7 @@ export async function emitirComprobanteLibre(formData: FormData) {
 // ni uno "anulado". Reutiliza el mismo tipo+serie+número ya reservados.
 export async function editarComprobanteLibre(comprobanteId: string, formData: FormData) {
   const supabase = await createClient();
-  const { empresaId } = await requireComprobantesAcceso(supabase);
+  const { empresaId } = await requireComprobantesAcceso(supabase, "/comprobantes-libres");
   const redirectBase = `/comprobantes-libres/${comprobanteId}/editar`;
 
   const { data: comprobante } = await supabase
@@ -430,7 +430,7 @@ async function guardarDetalleLibre(
 // monto del comprobante cuadre con el de la venta, tal como se pidió.
 export async function asociarComprobanteLibre(ventaId: string, formData: FormData) {
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const comprobanteId = String(formData.get("comprobante_id") || "");
   if (!comprobanteId) {
@@ -457,7 +457,7 @@ export async function asociarComprobanteLibre(ventaId: string, formData: FormDat
 
 export async function desasociarComprobanteLibre(comprobanteId: string, ventaId: string) {
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const { error } = await supabase
     .from("comprobantes")

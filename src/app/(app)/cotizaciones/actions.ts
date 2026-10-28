@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { requireComercial, resolverAlmacenId } from "@/utils/supabase/session";
-import { esAlmacenDigital, preciosBloqueados, resolverPrecios } from "@/utils/supabase/precios";
+import { esAlmacenDigital, resolverPrecios } from "@/utils/supabase/precios";
 
 export async function createCotizacion(formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId, almacenId } = await requireComercial(supabase);
+  const { userId, empresaId, almacenId, preciosBloqueados } = await requireComercial(supabase);
 
   const clienteId = String(formData.get("cliente_id") ?? "") || null;
   const prospectoNombre = String(formData.get("prospecto_nombre") ?? "").trim() || null;
@@ -64,7 +64,7 @@ export async function createCotizacion(formData: FormData) {
   // igual que cuando ese mismo vendedor registra un pedido o una venta. Un
   // admin (sin almacén fijo) cae al canal campo por defecto.
   let lineasConPrecio = lineasConProducto;
-  if (await preciosBloqueados(supabase, empresaId)) {
+  if (preciosBloqueados) {
     const esDigital = await esAlmacenDigital(supabase, almacenId);
     const precios = await resolverPrecios(supabase, {
       empresaId,

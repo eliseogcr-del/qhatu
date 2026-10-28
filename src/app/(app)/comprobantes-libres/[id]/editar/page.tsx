@@ -18,7 +18,7 @@ export default async function EditarComprobanteLibrePage({
   const { id } = await params;
   const { error } = await searchParams;
   const supabase = await createClient();
-  await requireComprobantesAcceso(supabase);
+  await requireComprobantesAcceso(supabase, "/comprobantes-libres");
 
   const { data: comprobante } = await supabase
     .from("comprobantes")

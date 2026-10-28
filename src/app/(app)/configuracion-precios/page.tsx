@@ -1,4 +1,4 @@
-import { Tags, Save, Download, Upload } from "lucide-react";
+import { Tags, Download, Upload } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/utils/supabase/session";
 import SubmitButton from "@/components/SubmitButton";
@@ -8,7 +8,6 @@ import ProductoCombobox from "@/components/ProductoCombobox";
 import FiltroTexto from "@/components/FiltroTexto";
 import PrecioEspecialRow from "@/components/PrecioEspecialRow";
 import {
-  actualizarConfiguracionPrecios,
   actualizarPrecioEspecial,
   crearPrecioEspecial,
   eliminarPrecioEspecial,
@@ -40,7 +39,7 @@ export default async function ConfiguracionPreciosPage({
     detalle,
   } = await searchParams;
   const supabase = await createClient();
-  const { empresaId } = await requireAdmin(supabase);
+  await requireAdmin(supabase);
 
   let especialesQuery = supabase
     .from("precios_especiales_cliente")
@@ -53,17 +52,11 @@ export default async function ConfiguracionPreciosPage({
   if (q) especialesQuery = especialesQuery.ilike("clientes.nombre", `%${q}%`);
 
   const [
-    { data: config },
     { data: clientes },
     { data: productos },
     { data: unidadesMedida },
     { data: especiales },
   ] = await Promise.all([
-      supabase
-        .from("configuracion_precios")
-        .select("precios_bloqueados, descuento_habilitado")
-        .eq("empresa_id", empresaId)
-        .maybeSingle(),
       supabase.from("clientes").select("id, nombre").eq("activo", true).order("nombre"),
       supabase.from("productos").select("id, nombre").eq("activo", true).order("nombre"),
       supabase
@@ -73,9 +66,6 @@ export default async function ConfiguracionPreciosPage({
         .order("descripcion"),
       especialesQuery,
     ]);
-
-  const preciosBloqueados = config?.precios_bloqueados ?? true;
-  const descuentoHabilitado = config?.descuento_habilitado ?? false;
 
   return (
     <div className="p-8">
@@ -90,8 +80,8 @@ export default async function ConfiguracionPreciosPage({
           Cada producto tiene Precio Campo (almacén principal/móviles) y
           Precio Digital (almacén digital). Un cliente con precio especial
           configurado abajo siempre usa ese precio, sin importar el
-          almacén. En Pedidos, Ventas y Cotizaciones el precio se calcula
-          solo y no se puede editar a mano, salvo que lo desbloquees acá.
+          almacén. Quién puede editar el precio a mano o aplicar un
+          descuento se configura por usuario, en Usuarios → Permisos.
         </p>
 
         {error && (
@@ -104,55 +94,6 @@ export default async function ConfiguracionPreciosPage({
             {detalle ?? "Configuración guardada."}
           </p>
         )}
-
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
-          <form action={actualizarConfiguracionPrecios} className="space-y-8">
-            <div>
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Bloqueo de precios
-              </h2>
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    name="precios_bloqueados"
-                    defaultChecked={preciosBloqueados}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  Bloquear el precio en Pedidos, Ventas y Cotizaciones (recomendado)
-                </label>
-                <p className="text-xs text-gray-500">
-                  Desmarca esto solo si necesitas volver a permitir que se
-                  escriba el precio a mano en esos formularios.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Descuento en Ventas
-              </h2>
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    name="descuento_habilitado"
-                    defaultChecked={descuentoHabilitado}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  Habilitar el campo Descuento al registrar/editar una venta
-                </label>
-                <p className="text-xs text-gray-500">
-                  Deshabilitado por defecto: el campo no aparece y el
-                  descuento siempre queda en 0. Actívalo solo si necesitas
-                  que se pueda aplicar un descuento manual.
-                </p>
-              </div>
-            </div>
-
-            <SubmitButton icon={<Save size={16} />}>Guardar</SubmitButton>
-          </form>
-        </div>
 
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
