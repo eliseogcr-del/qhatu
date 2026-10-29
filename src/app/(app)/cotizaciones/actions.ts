@@ -119,15 +119,20 @@ export async function createCotizacion(formData: FormData) {
   const igv = Math.round(lineas.reduce((acc, l) => acc + l.igvLinea, 0) * 100) / 100;
   const total = Math.round(lineas.reduce((acc, l) => acc + l.subtotal, 0) * 100) / 100;
 
-  const { data: ultima } = await supabase
-    .from("cotizaciones")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Reserva atómica (función de base de datos con su propio contador) —
+  // nunca con un "select max(numero) + 1" desde acá, que bajo dos
+  // cotizaciones casi simultáneas puede devolver el mismo número dos
+  // veces (ver migración 20261029000000).
+  const { data: numero, error: numeroError } = await supabase.rpc(
+    "siguiente_numero_cotizacion",
+    { p_empresa_id: empresaId, p_numero_inicial: numeroInicial },
+  );
 
-  const numero = Math.max((ultima?.numero ?? 0) + 1, numeroInicial);
+  if (numeroError || numero === null) {
+    redirect(
+      `/cotizaciones/nuevo?error=${encodeURIComponent(numeroError?.message ?? "No se pudo reservar el número de la cotización.")}`,
+    );
+  }
 
   const { data: cotizacion, error: cotizacionError } = await supabase
     .from("cotizaciones")
