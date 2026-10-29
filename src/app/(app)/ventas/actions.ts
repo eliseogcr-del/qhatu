@@ -140,6 +140,21 @@ export async function createVenta(formData: FormData) {
     );
   }
 
+  // Protección contra doble envío (mismo caso que Venta rápida: ver
+  // comentario en createVentaRapida) — acá es más simple: un pedido nunca
+  // debería terminar con dos ventas, así que basta con el pedido_id, sin
+  // ventana de tiempo. Si ya tiene una, se asume que es el mismo envío
+  // repetido y se redirige a esa venta en vez de crear otra.
+  const { data: ventaExistenteDelPedido } = await supabase
+    .from("ventas")
+    .select("id")
+    .eq("pedido_id", pedidoId)
+    .maybeSingle();
+
+  if (ventaExistenteDelPedido) {
+    redirect(`/ventas/${ventaExistenteDelPedido.id}`);
+  }
+
   const { data: venta, error: ventaError } = await supabase
     .from("ventas")
     .insert({
@@ -468,6 +483,25 @@ export async function createVentaDirecta(formData: FormData) {
   );
   if (errorStock) {
     redirect(`/ventas/directa?error=${encodeURIComponent(errorStock)}`);
+  }
+
+  // Protección contra doble envío (mismo caso que Venta rápida: ver
+  // comentario en createVentaRapida) — si ya existe una venta del mismo
+  // cliente, almacén y monto en los últimos 5 minutos, se asume que es el
+  // mismo envío repetido y se redirige a esa venta en vez de crear otra.
+  const haceCincoMinutosDirecta = new Date(Date.now() - 5 * 60_000).toISOString();
+  const { data: ventaExistenteDirecta } = await supabase
+    .from("ventas")
+    .select("id")
+    .eq("cliente_id", clienteId)
+    .eq("almacen_id", almacenId)
+    .eq("total", total)
+    .gte("created_at", haceCincoMinutosDirecta)
+    .limit(1)
+    .maybeSingle();
+
+  if (ventaExistenteDirecta) {
+    redirect(`/ventas/${ventaExistenteDirecta.id}`);
   }
 
   const { data: pedido, error: pedidoError } = await supabase
