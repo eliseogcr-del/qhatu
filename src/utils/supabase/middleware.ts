@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { mejorOpcionParaRuta, rutaSiempreLibre } from "@/lib/opciones-sistema";
+import { mejorOpcionParaRuta, rutaSiempreLibre, codigosQueSatisfacen } from "@/lib/opciones-sistema";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -58,14 +58,13 @@ export async function updateSession(request: NextRequest) {
     if (usuario && usuario.rol !== "admin") {
       const opcion = mejorOpcionParaRuta(request.nextUrl.pathname);
       if (opcion) {
-        const { data: permiso } = await supabase
+        const { data: permisos } = await supabase
           .from("usuario_opciones")
           .select("opcion_codigo")
           .eq("usuario_id", user.id)
-          .eq("opcion_codigo", opcion.codigo)
-          .maybeSingle();
+          .in("opcion_codigo", codigosQueSatisfacen(opcion));
 
-        if (!permiso) {
+        if (!permisos || permisos.length === 0) {
           const url = request.nextUrl.clone();
           url.pathname = "/dashboard";
           return NextResponse.redirect(url);

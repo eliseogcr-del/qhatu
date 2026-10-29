@@ -118,3 +118,25 @@ export function mejorOpcionParaRuta(pathname: string): OpcionSistema | null {
   }
   return mejor;
 }
+
+// "Ventas" (escritorio) y "Mis ventas" (celular, almacén móvil) son dos
+// listados distintos de la MISMA función — ambos llevan al detalle de una
+// venta (/ventas/[id]), y "Registrar cobro" siempre se hace desde ahí
+// (botón dentro del detalle, nunca un enlace del menú). Si solo se exige
+// el código exacto de cada opción, a quien tiene concedido únicamente
+// "Mis ventas" (el caso normal de un vendedor de almacén móvil) el proxy
+// le bloquea tanto el detalle de su propia venta como registrar el cobro
+// — aunque la lista sí la vea. Por eso estas dos rutas se dan por
+// satisfechas con CUALQUIERA de los códigos equivalentes, no solo el
+// propio.
+const CODIGOS_EQUIVALENTES: Record<string, string[]> = {
+  "/ventas": ["/ventas", "/ventas/mis-ventas"],
+  "/cobranzas": ["/cobranzas", "/ventas", "/ventas/mis-ventas"],
+};
+
+// Los códigos con los que basta tener CUALQUIERA concedido para pasar la
+// opción resuelta por mejorOpcionParaRuta — por defecto es solo su propio
+// código (lo normal), salvo los casos de CODIGOS_EQUIVALENTES de arriba.
+export function codigosQueSatisfacen(opcion: OpcionSistema): string[] {
+  return CODIGOS_EQUIVALENTES[opcion.codigo] ?? [opcion.codigo];
+}

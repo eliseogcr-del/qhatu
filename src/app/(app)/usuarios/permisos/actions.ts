@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { requireAdmin } from "@/utils/supabase/session";
 import { OPCIONES_SISTEMA } from "@/lib/opciones-sistema";
 
@@ -58,7 +59,12 @@ export async function guardarPermisosUsuario(usuarioId: string, formData: FormDa
     }
   }
 
-  const { error: updateError } = await supabase
+  // La tabla usuarios solo admite escritura desde el cliente con
+  // privilegios de administrador (grant a nivel de Postgres, no solo
+  // RLS) — mismo motivo por el que toggleActivoUsuario/updateUsuario
+  // usan createAdminClient() en vez del cliente normal.
+  const admin = createAdminClient();
+  const { error: updateError } = await admin
     .from("usuarios")
     .update({
       puede_modificar_precios: puedeModificarPrecios,
