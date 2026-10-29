@@ -790,20 +790,25 @@ export async function createVentaRapida(formData: FormData) {
   // respuesta tarda en volver (o la página se recarga) y se vuelve a tocar
   // "Guardar", no hay ninguna restricción única (como sí la hay en los
   // números de comprobante) que frene una segunda venta idéntica: entra
-  // silenciosa, sin error. "ventas" no guarda usuario_id (solo pedidos),
-  // así que el cruce es por almacén+cliente+monto — ese almacén es fijo
-  // para un vendedor, así que ya acota a lo que esa persona puede vender.
-  // Si ya existe una venta con ese mismo cruce en los últimos 20 segundos,
-  // se asume que es el mismo envío repetido y no se vuelve a registrar —
-  // se redirige igual, como si hubiera guardado.
-  const haceVeinteSegundos = new Date(Date.now() - 20_000).toISOString();
+  // silenciosa, sin error. Caso real confirmado: dos ventas idénticas
+  // (mismo cliente, mismas líneas, mismo total) separadas por 2 minutos
+  // exactos — a la vendedora no le cargó la confirmación y, tras esperar,
+  // volvió a tocar "Guardar" con el formulario todavía lleno. Una ventana
+  // de pocos segundos no alcanza para cubrir eso. "ventas" no guarda
+  // usuario_id (solo pedidos), así que el cruce es por almacén+cliente+
+  // monto — ese almacén es fijo para un vendedor, así que ya acota a lo
+  // que esa persona puede vender. Si ya existe una venta con ese mismo
+  // cruce en los últimos 5 minutos, se asume que es el mismo envío
+  // repetido y no se vuelve a registrar — se redirige igual, como si
+  // hubiera guardado.
+  const haceCincoMinutos = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: ventasRecientes } = await supabase
     .from("ventas")
     .select("id")
     .eq("cliente_id", clienteId)
     .eq("almacen_id", almacenId)
     .eq("total", total)
-    .gte("created_at", haceVeinteSegundos)
+    .gte("created_at", haceCincoMinutos)
     .limit(1);
 
   if (ventasRecientes && ventasRecientes.length > 0) {
