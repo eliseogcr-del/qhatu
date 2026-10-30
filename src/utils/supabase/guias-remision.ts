@@ -202,3 +202,165 @@ export async function construirDatosGuiaRemitente(
 
   return { datos };
 }
+
+// Mismo armado que construirDatosGuiaRemitente, pero para un comprobante
+// libre: no hay pedido/reparto detrás, así que el cliente sale de
+// comprobantes.cliente_id directo, los items de comprobante_libre_detalle,
+// y los datos de transporte (placa, peso, bultos, conductor/transportista,
+// almacén de origen) se reciben ya escritos a mano en el formulario de
+// generación — un comprobante libre no tiene equivalente a `repartos` del
+// que sacarlos.
+export async function construirDatosGuiaRemitenteLibre(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: {
+    comprobanteId: string;
+    almacenId: string;
+    tipoTransporte: string;
+    placaNumero: string;
+    pesoBrutoTotal: number;
+    numeroDeBultos: number;
+    transportistaNombre: string | null;
+    transportistaRuc: string | null;
+    repartidorId: string | null;
+  },
+): Promise<{ datos: DatosGuiaRemitente } | { error: string }> {
+  const {
+    comprobanteId,
+    almacenId,
+    tipoTransporte,
+    placaNumero,
+    pesoBrutoTotal,
+    numeroDeBultos,
+    transportistaNombre,
+    transportistaRuc,
+    repartidorId,
+  } = params;
+
+  const [{ data: comprobante }, { data: almacen }] = await Promise.all([
+    supabase
+      .from("comprobantes")
+      .select(
+        "id, fecha_emision, clientes(tipo_documento, numero_documento, nombre, direccion, ubigeo)",
+      )
+      .eq("id", comprobanteId)
+      .single(),
+    supabase.from("almacenes").select("direccion, ubigeo").eq("id", almacenId).single(),
+  ]);
+
+  if (!comprobante) return { error: "No se encontró el comprobante." };
+
+  const cliente = comprobante.clientes as unknown as {
+    tipo_documento: string;
+    numero_documento: string;
+    nombre: string;
+    direccion: string | null;
+    ubigeo: string | null;
+  } | null;
+
+  if (!cliente) return { error: "El comprobante no tiene cliente asociado." };
+  if (!almacen) return { error: "Selecciona el almacén de origen del traslado." };
+
+  if (!almacen.ubigeo) {
+    return {
+      error: "Falta el ubigeo del almacén de origen. Complétalo en Administración → Almacenes.",
+    };
+  }
+  if (!almacen.direccion) {
+    return {
+      error: "Falta la dirección del almacén de origen. Complétala en Administración → Almacenes.",
+    };
+  }
+  if (!cliente.ubigeo) {
+    return { error: "Falta el ubigeo del cliente de destino. Complétalo en la ficha del cliente." };
+  }
+  if (!cliente.direccion) {
+    return { error: "Falta la dirección del cliente de destino. Complétala en Clientes." };
+  }
+  if (!placaNumero) return { error: "Falta la placa del vehículo." };
+  if (!(pesoBrutoTotal > 0)) return { error: "Falta el peso bruto total del traslado." };
+  if (!(numeroDeBultos > 0)) return { error: "Falta el número de bultos del traslado." };
+
+  const tipoDocDestinatario = tipoDocumentoGuia(cliente.tipo_documento);
+  if (tipoDocDestinatario === null) {
+    return {
+      error: "El cliente debe tener DNI, RUC o Carné de extranjería para la guía de remisión.",
+    };
+  }
+
+  const fechaTraslado = fechaDeHoyGuia();
+  const esPrivado = tipoTransporte !== "delivery_subcontratado";
+
+  let datosTransporte: Partial<NubefactGuiaRemitenteRequest>;
+
+  if (esPrivado) {
+    if (!repartidorId) return { error: "Selecciona el repartidor/conductor de este traslado." };
+    const { data: conductor } = await supabase
+      .from("usuarios")
+      .select("nombre, apellidos, dni, licencia_conducir")
+      .eq("id", repartidorId)
+      .single();
+
+    if (!conductor?.dni || !conductor.apellidos || !conductor.licencia_conducir) {
+      return {
+        error: "Faltan datos del conductor (DNI, apellidos o licencia). Complétalos en Usuarios.",
+      };
+    }
+
+    datosTransporte = {
+      conductor_documento_tipo: "1",
+      conductor_documento_numero: conductor.dni,
+      conductor_nombre: conductor.nombre ?? "",
+      conductor_apellidos: conductor.apellidos,
+      conductor_numero_licencia: conductor.licencia_conducir,
+    };
+  } else {
+    if (!transportistaNombre || !transportistaRuc) {
+      return { error: "Faltan los datos del transportista (nombre y RUC)." };
+    }
+    datosTransporte = {
+      transportista_documento_tipo: "6",
+      transportista_documento_numero: transportistaRuc,
+      transportista_denominacion: transportistaNombre,
+      fecha_de_entrega_al_transportista: fechaTraslado,
+    };
+  }
+
+  const { data: detalle } = await supabase
+    .from("comprobante_libre_detalle")
+    .select("descripcion, cantidad")
+    .eq("comprobante_id", comprobanteId);
+
+  if (!detalle || detalle.length === 0) {
+    return { error: "El comprobante no tiene líneas." };
+  }
+
+  const items: NubefactGuiaItem[] = detalle.map((d) => ({
+    unidad_de_medida: "NIU",
+    descripcion: d.descripcion,
+    cantidad: String(d.cantidad),
+  }));
+
+  const datos: DatosGuiaRemitente = {
+    cliente_tipo_de_documento: tipoDocDestinatario,
+    cliente_numero_de_documento: cliente.numero_documento,
+    cliente_denominacion: cliente.nombre,
+    cliente_direccion: cliente.direccion,
+    fecha_de_emision: fechaDeHoyGuia(),
+    motivo_de_traslado: "01",
+    peso_bruto_total: String(pesoBrutoTotal),
+    peso_bruto_unidad_de_medida: "KGM",
+    numero_de_bultos: String(numeroDeBultos),
+    tipo_de_transporte: esPrivado ? "02" : "01",
+    fecha_de_inicio_de_traslado: fechaTraslado,
+    transportista_placa_numero: placaNumero,
+    punto_de_partida_ubigeo: almacen.ubigeo,
+    punto_de_partida_direccion: almacen.direccion,
+    punto_de_llegada_ubigeo: cliente.ubigeo,
+    punto_de_llegada_direccion: cliente.direccion,
+    enviar_automaticamente_al_cliente: "false",
+    items,
+    ...datosTransporte,
+  };
+
+  return { datos };
+}

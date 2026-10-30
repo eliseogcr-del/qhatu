@@ -146,7 +146,7 @@ export default async function EditarRepartoPage({
                     Ver PDF
                   </a>
                 ) : (
-                  <form action={consultarGuiaRemision.bind(null, guia.id, id)}>
+                  <form action={consultarGuiaRemision.bind(null, guia.id, `/repartos/${id}/editar`)}>
                     <SubmitButton
                       icon={<RefreshCw size={16} />}
                       pendingLabel="Consultando..."

@@ -138,16 +138,23 @@ export async function generarGuiaRemision(repartoId: string) {
   }
 
   const serie = config.serie_guia_remision;
-  const { data: ultima } = await supabase
-    .from("guias_remision")
-    .select("numero")
-    .eq("empresa_id", empresaId)
-    .eq("serie", serie)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Reserva atómica (mismo contador ya usado para comprobantes/nota de
+  // venta/cotizaciones) — nunca un "select max(numero) + 1" desde acá,
+  // que bajo dos guías casi simultáneas (más aún ahora que Comprobantes
+  // libres comparte esta misma serie) puede devolver el mismo número dos
+  // veces. tipo_comprobante 7 es el de la guía — no choca con ningún otro
+  // tipo ya usado en comprobantes_correlativos.
+  const { data: numero, error: numeroError } = await supabase.rpc("siguiente_numero_comprobante", {
+    p_empresa_id: empresaId,
+    p_tipo_comprobante: 7,
+    p_serie: serie,
+  });
 
-  const numero = (ultima?.numero ?? 0) + 1;
+  if (numeroError || numero === null) {
+    redirect(
+      `/repartos/${repartoId}/editar?error=${encodeURIComponent(numeroError?.message ?? "No se pudo reservar el número de la guía.")}`,
+    );
+  }
 
   const { data: guia, error: insertError } = await supabase
     .from("guias_remision")
@@ -219,8 +226,10 @@ export async function generarGuiaRemision(repartoId: string) {
 
 // La Sunat valida la GRE de forma asíncrona — este botón se puede tocar
 // las veces que haga falta hasta que "aceptada_por_sunat" llegue en true
-// (recién ahí Nubefact entrega el PDF/XML/CDR).
-export async function consultarGuiaRemision(guiaId: string, repartoId: string) {
+// (recién ahí Nubefact entrega el PDF/XML/CDR). Compartida entre la guía
+// de un reparto y la de un comprobante libre — redirectBase es la página
+// a la que volver en cada caso.
+export async function consultarGuiaRemision(guiaId: string, redirectBase: string) {
   const supabase = await createClient();
   await getEmpresaSession(supabase);
 
@@ -230,7 +239,7 @@ export async function consultarGuiaRemision(guiaId: string, repartoId: string) {
     .eq("id", guiaId)
     .single();
 
-  if (!guia) redirect(`/repartos/${repartoId}/editar`);
+  if (!guia) redirect(redirectBase);
 
   const payload: NubefactConsultarGuiaRequest = {
     operacion: "consultar_guia",
@@ -250,12 +259,12 @@ export async function consultarGuiaRemision(guiaId: string, repartoId: string) {
 
   if (errorConexion) {
     redirect(
-      `/repartos/${repartoId}/editar?error=${encodeURIComponent(`No se pudo conectar con Nubefact: ${errorConexion}`)}`,
+      `${redirectBase}?error=${encodeURIComponent(`No se pudo conectar con Nubefact: ${errorConexion}`)}`,
     );
   }
 
   if (respuesta!.errors) {
-    redirect(`/repartos/${repartoId}/editar?error=${encodeURIComponent(`Nubefact: ${respuesta!.errors}`)}`);
+    redirect(`${redirectBase}?error=${encodeURIComponent(`Nubefact: ${respuesta!.errors}`)}`);
   }
 
   const aceptada = respuesta!.aceptada_por_sunat === true;
@@ -273,6 +282,6 @@ export async function consultarGuiaRemision(guiaId: string, repartoId: string) {
     })
     .eq("id", guiaId);
 
-  revalidatePath(`/repartos/${repartoId}/editar`);
-  redirect(`/repartos/${repartoId}/editar`);
+  revalidatePath(redirectBase);
+  redirect(redirectBase);
 }

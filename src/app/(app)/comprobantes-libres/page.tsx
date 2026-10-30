@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, FileText, CheckCircle2, Pencil } from "lucide-react";
+import { Plus, FileText, CheckCircle2, Pencil, Truck } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { requireComprobantesAcceso } from "@/utils/supabase/session";
 import { formatFechaHora } from "@/lib/fecha";
@@ -126,18 +126,28 @@ export default async function ComprobantesLibresPage({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {pdf ? (
-                        <a
-                          href={pdf}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-emerald-700 hover:underline"
-                        >
-                          <FileText size={14} />
-                          PDF
-                        </a>
-                      ) : (
-                        (c.estado === "pendiente" || c.estado === "error") && (
+                      <div className="flex items-center gap-3">
+                        {pdf && (
+                          <a
+                            href={pdf}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-emerald-700 hover:underline"
+                          >
+                            <FileText size={14} />
+                            PDF
+                          </a>
+                        )}
+                        {c.estado === "emitido" && (
+                          <Link
+                            href={`/comprobantes-libres/${c.id}`}
+                            className="flex items-center gap-1 font-medium text-gray-700 hover:underline"
+                          >
+                            <Truck size={14} />
+                            Guía
+                          </Link>
+                        )}
+                        {(c.estado === "pendiente" || c.estado === "error") && (
                           <Link
                             href={`/comprobantes-libres/${c.id}/editar`}
                             className="flex items-center gap-1 font-medium text-gray-700 hover:underline"
@@ -145,8 +155,8 @@ export default async function ComprobantesLibresPage({
                             <Pencil size={14} />
                             Editar
                           </Link>
-                        )
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
