@@ -98,6 +98,15 @@ const ADMINISTRACION: Grupo = {
   ],
 };
 
+// "Mis repartos" no tiene lugar propio en el menú lateral — quien lo
+// tiene concedido (normalmente el repartidor) ya llega ahí desde su
+// tarjeta de acceso rápido en el Panel; mostrarlo también acá sería
+// redundante, sobre todo porque "Reparto (todos)" ya cubre lo mismo
+// para quien ve todos los repartos. Sigue existiendo como opción
+// asignable en Permisos y el proxy lo sigue protegiendo igual — esto
+// solo oculta el enlace del menú.
+const OCULTAS_DEL_MENU = new Set(["/mis-repartos"]);
+
 // Arma el menú de un usuario a partir de las opciones que tiene
 // concedidas (usuario_opciones) — admin ve el catálogo completo siempre,
 // sin importar qué tenga o no concedido. Los grupos sin ningún item
@@ -106,6 +115,7 @@ function gruposPorOpciones(rol: string, opciones: Set<string>): Grupo[] {
   const esAdmin = rol === "admin";
   const porGrupo = new Map<string, Item[]>();
   for (const opcion of OPCIONES_SISTEMA) {
+    if (OCULTAS_DEL_MENU.has(opcion.codigo)) continue;
     if (!esAdmin && !opciones.has(opcion.codigo)) continue;
     const icon = ICONOS[opcion.codigo] ?? FileText;
     const item: Item = { href: opcion.codigo, label: opcion.etiqueta, icon };
