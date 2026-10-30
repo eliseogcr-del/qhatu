@@ -25,7 +25,12 @@ alter table public.guias_remision
   add column tipo_transporte text,
   add column transportista_nombre text,
   add column transportista_ruc text,
-  add column repartidor_id uuid references public.usuarios (id);
+  add column repartidor_id uuid references public.usuarios (id),
+  -- Opcional: cuando la guía de un comprobante libre se vincula a un
+  -- pedido real del cliente (en vez de completar todo a mano), los items
+  -- y el almacén de origen salen de ese pedido — se guarda la referencia
+  -- acá solo para trazabilidad, nada depende de leerla después.
+  add column pedido_id uuid references public.pedidos (id);
 
 alter table public.guias_remision
   add constraint guias_remision_comprobante_id_key unique (comprobante_id);

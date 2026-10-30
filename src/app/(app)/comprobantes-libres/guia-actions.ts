@@ -25,7 +25,12 @@ export async function generarGuiaRemisionLibre(comprobanteId: string, formData: 
     redirect(`${redirectBase}?error=${encodeURIComponent("Este comprobante ya tiene una guía de remisión generada.")}`);
   }
 
-  const almacenId = String(formData.get("almacen_id") || "");
+  // Dos modos, elegidos en el formulario: vinculado a un pedido real del
+  // cliente (items + almacén salen de ahí) o completado a mano (items del
+  // propio comprobante, almacén elegido en el formulario). pedido_id
+  // presente es lo que distingue uno de otro.
+  const pedidoId = String(formData.get("pedido_id") || "") || null;
+  const almacenId = String(formData.get("almacen_id") || "") || null;
   const tipoTransporte = String(formData.get("tipo_transporte") || "repartidor_propio");
   const placaNumero = String(formData.get("placa_numero") || "").trim();
   const pesoBrutoTotal = Number(formData.get("peso_bruto_total") || 0);
@@ -34,13 +39,16 @@ export async function generarGuiaRemisionLibre(comprobanteId: string, formData: 
   const transportistaRuc = String(formData.get("transportista_ruc") || "").trim() || null;
   const repartidorId = String(formData.get("repartidor_id") || "") || null;
 
-  if (!almacenId) {
-    redirect(`${redirectBase}?error=${encodeURIComponent("Selecciona el almacén de origen del traslado.")}`);
+  if (!pedidoId && !almacenId) {
+    redirect(
+      `${redirectBase}?error=${encodeURIComponent("Vincula un pedido o selecciona el almacén de origen del traslado.")}`,
+    );
   }
 
   const resultado = await construirDatosGuiaRemitenteLibre(supabase, {
     comprobanteId,
     almacenId,
+    pedidoId,
     tipoTransporte,
     placaNumero,
     pesoBrutoTotal,
@@ -88,7 +96,8 @@ export async function generarGuiaRemisionLibre(comprobanteId: string, formData: 
     .insert({
       empresa_id: empresaId,
       comprobante_id: comprobanteId,
-      almacen_id: almacenId,
+      pedido_id: pedidoId,
+      almacen_id: resultado.almacenId,
       tipo_comprobante: 7,
       serie,
       numero,

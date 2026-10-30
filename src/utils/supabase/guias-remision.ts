@@ -204,17 +204,27 @@ export async function construirDatosGuiaRemitente(
 }
 
 // Mismo armado que construirDatosGuiaRemitente, pero para un comprobante
-// libre: no hay pedido/reparto detrás, así que el cliente sale de
-// comprobantes.cliente_id directo, los items de comprobante_libre_detalle,
-// y los datos de transporte (placa, peso, bultos, conductor/transportista,
-// almacén de origen) se reciben ya escritos a mano en el formulario de
-// generación — un comprobante libre no tiene equivalente a `repartos` del
-// que sacarlos.
+// libre: el cliente sale de comprobantes.cliente_id directo (no de un
+// pedido), y los datos de transporte (placa, peso, bultos, conductor/
+// transportista) siempre se reciben escritos a mano en el formulario de
+// generación — ni un pedido ni un comprobante libre tienen de dónde
+// sacarlos solos.
+//
+// Los ITEMS y el ALMACÉN DE ORIGEN sí tienen dos fuentes posibles:
+// - pedidoId presente ("vincular a un pedido"): salen de ese pedido
+//   (pedido_detalle + pedido.almacen_id), igual que ya hace
+//   construirDatosGuiaRemitente para un reparto — para cuando el
+//   comprobante libre regulariza un pedido real y conviene declarar lo
+//   que de verdad se está trasladando, no reescribirlo a mano.
+// - pedidoId ausente ("completar manualmente"): salen de
+//   comprobante_libre_detalle (las líneas del propio comprobante) y de
+//   almacenId, que en ese caso lo elige la persona en el formulario.
 export async function construirDatosGuiaRemitenteLibre(
   supabase: Awaited<ReturnType<typeof createClient>>,
   params: {
     comprobanteId: string;
-    almacenId: string;
+    almacenId: string | null;
+    pedidoId: string | null;
     tipoTransporte: string;
     placaNumero: string;
     pesoBrutoTotal: number;
@@ -223,10 +233,11 @@ export async function construirDatosGuiaRemitenteLibre(
     transportistaRuc: string | null;
     repartidorId: string | null;
   },
-): Promise<{ datos: DatosGuiaRemitente } | { error: string }> {
+): Promise<{ datos: DatosGuiaRemitente; almacenId: string } | { error: string }> {
   const {
     comprobanteId,
     almacenId,
+    pedidoId,
     tipoTransporte,
     placaNumero,
     pesoBrutoTotal,
@@ -236,7 +247,7 @@ export async function construirDatosGuiaRemitenteLibre(
     repartidorId,
   } = params;
 
-  const [{ data: comprobante }, { data: almacen }] = await Promise.all([
+  const [{ data: comprobante }, { data: pedido }] = await Promise.all([
     supabase
       .from("comprobantes")
       .select(
@@ -244,10 +255,28 @@ export async function construirDatosGuiaRemitenteLibre(
       )
       .eq("id", comprobanteId)
       .single(),
-    supabase.from("almacenes").select("direccion, ubigeo").eq("id", almacenId).single(),
+    pedidoId
+      ? supabase.from("pedidos").select("almacen_id").eq("id", pedidoId).single()
+      : Promise.resolve({ data: null }),
   ]);
 
   if (!comprobante) return { error: "No se encontró el comprobante." };
+  if (pedidoId && !pedido) return { error: "No se encontró el pedido seleccionado." };
+
+  const almacenOrigenId = pedidoId ? pedido!.almacen_id : almacenId;
+  if (!almacenOrigenId) {
+    return {
+      error: pedidoId
+        ? "El pedido seleccionado no tiene almacén asociado."
+        : "Selecciona el almacén de origen del traslado.",
+    };
+  }
+
+  const { data: almacen } = await supabase
+    .from("almacenes")
+    .select("direccion, ubigeo")
+    .eq("id", almacenOrigenId)
+    .single();
 
   const cliente = comprobante.clientes as unknown as {
     tipo_documento: string;
@@ -325,20 +354,39 @@ export async function construirDatosGuiaRemitenteLibre(
     };
   }
 
-  const { data: detalle } = await supabase
-    .from("comprobante_libre_detalle")
-    .select("descripcion, cantidad")
-    .eq("comprobante_id", comprobanteId);
+  // Vinculado a un pedido: los items son los del pedido real (lo que de
+  // verdad se traslada), no las líneas del comprobante (que pueden ser
+  // solo el monto facturado, ej. un anticipo parcial) — mismo criterio
+  // que usa Reparto.
+  const items: NubefactGuiaItem[] = pedidoId
+    ? await (async () => {
+        const { data: detallePedido } = await supabase
+          .from("pedido_detalle")
+          .select("cantidad, productos(nombre)")
+          .eq("pedido_id", pedidoId);
+        return (detallePedido ?? []).map((d) => ({
+          unidad_de_medida: "NIU",
+          descripcion: (d.productos as unknown as { nombre: string } | null)?.nombre ?? "Producto",
+          cantidad: String(d.cantidad),
+        }));
+      })()
+    : await (async () => {
+        const { data: detalleLibre } = await supabase
+          .from("comprobante_libre_detalle")
+          .select("descripcion, cantidad")
+          .eq("comprobante_id", comprobanteId);
+        return (detalleLibre ?? []).map((d) => ({
+          unidad_de_medida: "NIU",
+          descripcion: d.descripcion,
+          cantidad: String(d.cantidad),
+        }));
+      })();
 
-  if (!detalle || detalle.length === 0) {
-    return { error: "El comprobante no tiene líneas." };
+  if (items.length === 0) {
+    return {
+      error: pedidoId ? "El pedido seleccionado no tiene productos." : "El comprobante no tiene líneas.",
+    };
   }
-
-  const items: NubefactGuiaItem[] = detalle.map((d) => ({
-    unidad_de_medida: "NIU",
-    descripcion: d.descripcion,
-    cantidad: String(d.cantidad),
-  }));
 
   const datos: DatosGuiaRemitente = {
     cliente_tipo_de_documento: tipoDocDestinatario,
@@ -362,5 +410,5 @@ export async function construirDatosGuiaRemitenteLibre(
     ...datosTransporte,
   };
 
-  return { datos };
+  return { datos, almacenId: almacenOrigenId };
 }
