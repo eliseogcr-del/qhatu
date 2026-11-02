@@ -10,6 +10,7 @@ const HEADERS = [
   "Cliente",
   "Tipo de documento",
   "N° de documento",
+  "Fecha de la venta",
   "Importe de la venta",
   "Cobrado acumulado",
   "Saldo",
@@ -23,9 +24,9 @@ const HEADERS = [
   "Estado",
 ];
 
-// Columnas de la venta (1 a 6) — se combinan en una sola celda cuando el
+// Columnas de la venta (1 a 7) — se combinan en una sola celda cuando el
 // grupo tiene más de un pago, en vez de dejarlas repetidas o en blanco.
-const COLUMNAS_VENTA = [1, 2, 3, 4, 5, 6];
+const COLUMNAS_VENTA = [1, 2, 3, 4, 5, 6, 7];
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -78,9 +79,11 @@ export async function GET(request: NextRequest) {
   const [ventasData, cobranzasActivasData, comprobantesData] = await Promise.all([
     idChunks.length > 0
       ? Promise.all(
-          idChunks.map((ids) => supabase.from("ventas").select("id, total, descuento, estado").in("id", ids)),
+          idChunks.map((ids) =>
+            supabase.from("ventas").select("id, fecha, total, descuento, estado").in("id", ids),
+          ),
         ).then((r) => r.flatMap((x) => x.data ?? []))
-      : Promise.resolve([] as { id: string; total: number; descuento: number; estado: string }[]),
+      : Promise.resolve([] as { id: string; fecha: string; total: number; descuento: number; estado: string }[]),
     idChunks.length > 0
       ? Promise.all(
           idChunks.map((ids) =>
@@ -175,6 +178,7 @@ export async function GET(request: NextRequest) {
         : "Sin comprobante emitido"
       : "Sin venta asociada";
     const numeroDocumento = comprobante ? `${comprobante.serie}-${comprobante.numero}` : "—";
+    const fechaVenta = venta ? formatFecha(venta.fecha) : "—";
 
     const filaInicio = sheet.rowCount + 1;
 
@@ -184,6 +188,7 @@ export async function GET(request: NextRequest) {
         clienteNombre ?? "—",
         tipoDocumento,
         numeroDocumento,
+        fechaVenta,
         importeVenta,
         cobradoAcumulado,
         saldoVenta,
@@ -214,7 +219,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  for (const col of [4, 5, 6, 8]) {
+  for (const col of [5, 6, 7, 9]) {
     sheet.getColumn(col).numFmt = "#,##0.00";
   }
 
