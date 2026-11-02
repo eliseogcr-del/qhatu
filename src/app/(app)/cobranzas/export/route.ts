@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import ExcelJS from "exceljs";
 import { formatFecha, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { METODO_PAGO_LABEL, TIPO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA } from "@/lib/comprobante-links";
-import { buildExcelText } from "@/lib/csv";
 import { chunk } from "@/lib/chunk";
 
 const HEADERS = [
@@ -22,6 +22,10 @@ const HEADERS = [
   "Registrado por",
   "Estado",
 ];
+
+// Columnas de la venta (1 a 6) — se combinan en una sola celda cuando el
+// grupo tiene más de un pago, en vez de dejarlas repetidas o en blanco.
+const COLUMNAS_VENTA = [1, 2, 3, 4, 5, 6];
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -142,7 +146,14 @@ export async function GET(request: NextRequest) {
   ];
   grupos.sort((a, b) => (a.fechaOrden < b.fechaOrden ? 1 : a.fechaOrden > b.fechaOrden ? -1 : 0));
 
-  const rows: unknown[][] = [];
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Cobranzas");
+  sheet.addRow(HEADERS).font = { bold: true };
+  sheet.columns = HEADERS.map((h) => ({ width: Math.max(14, h.length + 2) }));
+  sheet.views = [{ state: "frozen", ySplit: 1 }];
+
+  const BORDE_GRUPO: Partial<ExcelJS.Border> = { style: "medium", color: { argb: "FF999999" } };
+
   for (const grupo of grupos) {
     const venta = grupo.ventaId ? ventaPorId.get(grupo.ventaId) : null;
     const comprobante = grupo.ventaId ? comprobantePorVenta.get(grupo.ventaId) : null;
@@ -155,24 +166,27 @@ export async function GET(request: NextRequest) {
           : Math.round((venta.total - venta.descuento - cobradoAcumulado) * 100) / 100
         : null;
 
-    grupo.cobros.forEach((c, i) => {
-      const cliente = (c.pedidos as unknown as { clientes: { nombre: string } | null } | null)?.clientes;
-      const usuario = c.usuarios as unknown as { nombre: string | null } | null;
-      const esPrimeraDeLaVenta = i === 0;
+    const clienteNombre = (
+      grupo.cobros[0].pedidos as unknown as { clientes: { nombre: string } | null } | null
+    )?.clientes?.nombre;
+    const tipoDocumento = grupo.ventaId
+      ? comprobante
+        ? TIPO_COMPROBANTE_LABEL[comprobante.tipo]
+        : "Sin comprobante emitido"
+      : "Sin venta asociada";
+    const numeroDocumento = comprobante ? `${comprobante.serie}-${comprobante.numero}` : "—";
 
-      rows.push([
-        esPrimeraDeLaVenta ? (cliente?.nombre ?? "—") : "",
-        esPrimeraDeLaVenta
-          ? grupo.ventaId
-            ? comprobante
-              ? TIPO_COMPROBANTE_LABEL[comprobante.tipo]
-              : "Sin comprobante emitido"
-            : "Sin venta asociada"
-          : "",
-        esPrimeraDeLaVenta ? (comprobante ? `${comprobante.serie}-${comprobante.numero}` : "—") : "",
-        esPrimeraDeLaVenta ? importeVenta : "",
-        esPrimeraDeLaVenta ? cobradoAcumulado : "",
-        esPrimeraDeLaVenta ? saldoVenta : "",
+    const filaInicio = sheet.rowCount + 1;
+
+    grupo.cobros.forEach((c) => {
+      const usuario = c.usuarios as unknown as { nombre: string | null } | null;
+      sheet.addRow([
+        clienteNombre ?? "—",
+        tipoDocumento,
+        numeroDocumento,
+        importeVenta,
+        cobradoAcumulado,
+        saldoVenta,
         formatFecha(c.fecha),
         c.monto,
         c.moneda,
@@ -183,14 +197,33 @@ export async function GET(request: NextRequest) {
         c.estado === "anulada" ? "Anulada" : "Activa",
       ]);
     });
+
+    const filaFin = sheet.rowCount;
+
+    if (filaFin > filaInicio) {
+      for (const col of COLUMNAS_VENTA) {
+        sheet.mergeCells(filaInicio, col, filaFin, col);
+        sheet.getCell(filaInicio, col).alignment = { vertical: "middle" };
+      }
+    }
+
+    // Línea divisoria debajo del grupo, en todas las columnas, para que se
+    // note dónde termina una venta y empieza la siguiente.
+    for (let col = 1; col <= HEADERS.length; col++) {
+      sheet.getCell(filaFin, col).border = { ...sheet.getCell(filaFin, col).border, bottom: BORDE_GRUPO };
+    }
   }
 
-  const body = buildExcelText(HEADERS, rows);
+  for (const col of [4, 5, 6, 8]) {
+    sheet.getColumn(col).numFmt = "#,##0.00";
+  }
 
-  return new NextResponse(body, {
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-16le",
-      "Content-Disposition": 'attachment; filename="cobranzas.csv"',
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="cobranzas.xlsx"',
     },
   });
 }
