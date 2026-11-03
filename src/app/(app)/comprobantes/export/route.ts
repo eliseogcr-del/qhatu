@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+import ExcelJS from "exceljs";
 import { formatFecha, hoyLima, inicioDiaLima, finDiaLima } from "@/lib/fecha";
 import { createClient } from "@/utils/supabase/server";
 import { requireComprobantesAcceso } from "@/utils/supabase/session";
 import { TIPO_COMPROBANTE_LABEL } from "@/lib/comprobante-links";
-import { buildExcelText } from "@/lib/csv";
+import { obtenerPorcentajeIgv } from "@/utils/supabase/comprobantes";
 
 const HEADERS = [
   "Tipo de documento",
@@ -11,6 +12,9 @@ const HEADERS = [
   "Cliente",
   "Almacén",
   "Fecha",
+  "Moneda",
+  "Base imponible",
+  "IGV",
   "Total",
   "Estado",
 ];
@@ -28,7 +32,10 @@ type Fila = {
   fechaEmision: string;
   clienteNombre: string;
   almacenNombre: string;
-  totalTexto: string;
+  moneda: string;
+  baseImponible: number | null;
+  igv: number | null;
+  total: number | null;
 };
 
 export async function GET(request: NextRequest) {
@@ -41,7 +48,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse("No autorizado", { status: 401 });
   }
 
-  await requireComprobantesAcceso(supabase, "/comprobantes");
+  const { empresaId } = await requireComprobantesAcceso(supabase, "/comprobantes");
+  const porcentajeIgv = await obtenerPorcentajeIgv(supabase, empresaId);
+  const factorIgv = porcentajeIgv / 100;
 
   const params = request.nextUrl.searchParams;
   const q = params.get("q");
@@ -84,6 +93,12 @@ export async function GET(request: NextRequest) {
         clientes: { nombre: string } | null;
       } | null;
       const almacen = c.almacenes as unknown as { nombre: string } | null;
+      // Misma fórmula que itemsDesdeLineas/construirItemsYTotales: la base
+      // imponible sale de dividir el total (con IGV incluido) entre
+      // (1 + tasa) y redondear ese resultado — nunca al revés — y el IGV es
+      // la diferencia ya redondeada, para que base + IGV cuadre con el total.
+      const baseImponible = venta ? Math.round((venta.total / (1 + factorIgv)) * 100) / 100 : null;
+      const igv = venta && baseImponible !== null ? Math.round((venta.total - baseImponible) * 100) / 100 : null;
       return {
         tipoComprobante: c.tipo_comprobante,
         serie: c.serie,
@@ -92,7 +107,10 @@ export async function GET(request: NextRequest) {
         fechaEmision: c.fecha_emision,
         clienteNombre: venta?.clientes?.nombre ?? "—",
         almacenNombre: almacen?.nombre ?? "—",
-        totalTexto: venta ? `${venta.moneda} ${venta.total.toFixed(2)}` : "—",
+        moneda: venta?.moneda ?? "—",
+        baseImponible,
+        igv,
+        total: venta?.total ?? null,
       };
     });
   }
@@ -132,7 +150,10 @@ export async function GET(request: NextRequest) {
         fechaEmision: g.fecha_emision,
         clienteNombre: pedido?.clientes?.nombre ?? "—",
         almacenNombre: pedido?.almacenes?.nombre ?? "—",
-        totalTexto: "—",
+        moneda: "—",
+        baseImponible: null,
+        igv: null,
+        total: null,
       };
     });
   }
@@ -147,16 +168,29 @@ export async function GET(request: NextRequest) {
     f.clienteNombre,
     f.almacenNombre,
     formatFecha(f.fechaEmision),
-    f.totalTexto,
+    f.moneda,
+    f.baseImponible,
+    f.igv,
+    f.total,
     f.estado,
   ]);
 
-  const body = buildExcelText(HEADERS, rows);
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Comprobantes");
+  sheet.addRow(HEADERS).font = { bold: true };
+  sheet.columns = HEADERS.map((h) => ({ width: Math.max(14, h.length + 2) }));
+  sheet.views = [{ state: "frozen", ySplit: 1 }];
+  for (const row of rows) sheet.addRow(row);
+  for (const col of [7, 8, 9]) {
+    sheet.getColumn(col).numFmt = "#,##0.00";
+  }
 
-  return new NextResponse(body, {
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-16le",
-      "Content-Disposition": 'attachment; filename="comprobantes.csv"',
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="comprobantes.xlsx"',
     },
   });
 }
