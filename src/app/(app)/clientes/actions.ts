@@ -6,6 +6,16 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import { consultarDni, consultarRuc, type ConsultaDocumento } from "@/utils/decolecta";
 
+// El único mensaje de Postgres que vale la pena traducir: el resto de
+// errores son casos de borde que no esperamos que un usuario normal
+// provoque, así que no se justifica mantener un mapeo completo acá.
+function mensajeError(error: { message: string }, cliente: { tipo_documento: string; numero_documento: string }) {
+  if (error.message.includes("clientes_empresa_id_tipo_documento_numero_documento_key")) {
+    return `Ya existe un cliente registrado con ${cliente.tipo_documento} ${cliente.numero_documento}.`;
+  }
+  return error.message;
+}
+
 function clienteFromForm(formData: FormData) {
   const num = (key: string) => {
     const raw = formData.get(key);
@@ -53,7 +63,7 @@ export async function createCliente(formData: FormData) {
     .insert({ ...cliente, empresa_id });
 
   if (error) {
-    redirect(`/clientes/nuevo?error=${encodeURIComponent(error.message)}`);
+    redirect(`/clientes/nuevo?error=${encodeURIComponent(mensajeError(error, cliente))}`);
   }
 
   revalidatePath("/clientes");
@@ -81,7 +91,7 @@ export async function createClienteRapido(
     .single();
 
   if (error || !data) {
-    return { error: error?.message ?? "No se pudo registrar el cliente." };
+    return { error: error ? mensajeError(error, cliente) : "No se pudo registrar el cliente." };
   }
 
   revalidatePath("/clientes");
@@ -97,7 +107,7 @@ export async function updateCliente(id: string, formData: FormData) {
 
   if (error) {
     redirect(
-      `/clientes/${id}/editar?error=${encodeURIComponent(error.message)}`,
+      `/clientes/${id}/editar?error=${encodeURIComponent(mensajeError(error, cliente))}`,
     );
   }
 

@@ -36,7 +36,11 @@ export default async function ClientesPage({
   if (canal === "digital") query = query.eq("es_digital", true);
   if (canal === "campo") query = query.eq("es_digital", false);
 
-  if (q) query = query.ilike("nombre", `%${q}%`);
+  // También busca por número de documento, no solo por nombre — si no, un
+  // cliente ya registrado con otro nombre (apodo, error de tipeo, lo
+  // ingresó otra persona) es imposible de encontrar antes de chocar con el
+  // error de documento duplicado al intentar crearlo de nuevo.
+  if (q) query = query.or(`nombre.ilike.%${q}%,numero_documento.ilike.%${q}%`);
 
   const { data: clientes, error } = await query;
 
