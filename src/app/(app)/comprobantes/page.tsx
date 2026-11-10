@@ -113,24 +113,50 @@ export default async function ComprobantesPage({
   let filasGuias: Fila[] = [];
   let errorGuias: { message: string } | null = null;
 
+  // Una guía de remisión nace de un reparto O de un comprobante libre
+  // (nunca ambos — ver 20261030000000_guia_remision_comprobante_libre.sql),
+  // y cada origen resuelve cliente/almacén por un camino distinto. Se
+  // consultan por separado (como ya se hace para mezclar comprobantes +
+  // guías) en vez de un solo query con ambos joins, porque un join
+  // "!inner" a `repartos` excluiría silenciosamente las guías de
+  // comprobante libre (reparto_id siempre null ahí), y uno no-inner
+  // dejaría "Ver reparto" apuntando a `/repartos/null/editar`.
   if (incluirGuiasRemision) {
-    let query = supabase
+    let queryReparto = supabase
       .from("guias_remision")
       .select(
         q
           ? "id, tipo_comprobante, serie, numero, estado, enlace_pdf, enlace_xml, fecha_emision, reparto_id, repartos!inner(pedidos!inner(clientes!inner(nombre), almacenes!inner(nombre)))"
-          : "id, tipo_comprobante, serie, numero, estado, enlace_pdf, enlace_xml, fecha_emision, reparto_id, repartos(pedidos(clientes(nombre), almacenes(nombre)))",
+          : "id, tipo_comprobante, serie, numero, estado, enlace_pdf, enlace_xml, fecha_emision, reparto_id, repartos!inner(pedidos(clientes(nombre), almacenes(nombre)))",
       )
+      .not("reparto_id", "is", null)
       .order("fecha_emision", { ascending: false });
 
-    if (q) query = query.ilike("repartos.pedidos.clientes.nombre", `%${q}%`);
-    if (desdeEfectivo) query = query.gte("fecha_emision", inicioDiaLima(desdeEfectivo));
-    if (hastaEfectivo) query = query.lte("fecha_emision", finDiaLima(hastaEfectivo));
-    if (estado) query = query.eq("estado", estado);
+    if (q) queryReparto = queryReparto.ilike("repartos.pedidos.clientes.nombre", `%${q}%`);
+    if (desdeEfectivo) queryReparto = queryReparto.gte("fecha_emision", inicioDiaLima(desdeEfectivo));
+    if (hastaEfectivo) queryReparto = queryReparto.lte("fecha_emision", finDiaLima(hastaEfectivo));
+    if (estado) queryReparto = queryReparto.eq("estado", estado);
 
-    const { data, error } = await query;
-    errorGuias = error;
-    filasGuias = (data ?? []).map((g) => {
+    let queryLibre = supabase
+      .from("guias_remision")
+      .select(
+        q
+          ? "id, tipo_comprobante, serie, numero, estado, enlace_pdf, enlace_xml, fecha_emision, comprobante_id, almacenes(nombre), comprobantes!inner(clientes!inner(nombre))"
+          : "id, tipo_comprobante, serie, numero, estado, enlace_pdf, enlace_xml, fecha_emision, comprobante_id, almacenes(nombre), comprobantes(clientes(nombre))",
+      )
+      .not("comprobante_id", "is", null)
+      .order("fecha_emision", { ascending: false });
+
+    if (q) queryLibre = queryLibre.ilike("comprobantes.clientes.nombre", `%${q}%`);
+    if (desdeEfectivo) queryLibre = queryLibre.gte("fecha_emision", inicioDiaLima(desdeEfectivo));
+    if (hastaEfectivo) queryLibre = queryLibre.lte("fecha_emision", finDiaLima(hastaEfectivo));
+    if (estado) queryLibre = queryLibre.eq("estado", estado);
+
+    const [{ data: dataReparto, error: errorReparto }, { data: dataLibre, error: errorLibre }] =
+      await Promise.all([queryReparto, queryLibre]);
+    errorGuias = errorReparto ?? errorLibre;
+
+    const filasGuiasReparto = (dataReparto ?? []).map((g) => {
       const pedido = (
         g.repartos as unknown as {
           pedidos: {
@@ -155,6 +181,28 @@ export default async function ComprobantesPage({
         verLabel: "Ver reparto",
       };
     });
+
+    const filasGuiasLibres = (dataLibre ?? []).map((g) => {
+      const comprobante = g.comprobantes as unknown as { clientes: { nombre: string } | null } | null;
+      const almacen = g.almacenes as unknown as { nombre: string } | null;
+      return {
+        id: g.id,
+        tipoComprobante: g.tipo_comprobante,
+        serie: g.serie,
+        numero: g.numero,
+        estado: g.estado,
+        enlacePdf: g.enlace_pdf,
+        enlaceXml: g.enlace_xml,
+        fechaEmision: g.fecha_emision,
+        clienteNombre: comprobante?.clientes?.nombre ?? "—",
+        almacenNombre: almacen?.nombre ?? "—",
+        totalTexto: "—",
+        verHref: `/comprobantes-libres/${g.comprobante_id}`,
+        verLabel: "Ver comprobante",
+      };
+    });
+
+    filasGuias = [...filasGuiasReparto, ...filasGuiasLibres];
   }
 
   const filas = [...filasComprobantes, ...filasGuias].sort(
