@@ -66,7 +66,14 @@ export default async function EditarComprobanteLibrePage({
       supabase
         .from("comprobante_libre_detalle")
         .select("producto_id, descripcion, cantidad, precio_unitario")
-        .eq("comprobante_id", id),
+        .eq("comprobante_id", id)
+        // La línea de descuento del anticipo (si la hay) la vuelve a
+        // generar guardarDetalleLibre sola, a partir del anticipo
+        // seleccionado — no se muestra acá como editable porque, si un
+        // intento anterior falló y el usuario la deja tal cual al
+        // reintentar, el descuento se aplicaría dos veces (una por esta
+        // línea, otra por el cálculo de cabecera).
+        .eq("es_descuento_anticipo", false),
     ]);
 
   const anticipoIds = (anticiposRaw ?? []).map((a) => a.id);

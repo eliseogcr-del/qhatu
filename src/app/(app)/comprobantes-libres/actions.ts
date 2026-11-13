@@ -421,6 +421,7 @@ async function guardarDetalleLibre(
       cantidad: 1,
       precio_unitario: -anticipo.total,
       subtotal: -anticipo.total,
+      es_descuento_anticipo: true,
     });
   }
 }
