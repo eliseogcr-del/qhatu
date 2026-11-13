@@ -339,39 +339,56 @@ export async function editarComprobanteLibre(comprobanteId: string, formData: Fo
   const { empresaId } = await requireComprobantesAcceso(supabase, "/comprobantes-libres");
   const redirectBase = `/comprobantes-libres/${comprobanteId}/editar`;
 
+  // "Guardar y reintentar" se reclama de forma atómica (update condicionado
+  // al estado actual, no un select+if desde acá) — si el mismo clic llega
+  // dos veces casi a la vez (doble clic, reintento de red), la segunda
+  // ejecución encuentra el estado ya en "procesando" y no entra, en vez de
+  // que ambas borren e inserten el detalle casi en paralelo y lo dupliquen
+  // (como pasó: terminaba con el producto y el descuento del anticipo
+  // duplicados, y la suma volvía a dar el total sin descuento).
   const { data: comprobante } = await supabase
     .from("comprobantes")
-    .select("id, tipo_comprobante, serie, numero, estado, origen")
+    .update({ estado: "procesando" })
     .eq("id", comprobanteId)
     .eq("origen", "libre")
-    .single();
+    .in("estado", ["pendiente", "error"])
+    .select("id, tipo_comprobante, serie, numero")
+    .maybeSingle();
 
   if (!comprobante) {
-    redirect(`/comprobantes-libres?error=${encodeURIComponent("El comprobante no existe.")}`);
-  }
-  if (comprobante.estado !== "pendiente" && comprobante.estado !== "error") {
     redirect(
       `/comprobantes-libres?error=${encodeURIComponent(
-        "Este comprobante ya fue emitido o anulado — no se puede editar.",
+        "El comprobante no existe, ya fue emitido/anulado, o ya se está procesando otro intento — espera unos segundos y vuelve a intentar.",
       )}`,
     );
   }
 
-  const { clienteId, tipoEmision, anticipo, descripcion, lineas, lineasParaItems, payload } =
-    await validarYArmarPayload(supabase, empresaId, formData, {
+  // Si algo de acá para abajo redirige con un error (validarYArmarPayload
+  // valida y redirige directo, sin devolver nada) o lanza cualquier otra
+  // excepción, el comprobante no puede quedarse trabado en "procesando"
+  // — se revierte a "error" antes de dejar seguir la excepción/redirect,
+  // para que la pantalla de Editar lo siga reconociendo como editable.
+  let resultado: Awaited<ReturnType<typeof validarYArmarPayload>>;
+  try {
+    resultado = await validarYArmarPayload(supabase, empresaId, formData, {
       tipoComprobante: comprobante.tipo_comprobante,
       serie: comprobante.serie,
       numero: comprobante.numero,
       redirectBase,
     });
 
-  // Se reemplaza el detalle ANTES de reintentar — reintentarEmision
-  // redirige y no vuelve si Nubefact lo vuelve a rechazar, así que si el
-  // guardado quedara después de esa llamada (como estaba antes) las
-  // líneas que acabas de escribir se perderían otra vez en cada reintento
-  // fallido. Guardándolas antes, quedan ahí pase lo que pase.
-  await supabase.from("comprobante_libre_detalle").delete().eq("comprobante_id", comprobanteId);
-  await guardarDetalleLibre(supabase, comprobanteId, lineas, lineasParaItems, anticipo);
+    // Se reemplaza el detalle ANTES de reintentar — reintentarEmision
+    // redirige y no vuelve si Nubefact lo vuelve a rechazar, así que si el
+    // guardado quedara después de esa llamada (como estaba antes) las
+    // líneas que acabas de escribir se perderían otra vez en cada reintento
+    // fallido. Guardándolas antes, quedan ahí pase lo que pase.
+    await supabase.from("comprobante_libre_detalle").delete().eq("comprobante_id", comprobanteId);
+    await guardarDetalleLibre(supabase, comprobanteId, resultado.lineas, resultado.lineasParaItems, resultado.anticipo);
+  } catch (err) {
+    await supabase.from("comprobantes").update({ estado: "error" }).eq("id", comprobanteId);
+    throw err;
+  }
+  const { clienteId, tipoEmision, anticipo, descripcion, payload } = resultado;
 
   await reintentarEmision(supabase, {
     comprobanteId,
