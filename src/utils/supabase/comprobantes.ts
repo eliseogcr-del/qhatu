@@ -112,15 +112,20 @@ export function itemsDesdeLineas(
   const items: NubefactItem[] = lineas.map((d) => {
     // El importe sin IGV de la línea sale de dividir el total (con IGV)
     // entre (1 + tasa) y redondear ESE resultado a 2 decimales — nunca de
-    // redondear el valor unitario primero y luego multiplicar por la
-    // cantidad, porque ese redondeo intermedio se arrastra multiplicado
-    // por la cantidad y desvía el importe de línea (ej. con cantidad 4,
-    // un valor unitario redondeado "hacia abajo" por un centésimo se nota
-    // como 4 centésimos de diferencia en el importe). El valor unitario
-    // que se imprime es solo informativo — no tiene por qué reproducir el
-    // importe al multiplicarlo por la cantidad, igual que en cualquier
-    // factura real.
-    const valorUnitario = Math.round((d.precio_unitario / (1 + factorIgv)) * 100) / 100;
+    // multiplicar el valor unitario por la cantidad, porque un redondeo a
+    // 2 decimales ahí se arrastra multiplicado por la cantidad y desvía
+    // el importe de línea (ej. con cantidad 4, un valor unitario
+    // redondeado "hacia abajo" por un centésimo se nota como 4 centésimos
+    // de diferencia en el importe). Esto en teoría no importaría porque
+    // el valor unitario es solo informativo — pero SUNAT SÍ valida que
+    // cantidad × valor_unitario calce con el importe de la línea dentro
+    // de una tolerancia de S/ 1.00 ("Caso B"), y con una cantidad grande
+    // (cientos o miles de unidades) 2 decimales de precisión no alcanzan:
+    // el redondeo se multiplica y supera esa tolerancia, y SUNAT rechaza
+    // el comprobante. Por eso acá se usan 6 decimales en vez de 2 — deja
+    // el redondeo final en centésimos de centavo, invisible en cualquier
+    // cantidad realista, pero suficiente para que SUNAT lo acepte.
+    const valorUnitario = Math.round((d.precio_unitario / (1 + factorIgv)) * 1e6) / 1e6;
     const subtotalSinIgv = Math.round((d.subtotal / (1 + factorIgv)) * 100) / 100;
     const igvLinea = Math.round((d.subtotal - subtotalSinIgv) * 100) / 100;
     return {
