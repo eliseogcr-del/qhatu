@@ -725,15 +725,24 @@ export default async function VentaDetallePage({
                     </td>
                     <td className="py-2 text-right">
                       {c.estado === "activa" && (
-                        <ConfirmFormButton
-                          action={anularCobranza.bind(null, c.id, `/ventas/${id}`)}
-                          confirmMessage="¿Anular este cobro? Quedará registrado en el log de auditoría."
-                          icon={<XCircle size={14} />}
-                          pendingLabel="Anulando..."
-                          className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                        >
-                          Anular
-                        </ConfirmFormButton>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/cobranzas/${c.id}/editar?volver=${encodeURIComponent(`/ventas/${id}`)}`}
+                            className="flex items-center gap-1 border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                          >
+                            <Pencil size={14} />
+                            Editar
+                          </Link>
+                          <ConfirmFormButton
+                            action={anularCobranza.bind(null, c.id, `/ventas/${id}`)}
+                            confirmMessage="¿Anular este cobro? Quedará registrado en el log de auditoría."
+                            icon={<XCircle size={14} />}
+                            pendingLabel="Anulando..."
+                            className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                          >
+                            Anular
+                          </ConfirmFormButton>
+                        </div>
                       )}
                     </td>
                   </tr>

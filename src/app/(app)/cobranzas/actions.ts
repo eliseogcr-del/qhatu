@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession, requireAdmin } from "@/utils/supabase/session";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { UMBRAL_BLOQUEO_BYTES, buildNombreArchivoCobranza } from "@/lib/cobranza-adjuntos";
+import { datetimeLocalALima } from "@/lib/fecha";
 
 // Compartido entre createCobranza (cobro contra una venta) y
 // registrarAnticipoPedido (anticipo contra un pedido sin venta aún) —
@@ -354,5 +355,113 @@ export async function anularCobranza(cobranzaId: string, redirectTo: string) {
   revalidatePath("/cobranzas");
   if (cobranza.venta_id) revalidatePath(`/ventas/${cobranza.venta_id}`);
   if (cobranza.pedido_id) revalidatePath(`/pedidos/${cobranza.pedido_id}`);
+  redirect(redirectTo);
+}
+
+// Corrige un cobro ya registrado (fecha, monto, moneda, método,
+// referencia) sin anularlo y crear uno nuevo — eso le haría perder la
+// fecha real (un cobro nuevo siempre nace con la fecha de hoy, nunca con
+// una fecha elegida a mano) y dejaría dos filas en vez de una. Solo
+// admin, mismo criterio que anularCobranza — corregir el monto/método de
+// un cobro es al menos tan sensible como anularlo.
+export async function updateCobranza(cobranzaId: string, redirectTo: string, formData: FormData) {
+  const supabase = await createClient();
+  const { userId, empresaId } = await requireAdmin(supabase);
+  const redirectBase = `/cobranzas/${cobranzaId}/editar?volver=${encodeURIComponent(redirectTo)}`;
+
+  const { data: cobranzaActual } = await supabase
+    .from("cobranzas")
+    .select("id, monto, moneda, metodo_pago, referencia, fecha, estado, venta_id, pedido_id")
+    .eq("id", cobranzaId)
+    .single();
+
+  if (!cobranzaActual || cobranzaActual.estado !== "activa") {
+    redirect(`/cobranzas?error=${encodeURIComponent("El cobro no existe o ya está anulado.")}`);
+  }
+
+  const fechaLocal = String(formData.get("fecha") || "");
+  const monto = Number(formData.get("monto") ?? 0);
+  const moneda = String(formData.get("moneda") ?? "PEN");
+  const tipoCambio = Number(formData.get("tipo_cambio_aplicado") || 1);
+  const metodoPago = String(formData.get("metodo_pago") ?? "efectivo");
+  const referencia = String(formData.get("referencia") ?? "") || null;
+
+  if (!fechaLocal) {
+    redirect(`${redirectBase}&error=${encodeURIComponent("Selecciona la fecha del cobro.")}`);
+  }
+  if (monto <= 0) {
+    redirect(`${redirectBase}&error=${encodeURIComponent("Ingresa un monto válido.")}`);
+  }
+  if (!(tipoCambio > 0)) {
+    redirect(`${redirectBase}&error=${encodeURIComponent("El tipo de cambio debe ser mayor a 0.")}`);
+  }
+
+  // Mismo tope que al crear un cobro (nunca pasar el saldo pendiente de la
+  // venta), pero excluyendo el propio monto actual de este cobro del
+  // "ya cobrado" — si no, el cobro se estaría comparando contra sí mismo.
+  if (cobranzaActual.venta_id) {
+    const { data: venta } = await supabase
+      .from("ventas")
+      .select("total, descuento")
+      .eq("id", cobranzaActual.venta_id)
+      .single();
+
+    if (venta) {
+      const { data: otrasCobranzas } = await supabase
+        .from("cobranzas")
+        .select("monto")
+        .eq("venta_id", cobranzaActual.venta_id)
+        .eq("estado", "activa")
+        .neq("id", cobranzaId);
+
+      const totalReferencia = venta.total - venta.descuento;
+      const cobradoSinEsta = (otrasCobranzas ?? []).reduce((acc, c) => acc + c.monto, 0);
+      const saldoDisponible = Math.round((totalReferencia - cobradoSinEsta) * 100) / 100;
+
+      if (monto > saldoDisponible) {
+        redirect(
+          `${redirectBase}&error=${encodeURIComponent(
+            `El monto (${monto.toFixed(2)}) no puede ser mayor al saldo disponible (${saldoDisponible.toFixed(2)}).`,
+          )}`,
+        );
+      }
+    }
+  }
+
+  const fecha = datetimeLocalALima(fechaLocal);
+
+  const { error } = await supabase
+    .from("cobranzas")
+    .update({
+      fecha,
+      monto,
+      moneda,
+      tipo_cambio_aplicado: tipoCambio,
+      metodo_pago: metodoPago,
+      referencia,
+    })
+    .eq("id", cobranzaId);
+
+  if (error) {
+    redirect(`${redirectBase}&error=${encodeURIComponent(error.message)}`);
+  }
+
+  await registrarAuditoria(supabase, {
+    empresaId,
+    usuarioId: userId,
+    entidad: "cobranza",
+    entidadId: cobranzaId,
+    tipoMovimiento: TIPO_AUDITORIA.cobranzaEditar,
+    monto,
+    detalle: `Cobro editado — antes: ${cobranzaActual.moneda} ${cobranzaActual.monto}, ${cobranzaActual.metodo_pago}${
+      cobranzaActual.referencia ? `, ref: ${cobranzaActual.referencia}` : ""
+    } (${cobranzaActual.fecha}); después: ${moneda} ${monto}, ${metodoPago}${
+      referencia ? `, ref: ${referencia}` : ""
+    } (${fecha}).`,
+  });
+
+  revalidatePath("/cobranzas");
+  if (cobranzaActual.venta_id) revalidatePath(`/ventas/${cobranzaActual.venta_id}`);
+  if (cobranzaActual.pedido_id) revalidatePath(`/pedidos/${cobranzaActual.pedido_id}`);
   redirect(redirectTo);
 }

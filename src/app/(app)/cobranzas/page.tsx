@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatFecha, inicioDiaLima, finDiaLima, hoyLima } from "@/lib/fecha";
-import { FileDown, XCircle } from "lucide-react";
+import { FileDown, XCircle, Pencil } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
 import {
@@ -218,15 +218,24 @@ export default async function CobranzasPage({
                           {cobranza.venta_id ? "Ver venta" : "Ver pedido"}
                         </Link>
                         {rol === "admin" && cobranza.estado === "activa" && (
-                          <ConfirmFormButton
-                            action={anularCobranza.bind(null, cobranza.id, "/cobranzas")}
-                            confirmMessage="¿Anular este cobro? Quedará registrado en el log de auditoría."
-                            icon={<XCircle size={14} />}
-                            pendingLabel="Anulando..."
-                            className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                          >
-                            Anular
-                          </ConfirmFormButton>
+                          <>
+                            <Link
+                              href={`/cobranzas/${cobranza.id}/editar?volver=${encodeURIComponent("/cobranzas")}`}
+                              className="flex items-center gap-1 border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                            >
+                              <Pencil size={14} />
+                              Editar
+                            </Link>
+                            <ConfirmFormButton
+                              action={anularCobranza.bind(null, cobranza.id, "/cobranzas")}
+                              confirmMessage="¿Anular este cobro? Quedará registrado en el log de auditoría."
+                              icon={<XCircle size={14} />}
+                              pendingLabel="Anulando..."
+                              className="border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                            >
+                              Anular
+                            </ConfirmFormButton>
+                          </>
                         )}
                       </div>
                     </td>
