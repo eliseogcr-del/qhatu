@@ -82,6 +82,27 @@ export function resolverAlmacenId(
 
 // Bloquea el acceso a secciones sensibles (ej. auditoría) a quien no
 // tenga rol de administrador.
+// Editar o anular un cobro ya registrado: por defecto solo admin, pero
+// se puede conceder puntualmente a cualquier otro usuario (ej. un
+// vendedor o logística) desde Usuarios → Permisos con la opción
+// "/cobranzas/gestionar" — a diferencia de las demás opciones del
+// catálogo, esta no abre ninguna pantalla nueva, solo habilita dos
+// acciones sensibles sobre cobros que ya existen.
+export async function requireGestionCobranzas(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (
+    session.rol !== "admin" &&
+    !(await tieneOpcion(supabase, session.userId, "/cobranzas/gestionar"))
+  ) {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para editar o anular cobros.")}`,
+    );
+  }
+  return session;
+}
+
 export async function requireAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {

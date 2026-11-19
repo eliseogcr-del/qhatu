@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { requireGestionCobranzas } from "@/utils/supabase/session";
 import { timestampAInputLocalLima } from "@/lib/fecha";
 import EditarCobranzaForm from "@/components/EditarCobranzaForm";
 import { updateCobranza } from "../../actions";
@@ -15,6 +16,7 @@ export default async function EditarCobranzaPage({
   const { id } = await params;
   const { error, volver } = await searchParams;
   const supabase = await createClient();
+  await requireGestionCobranzas(supabase);
 
   const { data: cobranza } = await supabase
     .from("cobranzas")

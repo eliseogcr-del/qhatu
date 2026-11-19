@@ -105,7 +105,7 @@ const ADMINISTRACION: Grupo = {
 // para quien ve todos los repartos. Sigue existiendo como opción
 // asignable en Permisos y el proxy lo sigue protegiendo igual — esto
 // solo oculta el enlace del menú.
-const OCULTAS_DEL_MENU = new Set(["/mis-repartos"]);
+const OCULTAS_DEL_MENU = new Set(["/mis-repartos", "/cobranzas/gestionar"]);
 
 // Arma el menú de un usuario a partir de las opciones que tiene
 // concedidas (usuario_opciones) — admin ve el catálogo completo siempre,

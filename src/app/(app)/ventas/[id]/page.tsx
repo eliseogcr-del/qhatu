@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil, Ban, XCircle, FileText, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { tieneOpcion } from "@/utils/supabase/opciones";
 import { TIPO_DEVOLUCION_LABEL, type TipoDevolucion } from "@/lib/devolucion-tipos";
 import { METODO_PAGO_LABEL, type MetodoPago } from "@/lib/cobranza-tipos";
 import { TIPO_COMPROBANTE_LABEL, TIPO_NOTA_VENTA, enlacePdfComprobante } from "@/lib/comprobante-links";
@@ -35,7 +36,9 @@ export default async function VentaDetallePage({
   const { id } = await params;
   const { error, volver } = await searchParams;
   const supabase = await createClient();
-  const { rol } = await getEmpresaSession(supabase);
+  const { rol, userId } = await getEmpresaSession(supabase);
+  const puedeGestionarCobros =
+    rol === "admin" || (await tieneOpcion(supabase, userId, "/cobranzas/gestionar"));
 
   const { data: venta } = await supabase
     .from("ventas")
@@ -724,7 +727,7 @@ export default async function VentaDetallePage({
                       )}
                     </td>
                     <td className="py-2 text-right">
-                      {c.estado === "activa" && (
+                      {puedeGestionarCobros && c.estado === "activa" && (
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/cobranzas/${c.id}/editar?volver=${encodeURIComponent(`/ventas/${id}`)}`}

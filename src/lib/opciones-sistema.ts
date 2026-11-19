@@ -48,6 +48,11 @@ export const OPCIONES_SISTEMA: OpcionSistema[] = [
   { codigo: "/comprobantes", etiqueta: "Comprobantes", grupo: "Finanzas" },
   { codigo: "/comprobantes-libres", etiqueta: "Comprobantes libres", grupo: "Finanzas" },
   { codigo: "/cobranzas", etiqueta: "Cobranzas", grupo: "Finanzas" },
+  // No es una pantalla nueva — habilita las acciones "Editar"/"Anular"
+  // sobre un cobro ya existente (hoy exclusivas de admin), sin darle la
+  // pantalla completa de Cobranzas si todavía no la tenía. Por eso no
+  // tiene lugar propio en el menú (ver OCULTAS_DEL_MENU en SidebarNav).
+  { codigo: "/cobranzas/gestionar", etiqueta: "Editar/anular cobros", grupo: "Finanzas" },
   { codigo: "/reportes", etiqueta: "Reportes", grupo: "Finanzas" },
 ];
 
@@ -131,7 +136,10 @@ export function mejorOpcionParaRuta(pathname: string): OpcionSistema | null {
 // propio.
 const CODIGOS_EQUIVALENTES: Record<string, string[]> = {
   "/ventas": ["/ventas", "/ventas/mis-ventas"],
-  "/cobranzas": ["/cobranzas", "/ventas", "/ventas/mis-ventas"],
+  // Quien tiene SOLO "/cobranzas/gestionar" (sin "/cobranzas" propiamente)
+  // también debe poder entrar a /cobranzas/[id]/editar — si no, el proxy
+  // lo bloquearía antes de llegar a la página a pesar de tener el permiso.
+  "/cobranzas": ["/cobranzas", "/ventas", "/ventas/mis-ventas", "/cobranzas/gestionar"],
 };
 
 // Los códigos con los que basta tener CUALQUIERA concedido para pasar la

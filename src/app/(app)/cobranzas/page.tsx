@@ -3,6 +3,7 @@ import { formatFecha, inicioDiaLima, finDiaLima, hoyLima } from "@/lib/fecha";
 import { FileDown, XCircle, Pencil } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getEmpresaSession } from "@/utils/supabase/session";
+import { tieneOpcion } from "@/utils/supabase/opciones";
 import {
   METODOS_PAGO,
   METODO_PAGO_LABEL,
@@ -45,7 +46,9 @@ export default async function CobranzasPage({
   const hasta = hastaParam ?? hoy;
 
   const supabase = await createClient();
-  const { rol } = await getEmpresaSession(supabase);
+  const { rol, userId } = await getEmpresaSession(supabase);
+  const puedeGestionarCobros =
+    rol === "admin" || (await tieneOpcion(supabase, userId, "/cobranzas/gestionar"));
 
   let query = supabase
     .from("cobranzas")
@@ -217,7 +220,7 @@ export default async function CobranzasPage({
                         >
                           {cobranza.venta_id ? "Ver venta" : "Ver pedido"}
                         </Link>
-                        {rol === "admin" && cobranza.estado === "activa" && (
+                        {puedeGestionarCobros && cobranza.estado === "activa" && (
                           <>
                             <Link
                               href={`/cobranzas/${cobranza.id}/editar?volver=${encodeURIComponent("/cobranzas")}`}

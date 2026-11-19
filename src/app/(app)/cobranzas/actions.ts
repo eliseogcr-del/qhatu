@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { getEmpresaSession, requireAdmin } from "@/utils/supabase/session";
+import { getEmpresaSession, requireGestionCobranzas } from "@/utils/supabase/session";
 import { registrarAuditoria, TIPO_AUDITORIA } from "@/utils/supabase/auditoria";
 import { UMBRAL_BLOQUEO_BYTES, buildNombreArchivoCobranza } from "@/lib/cobranza-adjuntos";
 import { datetimeLocalALima } from "@/lib/fecha";
@@ -326,7 +326,7 @@ export async function actualizarEvidenciaCobranza(
 // conserva el registro, y queda auditado quién lo anuló y cuándo.
 export async function anularCobranza(cobranzaId: string, redirectTo: string) {
   const supabase = await createClient();
-  const { userId, empresaId } = await requireAdmin(supabase);
+  const { userId, empresaId } = await requireGestionCobranzas(supabase);
 
   const { data: cobranza } = await supabase
     .from("cobranzas")
@@ -366,7 +366,7 @@ export async function anularCobranza(cobranzaId: string, redirectTo: string) {
 // un cobro es al menos tan sensible como anularlo.
 export async function updateCobranza(cobranzaId: string, redirectTo: string, formData: FormData) {
   const supabase = await createClient();
-  const { userId, empresaId } = await requireAdmin(supabase);
+  const { userId, empresaId } = await requireGestionCobranzas(supabase);
   const redirectBase = `/cobranzas/${cobranzaId}/editar?volver=${encodeURIComponent(redirectTo)}`;
 
   const { data: cobranzaActual } = await supabase
