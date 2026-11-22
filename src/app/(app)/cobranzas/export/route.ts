@@ -225,6 +225,77 @@ export async function GET(request: NextRequest) {
     sheet.getColumn(col).numFmt = "#,##0.00";
   }
 
+  // Los dos resúmenes de abajo, igual que "Resumen de lo cobrado" en
+  // pantalla, se calculan solo sobre cobros ACTIVOS (una anulada no es
+  // plata realmente cobrada) — sobre el mismo conjunto ya filtrado por
+  // fecha/cliente/método/etc. arriba, nunca sobre todo el historial.
+  //
+  // ExcelJS no genera tablas dinámicas reales de Excel (son un objeto de
+  // caché/XML propio que esta librería no expone) — estas dos hojas son
+  // el resultado YA agrupado y sumado, como si abrieras la dinámica y la
+  // dejaras así: mismos números, pero no son "refrescables" dentro de
+  // Excel si cambias los datos a mano.
+  const filasActivas = filas.filter((c) => c.estado === "activa");
+  const tiposPago = Object.keys(TIPO_PAGO_LABEL);
+
+  const resumenTipo = workbook.addWorksheet("Resumen por tipo de pago");
+  resumenTipo.addRow(["Tipo de pago", "Monto cobrado"]).font = { bold: true };
+  resumenTipo.columns = [{ width: 20 }, { width: 18 }];
+  let totalGeneralTipo = 0;
+  for (const tipo of tiposPago) {
+    const monto =
+      Math.round(
+        filasActivas.filter((c) => c.tipo_pago === tipo).reduce((acc, c) => acc + c.monto, 0) * 100,
+      ) / 100;
+    totalGeneralTipo += monto;
+    resumenTipo.addRow([TIPO_PAGO_LABEL[tipo] ?? tipo, monto]);
+  }
+  const filaTotalTipo = resumenTipo.addRow(["Total", Math.round(totalGeneralTipo * 100) / 100]);
+  filaTotalTipo.font = { bold: true };
+  resumenTipo.getColumn(2).numFmt = "#,##0.00";
+
+  const resumenVendedor = workbook.addWorksheet("Resumen por vendedor");
+  resumenVendedor.addRow(["Registrado por", ...tiposPago.map((t) => TIPO_PAGO_LABEL[t] ?? t), "Total"]).font = {
+    bold: true,
+  };
+  resumenVendedor.columns = [{ width: 24 }, ...tiposPago.map(() => ({ width: 14 })), { width: 14 }];
+
+  const vendedoresNombres = [
+    ...new Set(
+      filasActivas.map(
+        (c) => (c.usuarios as unknown as { nombre: string | null } | null)?.nombre ?? "—",
+      ),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  const totalesPorTipo = new Map(tiposPago.map((t) => [t, 0]));
+  let totalGeneralVendedor = 0;
+  for (const nombre of vendedoresNombres) {
+    const cobrosVendedor = filasActivas.filter(
+      (c) => ((c.usuarios as unknown as { nombre: string | null } | null)?.nombre ?? "—") === nombre,
+    );
+    const montosPorTipo = tiposPago.map((tipo) => {
+      const monto =
+        Math.round(
+          cobrosVendedor.filter((c) => c.tipo_pago === tipo).reduce((acc, c) => acc + c.monto, 0) * 100,
+        ) / 100;
+      totalesPorTipo.set(tipo, (totalesPorTipo.get(tipo) ?? 0) + monto);
+      return monto;
+    });
+    const totalVendedor = Math.round(montosPorTipo.reduce((acc, m) => acc + m, 0) * 100) / 100;
+    totalGeneralVendedor += totalVendedor;
+    resumenVendedor.addRow([nombre, ...montosPorTipo, totalVendedor]);
+  }
+  const filaTotalVendedor = resumenVendedor.addRow([
+    "Total",
+    ...tiposPago.map((t) => Math.round((totalesPorTipo.get(t) ?? 0) * 100) / 100),
+    Math.round(totalGeneralVendedor * 100) / 100,
+  ]);
+  filaTotalVendedor.font = { bold: true };
+  for (let col = 2; col <= tiposPago.length + 2; col++) {
+    resumenVendedor.getColumn(col).numFmt = "#,##0.00";
+  }
+
   const buffer = await workbook.xlsx.writeBuffer();
 
   return new NextResponse(buffer, {
