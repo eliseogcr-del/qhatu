@@ -27,6 +27,7 @@ export default async function CobranzasPage({
     metodo_pago?: string;
     tipo_pago?: string;
     estado?: string;
+    usuario_id?: string;
   }>;
 }) {
   const {
@@ -36,6 +37,7 @@ export default async function CobranzasPage({
     metodo_pago: metodoPago,
     tipo_pago: tipoPago,
     estado,
+    usuario_id: usuarioId,
   } = await searchParams;
 
   // Por defecto (sin filtro explícito en la URL) se muestra el mes en
@@ -65,14 +67,28 @@ export default async function CobranzasPage({
   if (metodoPago) query = query.eq("metodo_pago", metodoPago);
   if (tipoPago) query = query.eq("tipo_pago", tipoPago);
   if (estado) query = query.eq("estado", estado);
+  if (usuarioId) query = query.eq("usuario_id", usuarioId);
 
-  const { data: cobranzas, error } = await query;
+  const [{ data: cobranzas, error }, { data: usuariosRegistran }] = await Promise.all([
+    query,
+    // Quién registra un cobro no depende de un rol fijo (cualquiera con
+    // acceso a Cobranzas puede hacerlo) — se listan todos los activos, sin
+    // acotar por rol, igual que "Registrado por" en la grilla. Se excluye
+    // la cuenta de prueba/desarrollo, igual que en Ventas.
+    supabase
+      .from("usuarios")
+      .select("id, nombre")
+      .eq("activo", true)
+      .not("username", "eq", "eliseogcr")
+      .not("nombre", "ilike", "%prueba%")
+      .order("nombre"),
+  ]);
 
   // El rango de fecha por defecto (mes en curso) no cuenta como "filtro
   // activo" — solo cuenta si el usuario lo cambió a propósito (o tocó
   // cualquier otro filtro), para no abrir el panel ni mostrar "Limpiar"
   // en la vista normal de todos los días.
-  const hayFiltros = !!(q || desdeParam || hastaParam || metodoPago || tipoPago || estado);
+  const hayFiltros = !!(q || desdeParam || hastaParam || metodoPago || tipoPago || estado || usuarioId);
 
   // Resumen de lo cobrado (solo cobros activos) agrupado por método de
   // pago, sobre el mismo conjunto ya filtrado arriba — se recalcula solo
@@ -98,6 +114,7 @@ export default async function CobranzasPage({
   if (metodoPago) exportParams.set("metodo_pago", metodoPago);
   if (tipoPago) exportParams.set("tipo_pago", tipoPago);
   if (estado) exportParams.set("estado", estado);
+  if (usuarioId) exportParams.set("usuario_id", usuarioId);
   const exportQs = exportParams.toString();
 
   return (
@@ -128,7 +145,9 @@ export default async function CobranzasPage({
           metodoPago={metodoPago ?? ""}
           tipoPago={tipoPago ?? ""}
           estado={estado ?? ""}
+          usuarioId={usuarioId ?? ""}
           opcionesMetodoPago={METODOS_PAGO.map((m) => ({ value: m, label: METODO_PAGO_LABEL[m] }))}
+          opcionesUsuario={(usuariosRegistran ?? []).map((u) => ({ value: u.id, label: u.nombre }))}
           hayFiltros={hayFiltros}
         />
 

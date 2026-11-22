@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
   const metodoPago = params.get("metodo_pago");
   const tipoPago = params.get("tipo_pago");
   const estado = params.get("estado");
+  const usuarioId = params.get("usuario_id");
 
   let query = supabase
     .from("cobranzas")
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
   if (metodoPago) query = query.eq("metodo_pago", metodoPago);
   if (tipoPago) query = query.eq("tipo_pago", tipoPago);
   if (estado) query = query.eq("estado", estado);
+  if (usuarioId) query = query.eq("usuario_id", usuarioId);
 
   const { data: cobranzas } = await query;
   const filas = cobranzas ?? [];

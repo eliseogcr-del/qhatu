@@ -16,7 +16,9 @@ export default function CobranzasFiltroForm({
   metodoPago,
   tipoPago,
   estado,
+  usuarioId,
   opcionesMetodoPago,
+  opcionesUsuario,
   hayFiltros,
 }: {
   q: string;
@@ -25,7 +27,9 @@ export default function CobranzasFiltroForm({
   metodoPago: string;
   tipoPago: string;
   estado: string;
+  usuarioId: string;
   opcionesMetodoPago: Opcion[];
+  opcionesUsuario: Opcion[];
   hayFiltros: boolean;
 }) {
   const router = useRouter();
@@ -45,6 +49,7 @@ export default function CobranzasFiltroForm({
     metodo_pago: string;
     tipo_pago: string;
     estado: string;
+    usuario_id: string;
   }) => {
     const usp = new URLSearchParams();
     if (params.q) usp.set("q", params.q);
@@ -53,6 +58,7 @@ export default function CobranzasFiltroForm({
     if (params.metodo_pago) usp.set("metodo_pago", params.metodo_pago);
     if (params.tipo_pago) usp.set("tipo_pago", params.tipo_pago);
     if (params.estado) usp.set("estado", params.estado);
+    if (params.usuario_id) usp.set("usuario_id", params.usuario_id);
     router.push(`${pathname}?${usp.toString()}`);
   };
 
@@ -64,7 +70,7 @@ export default function CobranzasFiltroForm({
       return;
     }
     const timeout = setTimeout(() => {
-      navegar({ q: query, desde, hasta, metodo_pago: metodoPago, tipo_pago: tipoPago, estado });
+      navegar({ q: query, desde, hasta, metodo_pago: metodoPago, tipo_pago: tipoPago, estado, usuario_id: usuarioId });
     }, 400);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,6 +130,7 @@ export default function CobranzasFiltroForm({
               metodo_pago: metodoPago,
               tipo_pago: tipoPago,
               estado,
+              usuario_id: usuarioId,
             })
           }
           className={inputClass}
@@ -142,6 +149,7 @@ export default function CobranzasFiltroForm({
               metodo_pago: metodoPago,
               tipo_pago: tipoPago,
               estado,
+              usuario_id: usuarioId,
             })
           }
           className={inputClass}
@@ -159,6 +167,7 @@ export default function CobranzasFiltroForm({
               metodo_pago: e.target.value,
               tipo_pago: tipoPago,
               estado,
+              usuario_id: usuarioId,
             })
           }
           className={inputClass}
@@ -183,6 +192,7 @@ export default function CobranzasFiltroForm({
               metodo_pago: metodoPago,
               tipo_pago: e.target.value,
               estado,
+              usuario_id: usuarioId,
             })
           }
           className={inputClass}
@@ -204,6 +214,7 @@ export default function CobranzasFiltroForm({
               metodo_pago: metodoPago,
               tipo_pago: tipoPago,
               estado: e.target.value,
+              usuario_id: usuarioId,
             })
           }
           className={inputClass}
@@ -213,12 +224,37 @@ export default function CobranzasFiltroForm({
           <option value="anulada">Anulada</option>
         </select>
       </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Registrado por</label>
+        <select
+          value={usuarioId}
+          onChange={(e) =>
+            navegar({
+              q: query,
+              desde,
+              hasta,
+              metodo_pago: metodoPago,
+              tipo_pago: tipoPago,
+              estado,
+              usuario_id: e.target.value,
+            })
+          }
+          className={inputClass}
+        >
+          <option value="">Todos</option>
+          {opcionesUsuario.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
       {hayFiltros && (
         <button
           type="button"
           onClick={() => {
             setQuery("");
-            navegar({ q: "", desde: "", hasta: "", metodo_pago: "", tipo_pago: "", estado: "" });
+            navegar({ q: "", desde: "", hasta: "", metodo_pago: "", tipo_pago: "", estado: "", usuario_id: "" });
           }}
           className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"
         >
