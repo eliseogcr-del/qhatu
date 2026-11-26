@@ -53,6 +53,11 @@ export const OPCIONES_SISTEMA: OpcionSistema[] = [
   // pantalla completa de Cobranzas si todavía no la tenía. Por eso no
   // tiene lugar propio en el menú (ver OCULTAS_DEL_MENU en SidebarNav).
   { codigo: "/cobranzas/gestionar", etiqueta: "Editar/anular cobros", grupo: "Finanzas" },
+  // Sí es una pantalla propia (a diferencia de "gestionar" de arriba) —
+  // sube el reporte de Yape/Plin/transferencia del banco y lo cruza
+  // contra lo cobrado en el sistema ese día. No es automática para nadie
+  // por rol — siempre se concede puntualmente.
+  { codigo: "/cobranzas/conciliacion", etiqueta: "Conciliar pagos digitales", grupo: "Finanzas" },
   { codigo: "/reportes", etiqueta: "Reportes", grupo: "Finanzas" },
 ];
 

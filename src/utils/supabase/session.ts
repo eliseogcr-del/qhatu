@@ -103,6 +103,25 @@ export async function requireGestionCobranzas(
   return session;
 }
 
+// Conciliación de pagos digitales (Yape/Plin/transferencia): por defecto
+// solo admin, concedible puntualmente con "/cobranzas/conciliacion" —
+// a diferencia de requireGestionCobranzas, esta sí es una pantalla
+// propia con su lugar en el menú.
+export async function requireConciliacionCobranzas(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const session = await getEmpresaSession(supabase);
+  if (
+    session.rol !== "admin" &&
+    !(await tieneOpcion(supabase, session.userId, "/cobranzas/conciliacion"))
+  ) {
+    redirect(
+      `/dashboard?error=${encodeURIComponent("No tienes permisos para acceder a esta sección.")}`,
+    );
+  }
+  return session;
+}
+
 export async function requireAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {

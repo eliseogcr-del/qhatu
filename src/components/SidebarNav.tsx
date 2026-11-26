@@ -35,6 +35,7 @@ import {
   Zap,
   ClipboardCheck,
   KeyRound,
+  GitCompareArrows,
   type LucideIcon,
 } from "lucide-react";
 import { OPCIONES_SISTEMA } from "@/lib/opciones-sistema";
@@ -65,6 +66,7 @@ const ICONOS: Record<string, LucideIcon> = {
   "/comprobantes": FileText,
   "/comprobantes-libres": FileSpreadsheet,
   "/cobranzas": Wallet,
+  "/cobranzas/conciliacion": GitCompareArrows,
   "/reportes": BarChart3,
 };
 
